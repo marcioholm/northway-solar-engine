@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { ProposalView } from '../../../components/proposta/ProposalView';
 import { ProposalData } from '../../../lib/proposal-types';
 
@@ -24,12 +25,14 @@ function ProposalError({ title, message }: { title: string; message: string }) {
   );
 }
 
-export default function ProposalPage({ params }: { params: { id: string } }) {
+export default function ProposalPage() {
+  const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<ProposalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!id) return;
     const token = localStorage.getItem('token');
     const api = process.env.NEXT_PUBLIC_API_URL;
 
@@ -39,7 +42,7 @@ export default function ProposalPage({ params }: { params: { id: string } }) {
       return;
     }
 
-    fetch(`${api}/proposals/${params.id}`, {
+    fetch(`${api}/proposals/${id}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(async res => {
@@ -59,7 +62,7 @@ export default function ProposalPage({ params }: { params: { id: string } }) {
         setError(err.message || 'Erro ao carregar proposta');
       })
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   if (loading) return <ProposalSkeleton />;
   if (error) return <ProposalError title="Proposta não encontrada" message={error} />;
