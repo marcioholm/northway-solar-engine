@@ -35,6 +35,9 @@ function DashboardContent() {
   const [consumption, setConsumption] = useState(leadConsumption ? Number(leadConsumption) : 0);
   const [selectedState, setSelectedState] = useState(leadState || '');
   const [selectedCity, setSelectedCity] = useState(leadCity || '');
+  const [utility, setUtility] = useState('');
+  const [tariff, setTariff] = useState(0);
+  const [profile, setProfile] = useState('residential');
   const [states, setStates] = useState<IBGEState[]>([]);
   const [cities, setCities] = useState<IBGECity[]>([]);
   const [result, setResult] = useState<any>(null);
@@ -61,7 +64,7 @@ function DashboardContent() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, clientName: clientName || 'Cliente Visitante', clientCep: '00000-000', leadId: leadId || undefined }),
+        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, clientName: clientName || 'Cliente Visitante', clientCep: '00000-000', leadId: leadId || undefined, utility: utility || undefined, tariff: tariff || undefined, profile: profile || undefined }),
       });
       if (!res.ok) throw new Error('Failed to create proposal');
       const proposal = await res.json();
@@ -96,7 +99,7 @@ function DashboardContent() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/solar-engine/calculate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}` }),
+        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, utility: utility || undefined, tariff: tariff || undefined, profile: profile || undefined }),
       });
       if (!res.ok) throw new Error('Calculation failed');
       setResult(await res.json());
@@ -127,6 +130,17 @@ function DashboardContent() {
                 <Input label="Cidade" variant="select" value={selectedCity} onChange={setSelectedCity}
                   options={[{ label: 'Selecione...', value: '' }, ...cities.map(c => ({ label: c.nome, value: c.nome }))]}
                   disabled={!selectedState} required />
+                <Input label="Distribuidora" value={utility} onChange={setUtility} placeholder="Ex: Copel, Enel, Cemig..." />
+                <Input label="Tarifa (R$/kWh)" variant="number" placeholder="0" value={tariff || ''} onChange={v => setTariff(Number(v))} step="0.01" />
+                <Input label="Perfil do Cliente" variant="select" value={profile} onChange={setProfile}
+                  options={[
+                    { label: 'Residencial', value: 'residential' },
+                    { label: 'Comercial', value: 'commercial' },
+                    { label: 'Rural', value: 'rural' },
+                    { label: 'Industrial', value: 'industrial' },
+                    { label: 'Poder Público', value: 'public' },
+                    { label: 'Cooperativa', value: 'cooperative' },
+                  ]} />
                 <div style={{ gridColumn: 'span 3' }}>
                   <Button type="submit" loading={loading} size="md" style={{ padding: '12px 28px' }}>Calcular Proposta</Button>
                   {error && <Text variant="sm" color="danger" style={{ marginTop: '8px' }}>{error}</Text>}

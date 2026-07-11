@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ProposalView } from '../../../components/proposta/ProposalView';
-import { ProposalData, buildMockData } from '../../../lib/proposal-types';
+import { ProposalData } from '../../../lib/proposal-types';
 
 function ProposalSkeleton() {
   return (
@@ -14,12 +14,12 @@ function ProposalSkeleton() {
   );
 }
 
-function ProposalError({ message }: { message: string }) {
+function ProposalError({ title, message }: { title: string; message: string }) {
   return (
     <div style={{ padding: '80px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)', gap: 12 }}>
       <div style={{ fontSize: 36, opacity: 0.2 }}>◈</div>
-      <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Proposta não encontrada</h2>
-      <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>{message}</p>
+      <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>{title}</h2>
+      <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, textAlign: 'center', maxWidth: 400 }}>{message}</p>
     </div>
   );
 }
@@ -33,38 +33,39 @@ export default function ProposalPage({ params }: { params: { id: string } }) {
     const token = localStorage.getItem('token');
     const api = process.env.NEXT_PUBLIC_API_URL;
 
+    if (!api) {
+      setError('API não configurada');
+      setLoading(false);
+      return;
+    }
+
     fetch(`${api}/proposals/${params.id}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }).then(res => {
-      if (!res.ok) throw new Error('Proposta não encontrada');
-      return res.json();
-    }).then((proposal: any) => {
-      const m = buildMockData(params.id, proposal.profile || 'residential');
-      setData({
-        ...m,
-        id: proposal.id || params.id,
-        clientName: proposal.clientName || m.clientName,
-        clientCity: proposal.clientCity || m.clientCity,
-        clientState: proposal.clientState || m.clientState,
-        profile: proposal.profile || m.profile,
-        createdAt: proposal.createdAt || m.createdAt,
-        expirationDate: proposal.expirationDate || m.expirationDate,
-        monthlyBill: Number(proposal.monthlyBill) || m.monthlyBill,
-        monthlyConsumption: Number(proposal.monthlyConsumption) || m.monthlyConsumption,
-        monthlySavings: Number(proposal.monthlySavings) || m.monthlySavings,
-        systemPowerKwp: Number(proposal.systemPowerKwp) || m.systemPowerKwp,
-        finalPrice: Number(proposal.finalPrice) || m.finalPrice,
-        paybackYears: Number(proposal.paybackYears) || m.paybackYears,
-      });
-    }).catch(() => {
-      const profile = (new URLSearchParams(window.location.search)).get('profile') as any || 'residential';
-      setData(buildMockData(params.id, profile));
-    }).finally(() => setLoading(false));
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Erro ${res.status}: proposta não encontrada`);
+        return res.json();
+      })
+      .then((proposal: any) => {
+        if (!proposal || Object.keys(proposal).length === 0) {
+          throw new Error('Proposta sem dados');
+        }
+        setData(proposal);
+      })
+      .catch(err => {
+        setError(err.message || 'Erro ao carregar proposta');
+      })
+      .finally(() => setLoading(false));
   }, [params.id]);
 
   if (loading) return <ProposalSkeleton />;
-  if (error) return <ProposalError message={error} />;
-  if (!data) return <ProposalError message="Dados não disponíveis" />;
+  if (error) return <ProposalError title="Proposta não encontrada" message={error} />;
+  if (!data) return <ProposalError title="Sem dados" message="Não foi possível carregar os dados da proposta." />;
+
+  const hasContent = data.clientName || data.consumption || data.finalPrice || data.monthlyBill;
+  if (!hasContent) {
+    return <ProposalError title="Proposta vazia" message="Esta proposta não possui dados preenchidos. Solicite ao consultor que complete as informações." />;
+  }
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
@@ -74,12 +75,14 @@ export default function ProposalPage({ params }: { params: { id: string } }) {
           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Plano Solar Personalizado</span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => window.print()} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
+          <button onClick={() => window.print()} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
             Baixar PDF
           </button>
-          <a href={`https://wa.me/${data.consultantPhone.replace(/\D/g, '')}?text=Olá, vi minha proposta personalizada SolarOS e gostaria de prosseguir.`} target="_blank" rel="noopener noreferrer" style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
-            Falar no WhatsApp
-          </a>
+          {data.consultantPhone && (
+            <a href={`https://wa.me/${data.consultantPhone.replace(/\D/g, '')}?text=Olá, vi minha proposta personalizada SolarOS e gostaria de prosseguir.`} target="_blank" rel="noopener noreferrer" style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
+              Falar no WhatsApp
+            </a>
+          )}
         </div>
       </div>
       <div style={{ paddingTop: 54 }}>
