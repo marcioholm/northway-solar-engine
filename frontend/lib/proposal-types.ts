@@ -47,7 +47,7 @@ export interface ProposalData {
   coordinator?: string;
   consultantName?: string;
   consultantPhone?: string;
-  createdAt: string;
+  createdAt?: string;
   expirationDate?: string;
   profile?: ClientProfile;
   utility?: string;

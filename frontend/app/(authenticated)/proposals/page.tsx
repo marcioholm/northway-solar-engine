@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '../../../components/compositions/PageHeader';
 import { DataGrid } from '../../../components/compositions/DataGrid';
 import { Button } from '../../../components/ui/Button';
 import { Text } from '../../../components/primitives/Text';
 import { Stack } from '../../../components/primitives/Stack';
+import { Flex } from '../../../components/primitives/Flex';
 import { formatCurrency } from '../../../lib/format';
 
 export default function ProposalsPage() {
+  const router = useRouter();
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -57,12 +60,17 @@ export default function ProposalsPage() {
     {
       key: 'actions' as const,
       label: 'Ações',
-      width: '120px',
+      width: '200px',
       align: 'right' as const,
       render: (p: any) => (
-        <Button variant="ghost" size="sm" onClick={() => handleDownload(p.id)}>
-          Baixar PDF
-        </Button>
+        <Flex gap={1} justify="end">
+          <Button variant="ghost" size="sm" onClick={() => router.push(`/proposta/${p.id}`)}>
+            Visualizar
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => handleDownload(p.id)}>
+            Baixar PDF
+          </Button>
+        </Flex>
       ),
     },
   ];
