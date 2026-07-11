@@ -14,7 +14,7 @@ export class ProposalsService {
     ) { }
 
     async create(companyId: string, userId: string, dto: CreateProposalDto) {
-        const calculation = await this.solarEngineService.calculate(companyId, dto.consumption, dto.city);
+        const calculation = await this.solarEngineService.calculate(companyId, dto.consumption, dto.city, dto.moduleId, dto.inverterId, dto.moduleQty);
 
         const proposal = this.proposalsRepository.create({
             companyId,

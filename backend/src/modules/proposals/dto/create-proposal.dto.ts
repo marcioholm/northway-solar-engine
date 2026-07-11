@@ -7,4 +7,7 @@ export class CreateProposalDto {
     utility?: string;
     tariff?: number;
     profile?: string;
+    moduleId?: string;
+    inverterId?: string;
+    moduleQty?: number;
 }

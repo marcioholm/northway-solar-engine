@@ -11,7 +11,7 @@ export class SolarEngineService {
         private inventoryService: InventoryService,
     ) { }
 
-    async calculate(companyId: string, consumption: number, city: string) {
+    async calculate(companyId: string, consumption: number, city: string, moduleId?: string, inverterId?: string, moduleQtyOverride?: number) {
         // 1. Get Company Config
         const company = await this.companiesService.findOne(companyId);
         if (!company) throw new NotFoundException('Company not found');
@@ -28,32 +28,42 @@ export class SolarEngineService {
         const modules = await this.inventoryService.findAllModules(companyId);
         if (!modules.length) throw new NotFoundException('No modules in inventory');
 
-        // Simple logic: pick the first one or highest power? "Dimensione módulos com base no estoque"
-        // Let's pick the one with best cost/watt or just the first active one for MVP
-        const selectedModule = modules[0];
+        let selectedModule;
+        if (moduleId) {
+            selectedModule = modules.find(m => m.id === moduleId);
+            if (!selectedModule) throw new NotFoundException('Selected module not found in inventory');
+        } else {
+            selectedModule = modules[0];
+        }
 
         // 5. Calculate Module Qty
-        // Qty = ceil(Power * 1000 / ModuleWatts)
-        const moduleQty = Math.ceil((requiredPowerKwp * 1000) / selectedModule.powerWatt);
+        let moduleQty: number;
+        if (moduleQtyOverride) {
+            moduleQty = moduleQtyOverride;
+        } else {
+            moduleQty = Math.ceil((requiredPowerKwp * 1000) / selectedModule.powerWatt);
+        }
         const systemPowerKwp = (moduleQty * selectedModule.powerWatt) / 1000;
 
         // 6. Select Inverter
         const inverters = await this.inventoryService.findAllInverters(companyId);
-        // Logic: Power between 90% and 120% of system power. Select cheapest.
-        const compatibleInverters = inverters.filter(inv => {
-            const ratio = Number(inv.nominalPowerKw) / systemPowerKwp;
-            return ratio >= 0.90 && ratio <= 1.25; // Adjusted slightly for flexibility
-        });
-
-        if (!compatibleInverters.length) {
-            // Fallback: pick the closest one if strict match fails, or throw
-            // For MVP, just pick the closest by power
-            compatibleInverters.push(inverters.sort((a, b) => Math.abs(Number(a.nominalPowerKw) - systemPowerKwp) - Math.abs(Number(b.nominalPowerKw) - systemPowerKwp))[0]);
+        let selectedInverter;
+        if (inverterId) {
+            selectedInverter = inverters.find(inv => inv.id === inverterId);
+            if (!selectedInverter) throw new NotFoundException('Selected inverter not found in inventory');
+        } else {
+            const compatible = inverters.filter(inv => {
+                const ratio = Number(inv.nominalPowerKw) / systemPowerKwp;
+                return ratio >= 0.90 && ratio <= 1.25;
+            });
+            if (!compatible.length) {
+                compatible.push(inverters.sort((a, b) =>
+                    Math.abs(Number(a.nominalPowerKw) - systemPowerKwp) - Math.abs(Number(b.nominalPowerKw) - systemPowerKwp)
+                )[0]);
+            }
+            compatible.sort((a, b) => Number(a.cost) - Number(b.cost));
+            selectedInverter = compatible[0];
         }
-
-        // Sort by cost
-        compatibleInverters.sort((a, b) => Number(a.cost) - Number(b.cost));
-        const selectedInverter = compatibleInverters[0];
 
         // 7. Calculate Costs
         const costModules = moduleQty * Number(selectedModule.cost);

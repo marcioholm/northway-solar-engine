@@ -38,6 +38,11 @@ function DashboardContent() {
   const [utility, setUtility] = useState('');
   const [tariff, setTariff] = useState(0);
   const [profile, setProfile] = useState('residential');
+  const [modules, setModules] = useState<any[]>([]);
+  const [inverters, setInverters] = useState<any[]>([]);
+  const [selectedModuleId, setSelectedModuleId] = useState('');
+  const [selectedInverterId, setSelectedInverterId] = useState('');
+  const [moduleQty, setModuleQty] = useState(0);
   const [states, setStates] = useState<IBGEState[]>([]);
   const [cities, setCities] = useState<IBGECity[]>([]);
   const [result, setResult] = useState<any>(null);
@@ -47,6 +52,21 @@ function DashboardContent() {
   useEffect(() => {
     fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome')
       .then(res => res.json()).then(setStates);
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const api = process.env.NEXT_PUBLIC_API_URL;
+    if (!api || !token) return;
+    Promise.all([
+      fetch(`${api}/inventory/modules`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`${api}/inventory/inverters`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ]).then(([mods, invs]) => {
+      setModules(mods);
+      setInverters(invs);
+      if (mods.length) setSelectedModuleId(mods[0].id);
+      if (invs.length) setSelectedInverterId(invs[0].id);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -64,7 +84,7 @@ function DashboardContent() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, clientName: clientName || 'Cliente Visitante', clientCep: '00000-000', leadId: leadId || undefined, utility: utility || undefined, tariff: tariff || undefined, profile: profile || undefined }),
+        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, clientName: clientName || 'Cliente Visitante', clientCep: '00000-000', leadId: leadId || undefined, utility: utility || undefined, tariff: tariff || undefined, profile: profile || undefined, moduleId: selectedModuleId || undefined, inverterId: selectedInverterId || undefined, moduleQty: moduleQty > 0 ? moduleQty : undefined }),
       });
       if (!res.ok) throw new Error('Failed to create proposal');
       const proposal = await res.json();
@@ -99,7 +119,16 @@ function DashboardContent() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/solar-engine/calculate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, utility: utility || undefined, tariff: tariff || undefined, profile: profile || undefined }),
+        body: JSON.stringify({
+          consumption,
+          city: `${selectedCity} - ${selectedState}`,
+          utility: utility || undefined,
+          tariff: tariff || undefined,
+          profile: profile || undefined,
+          moduleId: selectedModuleId || undefined,
+          inverterId: selectedInverterId || undefined,
+          moduleQty: moduleQty > 0 ? moduleQty : undefined,
+        }),
       });
       if (!res.ok) throw new Error('Calculation failed');
       setResult(await res.json());
@@ -141,6 +170,17 @@ function DashboardContent() {
                     { label: 'Poder Público', value: 'public' },
                     { label: 'Cooperativa', value: 'cooperative' },
                   ]} />
+                {modules.length > 0 && (
+                  <Input label="Módulo Solar" variant="select" value={selectedModuleId} onChange={setSelectedModuleId}
+                    options={modules.map(m => ({ label: `${m.brand} ${m.model} (${m.powerWatt}W - R$ ${Number(m.cost).toFixed(0)})`, value: m.id }))} />
+                )}
+                {modules.length > 0 && (
+                  <Input label="Quantidade de Módulos" variant="number" placeholder="Auto" value={moduleQty || ''} onChange={v => setModuleQty(Number(v))} />
+                )}
+                {inverters.length > 0 && (
+                  <Input label="Inversor" variant="select" value={selectedInverterId} onChange={setSelectedInverterId}
+                    options={inverters.map(inv => ({ label: `${inv.brand} ${inv.model} (${inv.nominalPowerKw}kW - R$ ${Number(inv.cost).toFixed(0)})`, value: inv.id }))} />
+                )}
                 <div style={{ gridColumn: 'span 3' }}>
                   <Button type="submit" loading={loading} size="md" style={{ padding: '12px 28px' }}>Calcular Proposta</Button>
                   {error && <Text variant="sm" color="danger" style={{ marginTop: '8px' }}>{error}</Text>}
