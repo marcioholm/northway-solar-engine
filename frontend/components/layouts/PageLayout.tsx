@@ -14,6 +14,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
           marginLeft: sidebarWidth,
           flex: 1,
           padding: '24px 32px 40px',
+          background: 'var(--bg)',
           transition: 'margin-left 0.2s ease',
         }}
       >

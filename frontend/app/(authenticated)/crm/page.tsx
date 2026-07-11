@@ -71,7 +71,7 @@ export default function CrmDashboard() {
       {/* Pipeline + Right Column */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px', marginBottom: '24px' }}>
         {/* Pipeline Card */}
-        <Card padding="md" style={{ boxShadow: 'var(--shadow-md)' }}>
+        <Card padding="md" style={{ boxShadow: 'var(--shadow-md)', overflow: 'hidden' }}>
           <Flex align="center" justify="between" style={{ marginBottom: '16px' }}>
             <div>
               <Text variant="xxs" color="accent">Pipeline de vendas</Text>
