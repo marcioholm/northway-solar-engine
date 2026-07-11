@@ -1,23 +1,32 @@
+'use client';
+
+import { SidebarProvider, useSidebar } from '../../hooks/useSidebar';
 import Sidebar from './Sidebar';
 
-interface PageLayoutProps {
-  children: React.ReactNode;
-}
+function LayoutInner({ children }: { children: React.ReactNode }) {
+  const { sidebarWidth } = useSidebar();
 
-export default function PageLayout({ children }: PageLayoutProps) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
       <main
         style={{
-          marginLeft: 'var(--sidebar)',
+          marginLeft: sidebarWidth,
           flex: 1,
           padding: '24px 32px 40px',
-          maxWidth: '1800px',
+          transition: 'margin-left 0.2s ease',
         }}
       >
         {children}
       </main>
     </div>
+  );
+}
+
+export default function PageLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+      <LayoutInner>{children}</LayoutInner>
+    </SidebarProvider>
   );
 }
