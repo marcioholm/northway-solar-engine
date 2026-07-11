@@ -2,11 +2,14 @@ const { NestFactory } = require('@nestjs/core');
 const { ExpressAdapter } = require('@nestjs/platform-express');
 const { SwaggerModule, DocumentBuilder } = require('@nestjs/swagger');
 const { AppModule } = require('../dist/app.module');
+const { AllExceptionsFilter } = require('../dist/common/filters/all-exceptions.filter');
 
 let cachedApp;
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, new ExpressAdapter());
+
+    app.useGlobalFilters(new AllExceptionsFilter());
 
     const config = new DocumentBuilder()
         .setTitle('NorthWay Solar Engine API')
@@ -36,6 +39,6 @@ module.exports = async (req, res) => {
         cachedApp(req, res);
     } catch (err) {
         console.error('Error:', err.message, err.stack);
-        res.status(500).json({ statusCode: 500, message: err.message });
+        res.status(500).json({ statusCode: 500, message: err.message, stack: err.stack?.split('\n').slice(0, 6).join('\n') });
     }
 };
