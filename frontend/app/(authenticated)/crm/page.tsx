@@ -46,7 +46,7 @@ export default function CrmDashboard() {
   const totalSources = sources.reduce((s: number, x: any) => s + x.count, 0) || 120;
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
       {/* Hero: KPIs + Goal */}
       <Card padding="lg" style={{ marginBottom: '24px' }}>
         <Flex align="center" justify="between" style={{ marginBottom: '20px' }}>

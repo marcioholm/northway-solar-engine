@@ -144,7 +144,7 @@ export default function InventoryPage() {
   const isModule = activeTab === 'modules';
 
   return (
-    <div style={{ maxWidth: '1440px', padding: '32px 36px', background: 'var(--bg)' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
       <Stack gap={6}>
         <PageHeader
           title="Inventário de Equipamentos"

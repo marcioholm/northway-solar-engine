@@ -98,7 +98,7 @@ export default function LeadsKanban() {
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
       <PageHeader
         title="Leads"
         subtitle="Gerencie seu pipeline comercial"

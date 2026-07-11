@@ -68,7 +68,7 @@ export default function ProposalsPage() {
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
       <Stack gap={6}>
         <PageHeader title="Histórico de Propostas" subtitle="Visualize e baixe propostas enviadas aos clientes." />
         <DataGrid

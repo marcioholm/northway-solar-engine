@@ -100,11 +100,11 @@ function DashboardContent() {
   };
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
       <Stack gap={8}>
         <PageHeader title="Novo Dimensionamento" subtitle="Configure os parâmetros técnicos para gerar uma proposta." actions={result && <Button variant="secondary" size="sm">Histórico</Button>} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '24px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
           {/* Left — Form & Results */}
           <Stack gap={6}>
             <Card padding="lg">
