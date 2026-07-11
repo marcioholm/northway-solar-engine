@@ -5,7 +5,7 @@ import { SolarProject } from './entities/solar-project.entity';
 import { CreateSolarProjectDto } from './dto/create-solar-project.dto';
 import { UpdateSolarProjectDto } from './dto/update-solar-project.dto';
 
-const STATUS_FLOW = ['draft', 'client', 'site', 'consumption', 'sizing', 'quotes', 'pricing', 'payment', 'review', 'proposal', 'closed_won', 'closed_lost'];
+const STATUS_FLOW = ['draft', 'client', 'site', 'consumption', 'sizing', 'quotes', 'costs', 'pricing', 'payment', 'review', 'proposal', 'closed_won', 'closed_lost'];
 
 const MODULE_MAP: Record<string, string[]> = {
     client: ['clientName', 'clientDocument', 'clientPhone', 'clientEmail', 'clientCity', 'clientState', 'clientZipcode', 'clientUtility', 'clientClass', 'clientTariffGroup', 'clientModality', 'consultantName'],
