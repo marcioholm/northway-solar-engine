@@ -72,6 +72,10 @@ export class ProposalsService {
         }
     }
 
+    async findOnePublic(id: string) {
+        return this.proposalsRepository.findOneBy({ id });
+    }
+
     async generatePdf(id: string) {
         const proposal = await this.findOne(id).catch(() => null);
         if (!proposal) throw new NotFoundException('Proposal not found');

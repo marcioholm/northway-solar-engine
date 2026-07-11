@@ -31,8 +31,12 @@ export class ProposalsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.proposalsService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    try {
+      return await this.proposalsService.findOne(id);
+    } catch {
+      return await this.proposalsService.findOnePublic(id);
+    }
   }
 
   @Get(':id/pdf')
