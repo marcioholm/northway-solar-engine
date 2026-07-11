@@ -62,14 +62,14 @@ export class ProposalsService {
     }
 
     async findOne(id: string) {
-        try {
-            return await this.proposalsRepository.findOne({
-                where: { id },
-                relations: ['module', 'inverter', 'company']
-            });
-        } catch {
-            return this.proposalsRepository.findOneBy({ id });
-        }
+        return this.proposalsRepository.findOneBy({ id });
+    }
+
+    async findOneWithRelations(id: string) {
+        return this.proposalsRepository.findOne({
+            where: { id },
+            relations: ['module', 'inverter', 'company']
+        });
     }
 
     async findOnePublic(id: string) {
@@ -77,7 +77,7 @@ export class ProposalsService {
     }
 
     async generatePdf(id: string) {
-        const proposal = await this.findOne(id).catch(() => null);
+        const proposal = await this.findOneWithRelations(id);
         if (!proposal) throw new NotFoundException('Proposal not found');
 
         const date = new Date(proposal.createdAt).toLocaleDateString('pt-BR', {
