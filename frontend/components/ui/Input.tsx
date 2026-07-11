@@ -105,10 +105,19 @@ export function Input({
           )}
           <input
             id={labelId}
-            type={variant === 'search' ? 'text' : variant === 'number' ? 'number' : 'text'}
+            type={variant === 'search' ? 'text' : 'text'}
+            inputMode={variant === 'number' ? 'decimal' : undefined}
             placeholder={placeholder}
             value={value}
-            onChange={e => onChange?.(e.target.value)}
+            onChange={e => {
+              let v = e.target.value;
+              if (variant === 'number') {
+                v = v.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                const parts = v.split('.');
+                if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+              }
+              onChange?.(v);
+            }}
             disabled={disabled}
             required={required}
             onFocus={() => setFocused(true)}
