@@ -21,7 +21,7 @@ interface IBGECity {
 
 export default function Dashboard() {
     return (
-        <Suspense fallback={<div className="text-gray-400 p-8">Carregando...</div>}>
+        <Suspense fallback={<div style={{ color: '#737B75', padding: '32px' }}>Carregando...</div>}>
             <DashboardContent />
         </Suspense>
     );
@@ -110,17 +110,16 @@ function DashboardContent() {
             });
 
             if (!pdfRes.ok) throw new Error('Failed to fetch PDF');
-            
+
             const blob = await pdfRes.blob();
             const url = window.URL.createObjectURL(blob);
-            
+
             // 3. Open in new tab
             const link = document.createElement('a');
             link.href = url;
             link.target = '_blank';
-            // link.download = `proposta_${proposal.id}.pdf`; // Optional: Force download
             link.click();
-            
+
             // Clean up
             setTimeout(() => window.URL.revokeObjectURL(url), 100);
         } catch (err) {
@@ -162,64 +161,193 @@ function DashboardContent() {
     };
 
     return (
-        <div className="space-y-8 text-gray-100">
-            <div className="flex items-center justify-between">
+        <div className="dash-page">
+            {/* Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                marginBottom: '32px',
+            }}>
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Novo Dimensionamento</h1>
-                    <p className="text-sm text-gray-400 mt-1">Configure os parâmetros técnicos para gerar uma proposta.</p>
+                    <h1 style={{
+                        fontSize: '30px',
+                        fontWeight: 700,
+                        color: '#151A16',
+                        letterSpacing: '-0.03em',
+                        margin: 0,
+                        lineHeight: 1.2,
+                    }}>Novo Dimensionamento</h1>
+                    <p style={{
+                        fontSize: '14px',
+                        color: '#737B75',
+                        margin: '6px 0 0',
+                    }}>Configure os parâmetros técnicos para gerar uma proposta.</p>
                 </div>
                 {result && (
-                    <button className="bg-[var(--card-bg)] hover:bg-gray-700 text-white px-4 py-2 rounded-md border border-[var(--border-color)] text-sm font-medium transition-colors">
+                    <button style={{
+                        background: 'white',
+                        border: '1px solid #E5E9E3',
+                        borderRadius: '12px',
+                        padding: '10px 18px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: '#737B75',
+                        cursor: 'pointer',
+                        transition: 'background 0.12s',
+                    }}>
                         Histórico
                     </button>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                {/* Input Section (Left or Top) */}
-                <div className="lg:col-span-12 xl:col-span-8 space-y-6">
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr',
+                gap: '32px',
+            }}>
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr',
+                    gap: '24px',
+                }}>
                     {/* Parâmetros da Usina Card */}
-                    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-8 shadow-lg">
-                        <div className="flex items-center gap-2 mb-6 text-[var(--color-primary)]">
-                            <CalculatorIcon className="w-5 h-5" />
-                            <h2 className="text-xs font-bold uppercase tracking-widest">Parâmetros da Usina</h2>
+                    <div style={{
+                        background: 'white',
+                        border: '1px solid #E5E9E3',
+                        borderRadius: '20px',
+                        padding: '28px 32px',
+                        boxShadow: '0 10px 30px rgba(31,45,35,0.05)',
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '24px',
+                            color: '#82C832',
+                        }}>
+                            <CalculatorIcon style={{ width: '20px', height: '20px' }} />
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                color: '#82C832',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
+                            }}>Parâmetros da Usina</span>
                         </div>
 
-                        <form onSubmit={handleCalculate} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-3">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nome do Cliente</label>
+                        <form onSubmit={handleCalculate} style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: '20px',
+                        }}>
+                            <div style={{ gridColumn: 'span 3' }}>
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    color: '#737B75',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    marginBottom: '6px',
+                                }}>Nome do Cliente</label>
                                 <input
                                     type="text"
                                     required
                                     value={clientName}
                                     onChange={e => setClientName(e.target.value)}
-                                    className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white placeholder-gray-600 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] sm:text-lg p-3"
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        background: '#F6F8F4',
+                                        border: '1px solid #E5E9E3',
+                                        borderRadius: '10px',
+                                        color: '#151A16',
+                                        fontSize: '16px',
+                                        outline: 'none',
+                                        transition: 'border-color 0.15s, box-shadow 0.15s',
+                                    }}
                                     placeholder="Ex: João da Silva"
+                                    onFocus={e => { e.target.style.borderColor = '#82C832'; e.target.style.boxShadow = '0 0 0 3px rgba(130,200,50,0.15)'; }}
+                                    onBlur={e => { e.target.style.borderColor = '#E5E9E3'; e.target.style.boxShadow = 'none'; }}
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Consumo Médio (kWh)</label>
-                                <div className="relative">
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    color: '#737B75',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    marginBottom: '6px',
+                                }}>Consumo Médio (kWh)</label>
+                                <div style={{ position: 'relative' }}>
                                     <input
                                         type="number"
                                         required
                                         value={consumption || ''}
                                         onChange={e => setConsumption(Number(e.target.value))}
-                                        className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white placeholder-gray-600 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] sm:text-lg p-3"
+                                        style={{
+                                            display: 'block',
+                                            width: '100%',
+                                            padding: '12px 16px',
+                                            paddingRight: '48px',
+                                            background: '#F6F8F4',
+                                            border: '1px solid #E5E9E3',
+                                            borderRadius: '10px',
+                                            color: '#151A16',
+                                            fontSize: '16px',
+                                            outline: 'none',
+                                            transition: 'border-color 0.15s, box-shadow 0.15s',
+                                        }}
                                         placeholder="0"
+                                        onFocus={e => { e.target.style.borderColor = '#82C832'; e.target.style.boxShadow = '0 0 0 3px rgba(130,200,50,0.15)'; }}
+                                        onBlur={e => { e.target.style.borderColor = '#E5E9E3'; e.target.style.boxShadow = 'none'; }}
                                     />
-                                    <span className="absolute right-3 top-3.5 text-gray-500 text-sm font-medium">kWh</span>
+                                    <span style={{
+                                        position: 'absolute',
+                                        right: '14px',
+                                        top: '14px',
+                                        color: '#9ca3a0',
+                                        fontSize: '13px',
+                                        fontWeight: 500,
+                                    }}>kWh</span>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Estado (UF)</label>
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    color: '#737B75',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    marginBottom: '6px',
+                                }}>Estado (UF)</label>
                                 <select
-                                    className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] sm:text-base p-3 appearance-none"
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        background: '#F6F8F4',
+                                        border: '1px solid #E5E9E3',
+                                        borderRadius: '10px',
+                                        color: '#151A16',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        appearance: 'none',
+                                        transition: 'border-color 0.15s, box-shadow 0.15s',
+                                    }}
                                     value={selectedState}
                                     onChange={e => setSelectedState(e.target.value)}
                                     required
+                                    onFocus={e => { e.target.style.borderColor = '#82C832'; e.target.style.boxShadow = '0 0 0 3px rgba(130,200,50,0.15)'; }}
+                                    onBlur={e => { e.target.style.borderColor = '#E5E9E3'; e.target.style.boxShadow = 'none'; }}
                                 >
                                     <option value="">Selecione...</option>
                                     {states.map(uf => (
@@ -229,13 +357,35 @@ function DashboardContent() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Cidade</label>
+                                <label style={{
+                                    display: 'block',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    color: '#737B75',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    marginBottom: '6px',
+                                }}>Cidade</label>
                                 <select
-                                    className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] sm:text-base p-3 appearance-none"
+                                    style={{
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        background: '#F6F8F4',
+                                        border: '1px solid #E5E9E3',
+                                        borderRadius: '10px',
+                                        color: selectedCity ? '#151A16' : '#9ca3a0',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        appearance: 'none',
+                                        transition: 'border-color 0.15s, box-shadow 0.15s',
+                                    }}
                                     value={selectedCity}
                                     onChange={e => setSelectedCity(e.target.value)}
                                     disabled={!selectedState}
                                     required
+                                    onFocus={e => { e.target.style.borderColor = '#82C832'; e.target.style.boxShadow = '0 0 0 3px rgba(130,200,50,0.15)'; }}
+                                    onBlur={e => { e.target.style.borderColor = '#E5E9E3'; e.target.style.boxShadow = 'none'; }}
                                 >
                                     <option value="">Selecione...</option>
                                     {cities.map(city => (
@@ -244,87 +394,279 @@ function DashboardContent() {
                                 </select>
                             </div>
 
-                            <div className="md:col-span-3 mt-2">
+                            <div style={{ gridColumn: 'span 3', marginTop: '4px' }}>
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full md:w-auto rounded-lg bg-[var(--color-primary)] px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-[var(--color-primary-hover)] disabled:opacity-50 transition-all uppercase tracking-wide"
+                                    style={{
+                                        background: loading ? '#9ca3a0' : '#82C832',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        padding: '12px 28px',
+                                        fontWeight: 700,
+                                        fontSize: '14px',
+                                        cursor: loading ? 'not-allowed' : 'pointer',
+                                        boxShadow: '0 8px 18px rgba(130,200,50,0.22)',
+                                        transition: 'background 0.15s, transform 0.15s',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.04em',
+                                    }}
+                                    onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#6DAF24'; }}
+                                    onMouseLeave={e => { if (!loading) e.currentTarget.style.background = '#82C832'; }}
                                 >
                                     {loading ? 'Calculando...' : 'Calcular Proposta'}
                                 </button>
-                                {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                                {error && <p style={{ color: '#D94C4C', fontSize: '13px', marginTop: '8px' }}>{error}</p>}
                             </div>
                         </form>
                     </div>
 
                     {result && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <>
                             {/* Result Cards */}
-                            <div className="bg-[var(--card-bg)] p-6 rounded-xl border border-[var(--border-color)]">
-                                <p className="text-xs font-bold text-gray-500 uppercase">Potência Sugerida</p>
-                                <p className="text-3xl font-bold text-white mt-2">{result.system_power_kwp.toFixed(2)} <span className="text-base text-gray-500 font-normal">kWp</span></p>
-                            </div>
-                            <div className="bg-[var(--card-bg)] p-6 rounded-xl border border-[var(--border-color)]">
-                                <p className="text-xs font-bold text-gray-500 uppercase">Geração Mensal</p>
-                                <p className="text-3xl font-bold text-white mt-2">{Math.round(result.monthly_generation)} <span className="text-base text-gray-500 font-normal">kWh</span></p>
-                            </div>
-                            <div className="bg-[var(--card-bg)] p-6 rounded-xl border border-[var(--border-color)]">
-                                <p className="text-xs font-bold text-gray-500 uppercase">Inversor</p>
-                                <p className="text-xl font-bold text-white mt-2 leading-tight">{result.inverter.model}</p>
-                                <p className="text-xs text-[var(--color-primary)] mt-1 font-medium">OTIMIZADO PARA {result.module.brand.toUpperCase()}</p>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(3, 1fr)',
+                                gap: '16px',
+                            }}>
+                                <div style={{
+                                    background: 'white',
+                                    padding: '24px',
+                                    borderRadius: '20px',
+                                    border: '1px solid #E5E9E3',
+                                }}>
+                                    <p style={{
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#737B75',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.06em',
+                                        margin: '0 0 8px',
+                                    }}>Potência Sugerida</p>
+                                    <p style={{
+                                        fontSize: '28px',
+                                        fontWeight: 800,
+                                        color: '#151A16',
+                                        margin: 0,
+                                    }}>
+                                        {result.system_power_kwp.toFixed(2)}{' '}
+                                        <span style={{ fontSize: '14px', color: '#737B75', fontWeight: 400 }}>kWp</span>
+                                    </p>
+                                </div>
+                                <div style={{
+                                    background: 'white',
+                                    padding: '24px',
+                                    borderRadius: '20px',
+                                    border: '1px solid #E5E9E3',
+                                }}>
+                                    <p style={{
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#737B75',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.06em',
+                                        margin: '0 0 8px',
+                                    }}>Geração Mensal</p>
+                                    <p style={{
+                                        fontSize: '28px',
+                                        fontWeight: 800,
+                                        color: '#151A16',
+                                        margin: 0,
+                                    }}>
+                                        {Math.round(result.monthly_generation)}{' '}
+                                        <span style={{ fontSize: '14px', color: '#737B75', fontWeight: 400 }}>kWh</span>
+                                    </p>
+                                </div>
+                                <div style={{
+                                    background: 'white',
+                                    padding: '24px',
+                                    borderRadius: '20px',
+                                    border: '1px solid #E5E9E3',
+                                }}>
+                                    <p style={{
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#737B75',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.06em',
+                                        margin: '0 0 8px',
+                                    }}>Inversor</p>
+                                    <p style={{
+                                        fontSize: '18px',
+                                        fontWeight: 700,
+                                        color: '#151A16',
+                                        margin: '0 0 4px',
+                                        lineHeight: 1.3,
+                                    }}>
+                                        {result.inverter.model}
+                                    </p>
+                                    <p style={{
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        color: '#82C832',
+                                        margin: 0,
+                                        letterSpacing: '0.03em',
+                                    }}>
+                                        OTIMIZADO PARA {result.module.brand.toUpperCase()}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Hardware Match */}
-                            <div className="md:col-span-3 bg-[var(--input-bg)] p-4 rounded-xl border border-[var(--border-color)] border-dashed flex items-center justify-between">
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                background: '#F2F5EF',
+                                padding: '16px 20px',
+                                borderRadius: '14px',
+                                border: '1px dashed #D0D8CC',
+                                gap: '16px',
+                            }}>
                                 <div>
-                                    <p className="text-sm font-bold text-white">Hardware Engine Match</p>
-                                    <p className="text-xs text-gray-400">Dimensiomaneto automático com {result.module_qty}x módulos {result.module.model} ({result.module.powerWatt}W)</p>
+                                    <p style={{
+                                        fontSize: '14px',
+                                        fontWeight: 700,
+                                        color: '#151A16',
+                                        margin: '0 0 2px',
+                                    }}>Hardware Engine Match</p>
+                                    <p style={{
+                                        fontSize: '12px',
+                                        color: '#737B75',
+                                        margin: 0,
+                                    }}>
+                                        Dimensionamento automático com {result.module_qty}x módulos {result.module.model} ({result.module.powerWatt}W)
+                                    </p>
                                 </div>
-                                <span className="px-3 py-1 bg-green-900/30 text-green-400 text-xs font-bold rounded border border-green-900">DISPONÍVEL</span>
+                                <span style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '999px',
+                                    background: '#EEF2ED',
+                                    color: '#58605A',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    DISPONÍVEL
+                                </span>
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
 
-                {/* Right Column / Price Card */}
-                <div className="lg:col-span-12 xl:col-span-4">
+                {/* Price Card */}
+                <div>
                     {result ? (
-                        <div className="sticky top-6 rounded-xl bg-[var(--color-primary)] p-8 shadow-2xl text-white">
-                            <p className="text-xs font-bold text-red-200 uppercase tracking-widest mb-1">Preço Final Sugerido</p>
-                            <div className="flex items-start">
-                                <span className="text-xl font-medium mt-2 mr-1">R$</span>
-                                <span className="text-5xl font-black tracking-tight">{result.final_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div style={{
+                            background: 'linear-gradient(135deg, #82C832, #6DAF24)',
+                            borderRadius: '20px',
+                            padding: '32px',
+                            color: '#fff',
+                            boxShadow: '0 18px 40px rgba(130,200,50,0.30)',
+                        }}>
+                            <p style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.15em',
+                                opacity: 0.75,
+                                margin: '0 0 4px',
+                            }}>Preço Final Sugerido</p>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '4px',
+                            }}>
+                                <span style={{ fontSize: '22px', fontWeight: 600, marginTop: '6px' }}>R$</span>
+                                <span style={{ fontSize: '48px', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                                    {result.final_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
                             </div>
 
-                            <div className="my-8 border-t border-red-500/30"></div>
+                            <div style={{ margin: '24px 0', borderTop: '1px solid rgba(255,255,255,0.2)' }}></div>
 
-                            <div className="grid grid-cols-2 gap-8">
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '16px',
+                            }}>
                                 <div>
-                                    <p className="text-xs font-bold text-red-200 uppercase mb-1">Margem ({result.margin_pct}%)</p>
-                                    <p className="text-xl font-bold">R$ {result.margin_value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
+                                    <p style={{
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.1em',
+                                        opacity: 0.75,
+                                        margin: '0 0 4px',
+                                    }}>Margem ({result.margin_pct}%)</p>
+                                    <p style={{
+                                        fontSize: '22px',
+                                        fontWeight: 800,
+                                        margin: 0,
+                                    }}>
+                                        R$ {result.margin_value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                                    </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs font-bold text-red-200 uppercase mb-1">Payback</p>
-                                    <p className="text-xl font-bold">{result.payback_years.toFixed(1)} <span className="text-sm font-normal">Anos</span></p>
+                                    <p style={{
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.1em',
+                                        opacity: 0.75,
+                                        margin: '0 0 4px',
+                                    }}>Payback</p>
+                                    <p style={{
+                                        fontSize: '22px',
+                                        fontWeight: 800,
+                                        margin: 0,
+                                    }}>
+                                        {result.payback_years.toFixed(1)}{' '}
+                                        <span style={{ fontSize: '14px', fontWeight: 400, opacity: 0.7 }}>Anos</span>
+                                    </p>
                                 </div>
                             </div>
 
                             <button
                                 onClick={handleGeneratePdf}
                                 disabled={loading}
-                                className="mt-8 w-full bg-white text-[var(--color-primary)] font-bold py-4 rounded-lg shadow-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                style={{
+                                    marginTop: '28px',
+                                    width: '100%',
+                                    background: 'white',
+                                    color: '#82C832',
+                                    fontWeight: 700,
+                                    fontSize: '13px',
+                                    padding: '16px',
+                                    border: 'none',
+                                    borderRadius: '14px',
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    opacity: loading ? 0.6 : 1,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    transition: 'transform 0.15s, box-shadow 0.15s',
+                                }}
                             >
-                                <BoltIcon className="w-5 h-5" />
+                                <BoltIcon style={{ width: '18px', height: '18px' }} />
                                 {loading ? 'GERANDO...' : 'GERAR PDF DA PROPOSTA'}
                             </button>
 
-                            <p className="text-[10px] text-red-200 text-center mt-4">Validado pelo motor de engenharia NorthWay™</p>
+                            <p style={{
+                                fontSize: '10px',
+                                textAlign: 'center',
+                                marginTop: '16px',
+                                opacity: 0.6,
+                            }}>
+                                Validado pelo motor de engenharia NorthWay™
+                            </p>
                         </div>
                     ) : (
-                        <div className="hidden xl:block rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-8 h-full flex flex-col items-center justify-center text-center opacity-50">
-                            <CalculatorIcon className="w-16 h-16 text-gray-700 mb-4" />
-                            <p className="text-gray-500 font-medium">Aguardando parâmetros...</p>
-                        </div>
+                        <div style={{
+                            display: 'none',
+                        }} />
                     )}
                 </div>
             </div>

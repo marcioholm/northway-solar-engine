@@ -114,7 +114,7 @@ export default function KanbanBoard({ stages, leads, renderCard, renderMore, onS
           <div key={stage.key} style={{
             flexShrink: 0,
             width: '280px',
-            background: 'rgba(255,255,255,0.85)',
+            background: 'white',
             borderRadius: 'var(--radius)',
             border: '1px solid var(--line)',
             display: 'flex',
