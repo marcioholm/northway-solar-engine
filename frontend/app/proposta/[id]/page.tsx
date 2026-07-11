@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { ProposalView } from '../../../components/proposta/ProposalView';
 import { ProposalData } from '../../../lib/proposal-types';
+import { useProposalTracking } from '../../../lib/use-proposal-tracking';
 
 function ProposalSkeleton() {
   return (
@@ -30,6 +31,33 @@ export default function ProposalPage() {
   const [data, setData] = useState<ProposalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [accepted, setAccepted] = useState(false);
+  const [showChangeModal, setShowChangeModal] = useState(false);
+  const [changeMessage, setChangeMessage] = useState('');
+  const viewedRef = useRef(false);
+
+  const {
+    trackView, trackDuration, trackDownload,
+    trackWhatsApp, trackAccept, trackChangeRequest,
+  } = useProposalTracking(id);
+
+  useEffect(() => {
+    if (!id) return;
+    if (!viewedRef.current) {
+      trackView();
+      viewedRef.current = true;
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') trackDuration();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      trackDuration();
+    };
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -81,17 +109,60 @@ export default function ProposalPage() {
           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Plano Solar Personalizado</span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => window.print()} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={() => { trackDownload(); window.print(); }} style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
             Baixar PDF
           </button>
           {data.consultantPhone && (
-            <a href={`https://wa.me/${data.consultantPhone.replace(/\D/g, '')}?text=Olá, vi minha proposta personalizada SolarOS e gostaria de prosseguir.`} target="_blank" rel="noopener noreferrer" style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
+            <a onClick={trackWhatsApp} href={`https://wa.me/${data.consultantPhone.replace(/\D/g, '')}?text=Olá, vi minha proposta personalizada SolarOS e gostaria de prosseguir.`} target="_blank" rel="noopener noreferrer" style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
               Falar no WhatsApp
             </a>
           )}
         </div>
       </div>
-      <div style={{ paddingTop: 54 }}>
+
+      {/* Action buttons */}
+      {!accepted && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', gap: 12, justifyContent: 'center', padding: '16px 24px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)' }}>
+          <button onClick={() => setShowChangeModal(true)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '14px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
+            Solicitar Alteração
+          </button>
+          <button onClick={() => { trackAccept(); setAccepted(true); }} style={{ padding: '12px 32px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            Aceitar Proposta
+          </button>
+        </div>
+      )}
+
+      {accepted && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, textAlign: 'center', padding: '16px 24px', background: '#ECFDF5', borderTop: '2px solid #059669', fontSize: '14px', fontWeight: 700, color: '#065F46' }}>
+          Proposta aceita! Entraremos em contato em breve.
+        </div>
+      )}
+
+      {/* Change request modal */}
+      {showChangeModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)' }}>
+          <div style={{ background: '#fff', borderRadius: 'var(--radius-xl)', padding: '32px', width: '90%', maxWidth: '480px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Solicitar Alteração</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>Descreva o que gostaria de modificar na proposta.</p>
+            <textarea
+              value={changeMessage}
+              onChange={e => setChangeMessage(e.target.value)}
+              placeholder="Ex: Gostaria de adicionar mais 2 módulos..."
+              style={{ width: '100%', minHeight: '120px', padding: '12px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', fontFamily: 'inherit', fontSize: '13px', resize: 'vertical' }}
+            />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'end', marginTop: '16px' }}>
+              <button onClick={() => setShowChangeModal(false)} style={{ padding: '10px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancelar
+              </button>
+              <button onClick={() => { trackChangeRequest(changeMessage); setShowChangeModal(false); }} style={{ padding: '10px 20px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ paddingTop: 54, paddingBottom: 80 }}>
         <ProposalView data={data} />
       </div>
     </div>

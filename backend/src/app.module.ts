@@ -18,6 +18,7 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { SolarProjectModule } from './modules/solar-project/solar-project.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { PricingEngineModule } from './modules/pricing-engine/pricing-engine.module';
+import { ProposalTrackingModule } from './modules/proposal-tracking/proposal-tracking.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { PricingEngineModule } from './modules/pricing-engine/pricing-engine.mod
     SolarProjectModule,
     CatalogModule,
     PricingEngineModule,
+    ProposalTrackingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,12 +8,16 @@ import { Button } from '../../../components/ui/Button';
 import { Text } from '../../../components/primitives/Text';
 import { Stack } from '../../../components/primitives/Stack';
 import { Flex } from '../../../components/primitives/Flex';
+import { Card } from '../../../components/ui/Card';
 import { formatBRL, formatPercent, formatCurrency } from '../../../lib/format';
+import { ProposalTrackingPanel } from '../../../components/proposta/ProposalTrackingPanel';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function ProposalsPage() {
   const router = useRouter();
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [trackingId, setTrackingId] = useState<string | null>(null);
 
   const fetchProposals = async () => {
     setLoading(true);
@@ -60,7 +64,7 @@ export default function ProposalsPage() {
     {
       key: 'actions' as const,
       label: 'Ações',
-      width: '200px',
+      width: '280px',
       align: 'right' as const,
       render: (p: any) => (
         <Flex gap={1} justify="end">
@@ -68,7 +72,10 @@ export default function ProposalsPage() {
             Visualizar
           </Button>
           <Button variant="ghost" size="sm" onClick={() => handleDownload(p.id)}>
-            Baixar PDF
+            PDF
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setTrackingId(p.id)}>
+            Tracking
           </Button>
         </Flex>
       ),
@@ -87,6 +94,24 @@ export default function ProposalsPage() {
           emptyMessage="Nenhuma proposta encontrada."
         />
       </Stack>
+
+      {/* Tracking modal */}
+      {trackingId && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.4)', padding: '24px',
+        }}>
+          <Card padding="lg" style={{ width: '90%', maxWidth: '720px', maxHeight: '90vh', overflow: 'auto', position: 'relative' }}>
+            <button onClick={() => setTrackingId(null)} style={{
+              position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-secondary)', padding: 4,
+            }}>
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+            <ProposalTrackingPanel proposalId={trackingId} />
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
