@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: northway-backend
+    env: node
+    region: sao-paulo
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm run start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: PORT
+        value: "3000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: northway-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://northway-solar-engine.vercel.app
+
+databases:
+  - name: northway-db
+    region: sao-paulo
+    plan: free
+    databaseName: northway_solar

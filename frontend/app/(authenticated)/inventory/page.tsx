@@ -15,7 +15,7 @@ export default function InventoryPage() {
         try {
             const token = localStorage.getItem('token');
             const endpoint = activeTab === 'modules' ? 'modules' : 'inverters';
-            const res = await fetch(`http://localhost:3000/inventory/${endpoint}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory/${endpoint}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -37,7 +37,7 @@ export default function InventoryPage() {
         try {
             const token = localStorage.getItem('token');
             const endpoint = activeTab === 'modules' ? 'modules' : 'inverters';
-            const res = await fetch(`http://localhost:3000/inventory/${endpoint}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory/${endpoint}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

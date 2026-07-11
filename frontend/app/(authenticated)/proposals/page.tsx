@@ -10,7 +10,7 @@ export default function ProposalsPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3000/proposals', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -30,7 +30,7 @@ export default function ProposalsPage() {
     const handleDownload = (id: string) => {
         // In a real scenario, this would trigger a download. 
         // For now, we'll try to follow the link if backend is serving it properly.
-        window.open(`http://localhost:3000/proposals/${id}/pdf`, '_blank');
+        window.open(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${id}/pdf`, '_blank');
     };
 
     return (

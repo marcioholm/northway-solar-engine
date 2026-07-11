@@ -61,7 +61,7 @@ export default function Dashboard() {
         try {
             const token = localStorage.getItem('token');
             // 1. Create Proposal to get ID
-            const res = await fetch('http://localhost:3000/proposals', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ export default function Dashboard() {
             const proposal = await res.json();
 
             // 2. Fetch PDF blob with Auth header
-            const pdfRes = await fetch(`http://localhost:3000/proposals/${proposal.id}/pdf`, {
+            const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposal.id}/pdf`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -118,7 +118,7 @@ export default function Dashboard() {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3000/solar-engine/calculate', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/solar-engine/calculate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

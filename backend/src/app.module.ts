@@ -22,7 +22,8 @@ import { UsersModule } from './modules/users/users.module';
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: true, // Only for MVP/Dev
+        synchronize: true,
+        ssl: { rejectUnauthorized: false },
       }),
       inject: [ConfigService],
     }),
