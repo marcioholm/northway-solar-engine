@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Request, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Request, Header } from '@nestjs/common';
 import { ProposalsService } from './proposals.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -36,11 +36,9 @@ export class ProposalsController {
   }
 
   @Get(':id/pdf')
-  async downloadPdf(@Param('id') id: string, @Res() res) {
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  async downloadPdf(@Param('id') id: string) {
     const { html } = await this.proposalsService.generatePdf(id);
-    res.set({
-      'Content-Type': 'text/html; charset=utf-8',
-    });
-    res.send(html);
+    return html;
   }
 }
