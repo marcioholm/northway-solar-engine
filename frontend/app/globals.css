@@ -15,6 +15,13 @@
   --surface-hover: #F2F5F0;
   --surface-muted: #F2F5EF;
 
+  /* === TAILWIND ALIASES === */
+  --card-bg: var(--surface);
+  --input-bg: var(--bg);
+  --color-primary: var(--green);
+  --color-primary-hover: var(--primary-hover);
+  --border-color: var(--border);
+
   /* === BORDERS === */
   --border: #E4E7E2;
   --border-hover: #CDD2CB;
@@ -77,6 +84,13 @@
   --surface-muted: #1A1B1E;
   --border: #26272B;
   --border-hover: #34353A;
+
+  /* === TAILWIND ALIASES === */
+  --card-bg: var(--surface);
+  --input-bg: var(--bg);
+  --color-primary: var(--green);
+  --color-primary-hover: var(--primary-hover);
+  --border-color: var(--border);
   --line: rgba(255,255,255,0.06);
   --text: #EDEEF0;
   --text-primary: #EDEEF0;

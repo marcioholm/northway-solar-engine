@@ -68,7 +68,7 @@ export default function TasksPage() {
                     <h1 className="text-2xl font-bold text-white">Tarefas</h1>
                     <p className="text-sm text-gray-400 mt-1">Gerencie lembretes, visitas e retornos</p>
                 </div>
-                <button onClick={() => setShowForm(!showForm)} className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition">
+                <button onClick={() => setShowForm(!showForm)} className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-[var(--color-primary-hover)] transition">
                     Nova Tarefa
                 </button>
             </div>

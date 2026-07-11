@@ -145,7 +145,7 @@ export default function LeadDetailPage() {
                         </div>
                     )}
 
-                    <button onClick={() => router.push(`/dashboard?leadId=${lead.id}&name=${encodeURIComponent(lead.name)}&city=${encodeURIComponent(lead.city)}&state=${lead.state}&consumption=${lead.monthlyConsumption || ''}`)} className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-bold text-sm hover:bg-red-700 transition">
+                    <button onClick={() => router.push(`/dashboard?leadId=${lead.id}&name=${encodeURIComponent(lead.name)}&city=${encodeURIComponent(lead.city)}&state=${lead.state}&consumption=${lead.monthlyConsumption || ''}`)} className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-bold text-sm hover:bg-[var(--color-primary-hover)] transition">
                         Abrir Dimensionamento
                     </button>
                 </div>
@@ -163,7 +163,7 @@ export default function LeadDetailPage() {
                         <div className="space-y-4">
                             <div className="flex gap-3">
                                 <textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Adicionar nota..." rows={2} className="flex-1 rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-3 text-sm focus:border-[var(--color-primary)] focus:ring-1" />
-                                <button onClick={handleAddNote} disabled={savingNote} className="bg-[var(--color-primary)] text-white px-5 py-2 rounded-lg font-bold text-sm self-end hover:bg-red-700 disabled:opacity-50">
+                                <button onClick={handleAddNote} disabled={savingNote} className="bg-[var(--color-primary)] text-white px-5 py-2 rounded-lg font-bold text-sm self-end hover:bg-[var(--color-primary-hover)] disabled:opacity-50">
                                     {savingNote ? '...' : 'Enviar'}
                                 </button>
                             </div>
