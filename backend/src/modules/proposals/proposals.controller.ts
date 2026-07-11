@@ -33,12 +33,10 @@ export class ProposalsController {
 
   @Get(':id/pdf')
   async downloadPdf(@Param('id') id: string, @Res() res) {
-    const { buffer, filename } = await this.proposalsService.generatePdf(id);
+    const { html } = await this.proposalsService.generatePdf(id);
     res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Length': buffer.length,
+      'Content-Type': 'text/html; charset=utf-8',
     });
-    res.end(buffer);
+    res.send(html);
   }
 }

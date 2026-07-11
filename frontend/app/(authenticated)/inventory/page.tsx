@@ -55,16 +55,21 @@ export default function InventoryPage() {
         }
     };
 
+    const powerLabel = (item: any) =>
+        activeTab === 'modules' ? `${item.powerWatt}W` : `${item.nominalPowerKw}kW`;
+
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="inventory-page">
+            {/* Header */}
+            <div className="inventory-header">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Inventário de Equipamentos</h1>
-                    <p className="text-sm text-gray-400 mt-1">Gerencie módulos e inversores disponíveis para seus projetos.</p>
+                    <h1 className="inventory-title">Inventário de Equipamentos</h1>
+                    <p className="inventory-subtitle">Gerencie módulos e inversores disponíveis para seus projetos.</p>
                 </div>
                 <button
                     onClick={() => setShowForm(!showForm)}
-                    className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition"
+                    className="inventory-add-btn"
+                    aria-label="Adicionar novo item"
                 >
                     <PlusIcon className="w-5 h-5" />
                     Adicionar Novo Item
@@ -72,16 +77,18 @@ export default function InventoryPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-[var(--border-color)]">
+            <div className="inventory-tabs">
                 <button
-                    className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'modules' ? 'border-b-2 border-[var(--color-primary)] text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                    className={`inventory-tab ${activeTab === 'modules' ? 'active' : ''}`}
                     onClick={() => setActiveTab('modules')}
+                    aria-label="Módulos Fotovoltaicos"
                 >
                     Módulos Fotovoltaicos
                 </button>
                 <button
-                    className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === 'inverters' ? 'border-b-2 border-[var(--color-primary)] text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                    className={`inventory-tab ${activeTab === 'inverters' ? 'active' : ''}`}
                     onClick={() => setActiveTab('inverters')}
+                    aria-label="Inversores"
                 >
                     Inversores
                 </button>
@@ -89,95 +96,112 @@ export default function InventoryPage() {
 
             {/* Create Form */}
             {showForm && (
-                <div className="bg-[var(--card-bg)] p-6 rounded-xl border border-[var(--border-color)] animate-in fade-in slide-in-from-top-2">
-                    <h3 className="text-lg font-bold mb-4 text-white">Novo {activeTab === 'modules' ? 'Módulo' : 'Inversor'}</h3>
-                    <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                <div className="inventory-form-card">
+                    <h3 className="inventory-form-title">Novo {activeTab === 'modules' ? 'Módulo' : 'Inversor'}</h3>
+                    <form onSubmit={handleCreate} className="inventory-form">
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Marca</label>
+                            <label className="inventory-form-label" htmlFor="inv-brand">Marca</label>
                             <input
+                                id="inv-brand"
                                 placeholder="Ex: Canadian"
-                                className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-2.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                                className="inventory-form-input"
                                 value={newItem.brand || ''}
                                 onChange={e => setNewItem({ ...newItem, brand: e.target.value })}
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Modelo</label>
+                            <label className="inventory-form-label" htmlFor="inv-model">Modelo</label>
                             <input
+                                id="inv-model"
                                 placeholder="Ex: Hiku6"
-                                className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-2.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
+                                className="inventory-form-input"
                                 value={newItem.model || ''}
                                 onChange={e => setNewItem({ ...newItem, model: e.target.value })}
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Potência</label>
+                            <label className="inventory-form-label" htmlFor="inv-power">Potência</label>
                             <input
+                                id="inv-power"
                                 type="number"
-                                placeholder={activeTab === 'modules' ? "Watts (W)" : "Kilowatts (kW)"}
-                                className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-2.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                                value={activeTab === 'modules' ? (newItem.powerWatt || '') : (newItem.nominalPowerKw || '')}
-                                onChange={e => setNewItem({ ...newItem, [activeTab === 'modules' ? 'powerWatt' : 'nominalPowerKw']: Number(e.target.value) })}
+                                placeholder={activeTab === 'modules' ? 'Watts (W)' : 'Kilowatts (kW)'}
+                                className="inventory-form-input"
+                                value={activeTab === 'modules' ? (newItem.powerWatt ?? '') : (newItem.nominalPowerKw ?? '')}
+                                onChange={e => setNewItem({
+                                    ...newItem,
+                                    [activeTab === 'modules' ? 'powerWatt' : 'nominalPowerKw']: Number(e.target.value)
+                                })}
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Custo (R$)</label>
+                            <label className="inventory-form-label" htmlFor="inv-cost">Custo (R$)</label>
                             <input
+                                id="inv-cost"
                                 type="number"
-                                placeholder="0.00"
-                                className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-2.5 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                                value={newItem.cost || ''}
+                                placeholder="0,00"
+                                step="0.01"
+                                className="inventory-form-input"
+                                value={newItem.cost ?? ''}
                                 onChange={e => setNewItem({ ...newItem, cost: Number(e.target.value) })}
                                 required
                             />
                         </div>
-                        <button type="submit" className="bg-green-600 text-white p-2.5 rounded-lg hover:bg-green-700 font-bold transition-colors shadow-lg">
+                        <button type="submit" className="inventory-form-submit" aria-label="Salvar item">
                             Salvar Item
                         </button>
                     </form>
                 </div>
             )}
 
-            {/* List */}
-            <div className="bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)] overflow-hidden">
-                <table className="min-w-full divide-y divide-[var(--border-color)]">
-                    <thead className="bg-[var(--input-bg)]">
+            {/* Table Card */}
+            <div className="inventory-card">
+                <table className="inventory-table">
+                    <thead>
                         <tr>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Marca</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Modelo</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Potência</th>
-                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Custo (R$)</th>
-                            <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
+                            <th>Potência</th>
+                            <th>Custo (R$)</th>
+                            <th className="inventory-th-actions">Ações</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-[var(--border-color)]">
+                    <tbody>
                         {loading ? (
-                            <tr><td colSpan={5} className="p-8 text-center text-gray-500">Carregando...</td></tr>
+                            <tr>
+                                <td colSpan={5} className="inventory-empty">Carregando...</td>
+                            </tr>
+                        ) : data.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} className="inventory-empty">Nenhum equipamento encontrado.</td>
+                            </tr>
                         ) : data.map((item: any) => (
-                            <tr key={item.id} className="hover:bg-[var(--card-bg)]/50 transition-colors group">
-                                <td className="px-6 py-4 whitespace-nowrap text-white font-medium flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded bg-[var(--input-bg)] flex items-center justify-center text-gray-500">
-                                        <div className="w-4 h-4 bg-gray-600 rounded-sm"></div>
-                                    </div>
-                                    {item.brand}
+                            <tr key={item.id} className="inventory-row">
+                                <td className="inventory-cell-brand" data-label="Marca">
+                                    <div className="inventory-brand-dot" />
+                                    <span className="inventory-brand-name">{item.brand}</span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-400">{item.model}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-gray-300 bg-gray-800/50 rounded-lg mx-2 w-min border border-gray-700 text-center text-xs font-bold">
-                                    {activeTab === 'modules' ? `${item.powerWatt}W` : `${item.nominalPowerKw}kW`}
+                                <td className="inventory-cell-model" data-label="Modelo">
+                                    {item.model}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-white font-mono">R$ {Number(item.cost).toFixed(2)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
-                                    <button className="text-gray-500 hover:text-white p-1"><PencilIcon className="w-4 h-4" /></button>
-                                    <button className="text-gray-500 hover:text-red-500 p-1"><TrashIcon className="w-4 h-4" /></button>
+                                <td className="inventory-cell-power" data-label="Potência">
+                                    <span className="inventory-power-chip">{powerLabel(item)}</span>
+                                </td>
+                                <td className="inventory-cell-cost" data-label="Custo">
+                                    R$ {Number(item.cost).toFixed(2)}
+                                </td>
+                                <td className="inventory-cell-actions">
+                                    <button className="inventory-action-btn inventory-action-edit" aria-label="Editar">
+                                        <PencilIcon className="w-4 h-4" />
+                                    </button>
+                                    <button className="inventory-action-btn inventory-action-delete" aria-label="Excluir">
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
-                        {!loading && data.length === 0 && (
-                            <tr><td colSpan={5} className="p-12 text-center text-gray-500">Nenhum equipamento encontrado.</td></tr>
-                        )}
                     </tbody>
                 </table>
             </div>
