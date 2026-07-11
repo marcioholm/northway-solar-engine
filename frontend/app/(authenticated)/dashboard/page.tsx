@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { BoltIcon, CalculatorIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../../../components/compositions/PageHeader';
 import { Card } from '../../../components/ui/Card';
@@ -23,6 +23,7 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const leadId = searchParams.get('leadId');
   const leadName = searchParams.get('name');
@@ -52,7 +53,7 @@ function DashboardContent() {
     } else { setCities([]); setSelectedCity(''); }
   }, [selectedState]);
 
-  const handleGeneratePdf = async () => {
+  const handleCreateProposal = async (openWeb: boolean) => {
     if (!result) return;
     setLoading(true);
     try {
@@ -71,15 +72,19 @@ function DashboardContent() {
           body: JSON.stringify({ stage: 'proposal_sent' }),
         });
       }
-      const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposal.id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!pdfRes.ok) throw new Error('Failed to fetch PDF');
-      const blob = await pdfRes.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a'); link.href = url; link.target = '_blank'; link.click();
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      if (openWeb) {
+        router.push(`/proposta/${proposal.id}`);
+      } else {
+        const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposal.id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!pdfRes.ok) throw new Error('Failed to fetch PDF');
+        const blob = await pdfRes.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.target = '_blank'; link.click();
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      }
     } catch (err) {
       console.error(err);
-      setError('Erro ao gerar PDF. Tente novamente.');
+      setError('Erro ao gerar proposta. Tente novamente.');
     } finally { setLoading(false); }
   };
 
@@ -183,10 +188,15 @@ function DashboardContent() {
                   <Text variant="h2" style={{ color: '#fff' }}>{result.payback_years.toFixed(1)} <Text variant="body" as="span" style={{ opacity: 0.7, color: '#fff' }}>Anos</Text></Text>
                 </div>
               </div>
-              <Button onClick={handleGeneratePdf} loading={loading} fullWidth size="lg" style={{ marginTop: '28px', background: 'white', color: 'var(--green)', fontWeight: 700, borderRadius: 'var(--radius-lg)' }}>
-                <BoltIcon style={{ width: '18px', height: '18px' }} />
-                GERAR PDF DA PROPOSTA
-              </Button>
+              <Stack gap={2}>
+                <Button onClick={() => handleCreateProposal(true)} loading={loading} fullWidth size="lg" style={{ background: 'white', color: 'var(--green)', fontWeight: 700, borderRadius: 'var(--radius-lg)' }}>
+                  <BoltIcon style={{ width: '18px', height: '18px' }} />
+                  VISUALIZAR PROPOSTA
+                </Button>
+                <Button onClick={() => handleCreateProposal(false)} variant="ghost" fullWidth size="sm" disabled={loading} style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  Baixar PDF
+                </Button>
+              </Stack>
               <Text variant="xs" style={{ textAlign: 'center', marginTop: '16px', opacity: 0.5, color: '#fff' }}>Validado pelo motor de engenharia NorthWay™</Text>
             </div>
           ) : (

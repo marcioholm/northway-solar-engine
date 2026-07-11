@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@media print {
+  body { background: #fff !important; }
+  .proposal-page { page-break-after: always; min-height: auto !important; padding: 40px 24px !important; }
+  header, nav, .navbar, .sidebar, footer, .no-print { display: none !important; }
+  * { box-shadow: none !important; text-shadow: none !important; }
+  @page { margin: 20mm 15mm; }
+}
+
 :root {
   /* === BACKGROUNDS === */
   --bg: #F6F8F5;
