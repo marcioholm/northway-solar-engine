@@ -3,152 +3,190 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import { PageHeader } from '../../../../components/compositions/PageHeader';
+import { PipelineColumn } from '../../../../components/compositions/PipelineColumn';
+import { DataGrid } from '../../../../components/compositions/DataGrid';
+import { Button } from '../../../../components/ui/Button';
+import { Chip } from '../../../../components/ui/Chip';
+import { Text } from '../../../../components/primitives/Text';
+import { Flex } from '../../../../components/primitives/Flex';
 
 const STAGES = [
-    { key: 'new', label: 'Novo Lead', color: 'bg-sky-500' },
-    { key: 'contacted', label: 'Contato', color: 'bg-blue-500' },
-    { key: 'qualified', label: 'Qualificação', color: 'bg-indigo-500' },
-    { key: 'bill_received', label: 'Conta Recebida', color: 'bg-violet-500' },
-    { key: 'sized', label: 'Dimensionamento', color: 'bg-purple-500' },
-    { key: 'proposal_sent', label: 'Proposta Enviada', color: 'bg-pink-500' },
-    { key: 'negotiation', label: 'Negociação', color: 'bg-amber-500' },
-    { key: 'closed_won', label: 'Fechado', color: 'bg-emerald-500' },
-    { key: 'closed_lost', label: 'Perdido', color: 'bg-gray-500' },
+  { key: 'new', label: 'Novo Lead', color: '#0ea5e9' },
+  { key: 'contacted', label: 'Contato', color: '#3b82f6' },
+  { key: 'qualified', label: 'Qualificação', color: '#6366f1' },
+  { key: 'bill_received', label: 'Conta Recebida', color: '#8b5cf6' },
+  { key: 'sized', label: 'Dimensionamento', color: '#a855f7' },
+  { key: 'proposal_sent', label: 'Proposta Enviada', color: '#ec4899' },
+  { key: 'negotiation', label: 'Negociação', color: '#f59e0b' },
+  { key: 'closed_won', label: 'Fechado', color: '#22c55e' },
+  { key: 'closed_lost', label: 'Perdido', color: '#9ca3af' },
 ];
 
 const STAGE_LABELS: Record<string, string> = {
-    new: 'Novo Lead', contacted: 'Contato', qualified: 'Qualificação',
-    bill_received: 'Conta Recebida', sized: 'Dimensionamento',
-    proposal_sent: 'Proposta Enviada', negotiation: 'Negociação',
-    closed_won: 'Fechado', closed_lost: 'Perdido',
+  new: 'Novo Lead', contacted: 'Contato', qualified: 'Qualificação',
+  bill_received: 'Conta Recebida', sized: 'Dimensionamento',
+  proposal_sent: 'Proposta Enviada', negotiation: 'Negociação',
+  closed_won: 'Fechado', closed_lost: 'Perdido',
 };
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
-    residential: 'Residencial', commercial: 'Comercial',
-    industrial: 'Industrial', rural: 'Rural',
+  residential: 'Residencial', commercial: 'Comercial',
+  industrial: 'Industrial', rural: 'Rural',
 };
 
+const stageColor = (key: string) => STAGES.find(s => s.key === key)?.color || '#9ca3af';
+
 export default function LeadsKanban() {
-    const router = useRouter();
-    const [leads, setLeads] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [view, setView] = useState<'kanban' | 'list'>('kanban');
+  const router = useRouter();
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<'kanban' | 'list'>('kanban');
 
-    const fetchLeads = async () => {
-        const token = localStorage.getItem('token');
-        const api = process.env.NEXT_PUBLIC_API_URL;
-        try {
-            const res = await fetch(`${api}/leads`, { headers: { Authorization: `Bearer ${token}` } });
-            if (res.ok) setLeads(await res.json());
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const fetchLeads = async () => {
+    const token = localStorage.getItem('token');
+    const api = process.env.NEXT_PUBLIC_API_URL;
+    try {
+      const res = await fetch(`${api}/leads`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setLeads(await res.json());
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
 
-    useEffect(() => { fetchLeads(); }, []);
+  useEffect(() => { fetchLeads(); }, []);
 
-    const handleStageChange = async (leadId: string, stage: string) => {
-        const token = localStorage.getItem('token');
-        const api = process.env.NEXT_PUBLIC_API_URL;
-        await fetch(`${api}/leads/${leadId}/stage`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ stage }),
-        });
-        fetchLeads();
-    };
+  const handleStageChange = async (leadId: string, stage: string) => {
+    const token = localStorage.getItem('token');
+    const api = process.env.NEXT_PUBLIC_API_URL;
+    await fetch(`${api}/leads/${leadId}/stage`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ stage }),
+    });
+    fetchLeads();
+  };
 
-    if (loading) return <div className="text-gray-400 p-8">Carregando...</div>;
+  if (loading) {
+    return <div style={{ padding: '32px', color: 'var(--text-secondary)' }}>Carregando...</div>;
+  }
 
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-white">Leads</h1>
-                    <p className="text-sm text-gray-400 mt-1">Gerencie seu pipeline comercial</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-[var(--input-bg)] rounded-lg border border-[var(--border-color)] p-1">
-                        <button onClick={() => setView('kanban')} className={`px-3 py-1.5 text-xs font-bold rounded ${view === 'kanban' ? 'bg-[var(--color-primary)] text-white' : 'text-gray-400'}`}>Kanban</button>
-                        <button onClick={() => setView('list')} className={`px-3 py-1.5 text-xs font-bold rounded ${view === 'list' ? 'bg-[var(--color-primary)] text-white' : 'text-gray-400'}`}>Lista</button>
-                    </div>
-                    <button onClick={() => router.push('/crm/leads/new')} className="flex items-center gap-2 bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition">
-                        <PlusIcon className="w-4 h-4" /> Novo Lead
-                    </button>
-                </div>
+  const listColumns = [
+    { key: 'name' as const, label: 'Nome', render: (lead: any) => <span style={{ fontWeight: 600 }}>{lead.name}</span> },
+    { key: 'email' as const, label: 'Contato' },
+    {
+      key: 'stage' as const, label: 'Etapa',
+      render: (lead: any) => (
+        <Chip variant="status" dot={stageColor(lead.stage)}>
+          {STAGE_LABELS[lead.stage] || lead.stage}
+        </Chip>
+      ),
+    },
+    {
+      key: 'value' as const, label: 'Valor',
+      render: (lead: any) => lead.value
+        ? <span style={{ fontWeight: 600 }}>R$ {Number(lead.value).toLocaleString('pt-BR')}</span>
+        : <span style={{ color: 'var(--text-muted)' }}>—</span>,
+    },
+    {
+      key: 'clientType' as const, label: 'Tipo',
+      render: (lead: any) => CLIENT_TYPE_LABELS[lead.clientType] || lead.clientType || '—',
+    },
+    {
+      key: 'createdAt' as const, label: 'Data',
+      render: (lead: any) => new Date(lead.createdAt).toLocaleDateString('pt-BR'),
+    },
+  ];
+
+  return (
+    <div style={{ width: '100%' }}>
+      <PageHeader
+        title="Leads"
+        subtitle="Gerencie seu pipeline comercial"
+        actions={
+          <Flex gap={3} align="center">
+            <div style={{ display: 'flex', background: 'var(--surface-muted)', borderRadius: 'var(--radius-md)', padding: '2px' }}>
+              <button onClick={() => setView('kanban')} style={{
+                padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: 'none',
+                background: view === 'kanban' ? 'white' : 'transparent',
+                fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                color: view === 'kanban' ? 'var(--text)' : 'var(--text-muted)',
+                boxShadow: view === 'kanban' ? 'var(--shadow-sm)' : 'none',
+                transition: 'all 0.12s',
+              }}>
+                Kanban
+              </button>
+              <button onClick={() => setView('list')} style={{
+                padding: '6px 14px', borderRadius: 'var(--radius-sm)', border: 'none',
+                background: view === 'list' ? 'white' : 'transparent',
+                fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                color: view === 'list' ? 'var(--text)' : 'var(--text-muted)',
+                boxShadow: view === 'list' ? 'var(--shadow-sm)' : 'none',
+                transition: 'all 0.12s',
+              }}>
+                Lista
+              </button>
             </div>
+            <Button variant="primary" size="sm" icon={<PlusIcon className="w-4 h-4" />} onClick={() => router.push('/crm/leads/new')}>
+              Novo Lead
+            </Button>
+          </Flex>
+        }
+      />
 
-            {view === 'kanban' ? (
-                <div className="flex gap-4 overflow-x-auto pb-4" style={{ minHeight: '60vh' }}>
-                    {STAGES.map(stage => {
-                        const stageLeads = leads.filter(l => l.stage === stage.key);
-                        return (
-                            <div key={stage.key} className="flex-shrink-0 w-72 bg-[var(--card-bg)] rounded-xl border border-[var(--border-color)]">
-                                <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-color)]">
-                                    <div className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
-                                    <h3 className="text-sm font-bold text-white">{stage.label}</h3>
-                                    <span className="text-xs text-gray-500 ml-auto">{stageLeads.length}</span>
-                                </div>
-                                <div className="p-3 space-y-3 overflow-y-auto" style={{ maxHeight: '65vh' }}>
-                                    {stageLeads.map(lead => (
-                                        <div key={lead.id} onClick={() => router.push(`/crm/leads/${lead.id}`)} className="bg-[var(--input-bg)] rounded-lg p-4 border border-[var(--border-color)] cursor-pointer hover:border-gray-500 transition-colors">
-                                            <p className="text-sm font-bold text-white">{lead.name}</p>
-                                            <p className="text-xs text-gray-500 mt-1">{lead.city} - {lead.state}</p>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <span className="text-[10px] bg-[var(--card-bg)] text-gray-400 px-2 py-0.5 rounded font-medium">
-                                                    {CLIENT_TYPE_LABELS[lead.clientType] || lead.clientType}
-                                                </span>
-                                                {lead.value && (
-                                                    <span className="text-[10px] text-green-400 font-bold">
-                                                        R$ {Number(lead.value).toLocaleString('pt-BR')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {stageLeads.length === 0 && (
-                                        <p className="text-xs text-gray-600 text-center py-4">Nenhum lead</p>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            ) : (
-                <div className="rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] overflow-hidden">
-                    <table className="min-w-full divide-y divide-[var(--border-color)]">
-                        <thead className="bg-[var(--input-bg)]">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Nome</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Contato</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Etapa</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Valor</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Tipo</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Data</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-color)]">
-                            {leads.map(lead => (
-                                <tr key={lead.id} onClick={() => router.push(`/crm/leads/${lead.id}`)} className="hover:bg-[var(--input-bg)] transition-colors cursor-pointer">
-                                    <td className="px-6 py-4 text-sm font-bold text-white">{lead.name}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-400">{lead.email}</td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase">{STAGE_LABELS[lead.stage] || lead.stage}</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-300">{lead.value ? `R$ ${Number(lead.value).toLocaleString('pt-BR')}` : '-'}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-400">{CLIENT_TYPE_LABELS[lead.clientType] || lead.clientType}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(lead.createdAt).toLocaleDateString('pt-BR')}</td>
-                                </tr>
-                            ))}
-                            {leads.length === 0 && (
-                                <tr><td colSpan={6} className="p-12 text-center text-gray-500">Nenhum lead encontrado.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+      {view === 'kanban' ? (
+        <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px', minHeight: '65vh' }}>
+          {STAGES.map(stage => {
+            const stageLeads = leads.filter(l => l.stage === stage.key);
+            return (
+              <PipelineColumn
+                key={stage.key}
+                label={stage.label}
+                count={stageLeads.length}
+                color={stage.color}
+                empty={stageLeads.length === 0}
+              >
+                {stageLeads.map(lead => (
+                  <div
+                    key={lead.id}
+                    onClick={() => router.push(`/crm/leads/${lead.id}`)}
+                    style={{
+                      background: 'var(--surface)',
+                      borderRadius: 'var(--radius-lg)', padding: '14px 16px',
+                      border: '1px solid var(--border)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: 'var(--shadow-xs)',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--shadow-xs)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                  >
+                    <Text variant="body-bold" style={{ fontSize: '13px', marginBottom: '4px' }}>{lead.name}</Text>
+                    <Text variant="sm" color="secondary">{lead.city} - {lead.state}</Text>
+                    <Flex gap={2} wrap style={{ marginTop: '8px' }}>
+                      <Chip variant="client">
+                        {CLIENT_TYPE_LABELS[lead.clientType] || lead.clientType || 'Residencial'}
+                      </Chip>
+                      {lead.value && (
+                        <Chip variant="margin">
+                          R$ {Number(lead.value).toLocaleString('pt-BR')}
+                        </Chip>
+                      )}
+                    </Flex>
+                  </div>
+                ))}
+              </PipelineColumn>
+            );
+          })}
         </div>
-    );
+      ) : (
+        <DataGrid
+          columns={listColumns}
+          data={leads}
+          keyExtractor={lead => lead.id}
+          emptyMessage="Nenhum lead encontrado."
+          onRowClick={lead => router.push(`/crm/leads/${lead.id}`)}
+        />
+      )}
+    </div>
+  );
 }
