@@ -13,6 +13,7 @@ import { Text } from '../../../components/primitives/Text';
 import { Flex } from '../../../components/primitives/Flex';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
+import { Skeleton } from '../../../components/ui/Skeleton';
 import GoalRing from '../../../components/GoalRing';
 import SellerRanking from '../../../components/SellerRanking';
 
@@ -36,8 +37,86 @@ export default function CrmDashboard() {
 
   if (loading) {
     return (
-      <div style={{ display: 'grid', placeItems: 'center', padding: '80px 0', color: 'var(--text-secondary)' }}>
-        Carregando...
+      <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+        <Card padding="lg" style={{ marginBottom: '24px' }}>
+          <Flex align="center" justify="between" style={{ marginBottom: '20px' }}>
+            <div style={{ flex: 1 }}>
+              <Skeleton width="100px" height="12px" />
+              <div style={{ marginTop: '8px' }}><Skeleton width="200px" height="28px" /></div>
+              <div style={{ marginTop: '8px' }}><Skeleton width="280px" height="14px" /></div>
+            </div>
+            <Skeleton width="120px" height="34px" borderRadius="var(--radius-md)" />
+          </Flex>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ padding: '16px', background: 'var(--surface-hover)', borderRadius: 'var(--radius-lg)' }}>
+                <Skeleton width="60%" height="11px" />
+                <div style={{ marginTop: '8px' }}><Skeleton width="80px" height="26px" /></div>
+                <div style={{ marginTop: '6px' }}><Skeleton width="70%" height="11px" /></div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px', marginBottom: '24px' }}>
+          <Card padding="md" style={{ overflow: 'hidden' }}>
+            <Flex align="center" justify="between" style={{ marginBottom: '16px' }}>
+              <div>
+                <Skeleton width="120px" height="12px" />
+                <div style={{ marginTop: '6px' }}><Skeleton width="200px" height="20px" /></div>
+              </div>
+              <Skeleton width="160px" height="34px" borderRadius="var(--radius-md)" />
+            </Flex>
+            <div style={{ display: 'flex', gap: '14px' }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} style={{ width: '260px', flexShrink: 0 }}>
+                  <div style={{ background: 'var(--surface-hover)', borderRadius: 'var(--radius-lg)', padding: '16px' }}>
+                    <Skeleton width="80%" height="14px" />
+                    <div style={{ marginTop: '8px' }}><Skeleton width="40%" height="28px" /></div>
+                    <div style={{ marginTop: '12px' }}><Skeleton width="60%" height="80px" borderRadius="var(--radius-md)" /></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Card padding="sm">
+              <Skeleton width="100px" height="12px" />
+              <div style={{ marginTop: '6px' }}><Skeleton width="160px" height="20px" /></div>
+              <div style={{ marginTop: '14px' }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 0' }}>
+                    <Skeleton width="32px" height="32px" borderRadius="50%" />
+                    <div style={{ flex: 1 }}>
+                      <Skeleton width="70%" height="14px" />
+                      <div style={{ marginTop: '4px' }}><Skeleton width="50%" height="11px" /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            <Card padding="sm">
+              <Skeleton width="100px" height="12px" />
+              <div style={{ marginTop: '6px' }}><Skeleton width="140px" height="20px" /></div>
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
+                <Skeleton width="120px" height="120px" borderRadius="50%" />
+              </div>
+            </Card>
+          </aside>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} padding="sm">
+              <Skeleton width="80px" height="11px" />
+              <div style={{ marginTop: '6px' }}><Skeleton width="140px" height="20px" /></div>
+              <div style={{ marginTop: '16px' }}>
+                <Skeleton width="100%" height="120px" borderRadius="var(--radius-md)" />
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }

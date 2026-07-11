@@ -7,6 +7,8 @@ import { PageHeader } from '../../../../components/compositions/PageHeader';
 import { PipelineColumn } from '../../../../components/compositions/PipelineColumn';
 import { DataGrid } from '../../../../components/compositions/DataGrid';
 import { Button } from '../../../../components/ui/Button';
+import { Card } from '../../../../components/ui/Card';
+import { Skeleton, TableSkeleton } from '../../../../components/ui/Skeleton';
 import { Chip } from '../../../../components/ui/Chip';
 import { Text } from '../../../../components/primitives/Text';
 import { Flex } from '../../../../components/primitives/Flex';
@@ -67,7 +69,34 @@ export default function LeadsKanban() {
   };
 
   if (loading) {
-    return <div style={{ padding: '32px', color: 'var(--text-secondary)' }}>Carregando...</div>;
+    return (
+      <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+        <Flex align="center" justify="between" style={{ marginBottom: '20px' }}>
+          <div>
+            <Skeleton width="80px" height="12px" />
+            <div style={{ marginTop: '4px' }}>
+              <Skeleton width="200px" height="26px" />
+            </div>
+          </div>
+          <Flex gap={3} align="center">
+            <Skeleton width="100px" height="34px" borderRadius="var(--radius-md)" />
+            <Skeleton width="100px" height="34px" borderRadius="var(--radius-md)" />
+          </Flex>
+        </Flex>
+        <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>
+          {STAGES.slice(0, 6).map(stage => (
+            <Card key={stage.key} padding="sm" style={{ width: '260px', flexShrink: 0 }}>
+              <Flex align="center" gap={2} style={{ marginBottom: '12px' }}>
+                <Skeleton width="10px" height="10px" borderRadius="50%" />
+                <Skeleton width="100px" height="14px" />
+                <Skeleton width="24px" height="18px" borderRadius="var(--radius-sm)" />
+              </Flex>
+              <Skeleton width="100%" height="120px" borderRadius="var(--radius-md)" />
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const listColumns = [

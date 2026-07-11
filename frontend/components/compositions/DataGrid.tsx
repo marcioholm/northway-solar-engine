@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { cn } from '../../lib/cn';
+import { TableSkeleton } from '../ui/Skeleton';
 
 interface Column<T> {
   key: string;
@@ -55,11 +56,9 @@ export function DataGrid<T>({
       <div className={cn(className)} style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
         borderRadius: 'var(--radius-xl)', overflow: 'hidden',
-        boxShadow: 'var(--shadow-md)',
+        boxShadow: 'var(--shadow-md)', padding: '20px 24px',
       }}>
-        <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-          Carregando...
-        </div>
+        <TableSkeleton rows={5} />
       </div>
     );
   }
