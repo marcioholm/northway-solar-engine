@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     BoltIcon,
@@ -20,6 +20,14 @@ interface IBGECity {
 }
 
 export default function Dashboard() {
+    return (
+        <Suspense fallback={<div className="text-gray-400 p-8">Carregando...</div>}>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
+function DashboardContent() {
     const searchParams = useSearchParams();
     const leadId = searchParams.get('leadId');
     const leadName = searchParams.get('name');
