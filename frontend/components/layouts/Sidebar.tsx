@@ -7,6 +7,7 @@ import { useSidebar } from '../../hooks/useSidebar';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: '⌂', href: '/crm' },
   { label: 'CRM', icon: '◎', href: '/crm/leads' },
+  { label: 'Projetos', icon: '◈', href: '/solar-project' },
   { label: 'Propostas', icon: '▤', href: '/proposals' },
   { label: 'Dimensio.', icon: '☀', href: '/dashboard' },
   { label: 'Catálogo', icon: '▣', href: '/catalog' },

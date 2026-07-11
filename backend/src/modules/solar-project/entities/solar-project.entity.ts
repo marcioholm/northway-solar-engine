@@ -139,16 +139,16 @@ export class SolarProject {
 
     // ───────────────────── EQUIPMENT ─────────────────────
 
-    @Column({ type: 'jsonb', default: '[]' })
+    @Column({ name: 'equipment_modules', type: 'jsonb', default: '[]' })
     equipmentModules: Array<{ catalogId: string; name: string; brand: string; model: string; power: number; qty: number; unitPrice: number }>;
 
-    @Column({ type: 'jsonb', default: '[]' })
+    @Column({ name: 'equipment_inverters', type: 'jsonb', default: '[]' })
     equipmentInverters: Array<{ catalogId: string; name: string; brand: string; model: string; powerKw: number; qty: number; unitPrice: number }>;
 
-    @Column({ type: 'jsonb', default: '[]' })
+    @Column({ name: 'equipment_structures', type: 'jsonb', default: '[]' })
     equipmentStructures: Array<{ catalogId: string; name: string; qty: number; unitPrice: number }>;
 
-    @Column({ type: 'jsonb', default: '[]' })
+    @Column({ name: 'equipment_cables', type: 'jsonb', default: '[]' })
     equipmentCables: Array<{ catalogId: string; name: string; qty: number; unitPrice: number }>;
 
     // ───────────────────── PRICING ─────────────────────
