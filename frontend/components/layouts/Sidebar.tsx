@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { label: 'CRM', icon: '◎', href: '/crm/leads' },
   { label: 'Propostas', icon: '▤', href: '/proposals' },
   { label: 'Dimensio.', icon: '☀', href: '/dashboard' },
-  { label: 'Estoque', icon: '▣', href: '/inventory' },
+  { label: 'Catálogo', icon: '▣', href: '/catalog' },
   { label: 'Obras', icon: '◫', href: '/obras' },
   { label: 'Equipes', icon: '♙', href: '/equipes' },
   { label: 'Frota', icon: '◈', href: '/frota' },
