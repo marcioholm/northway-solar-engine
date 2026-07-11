@@ -2,7 +2,7 @@
 import { ProposalData, DEFAULT_TESTIMONIALS } from '../../lib/proposal-types';
 
 export function Testimonials({ data }: { data: ProposalData }) {
-  const testimonials = data.testimonials.length > 0 ? data.testimonials : DEFAULT_TESTIMONIALS;
+  const testimonials = data.testimonials.length > 0 ? data.testimonials : DEFAULT_TESTIMONIALS[data.profile];
   return (
     <section className="proposal-page" style={{ padding: '80px 24px', background: 'var(--surface)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>

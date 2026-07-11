@@ -1,8 +1,8 @@
 'use client';
-import { ProposalData, DEFAULT_TIMELINE } from '../../lib/proposal-types';
+import { ProposalData, getTimeline } from '../../lib/proposal-types';
 
 export function TimelineSteps({ data }: { data: ProposalData }) {
-  const steps = data.timeline.length > 0 ? data.timeline : DEFAULT_TIMELINE;
+  const steps = data.timeline.length > 0 ? data.timeline : getTimeline(data.profile);
   return (
     <section className="proposal-page" style={{ padding: '80px 24px', background: 'var(--surface)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>

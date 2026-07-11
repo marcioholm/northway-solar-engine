@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ProposalData, DEFAULT_FAQ } from '../../lib/proposal-types';
 
 export function FAQ({ data }: { data: ProposalData }) {
-  const faqs = data.faq.length > 0 ? data.faq : DEFAULT_FAQ;
+  const faqs = data.faq.length > 0 ? data.faq : DEFAULT_FAQ[data.profile];
   const [open, setOpen] = useState<number | null>(null);
   return (
     <section className="proposal-page" style={{ padding: '80px 24px', background: 'var(--bg)' }}>
