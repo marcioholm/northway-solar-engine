@@ -56,19 +56,7 @@ export function ProposalStep({ data, projectId }: { data: Record<string, any>; p
     if (!projectId) return;
     setGenerating(true);
     try {
-      const proposal = await api.post<any>('/proposals', {
-        leadId: data.leadId,
-        clientName: data.clientName,
-        city: data.clientCity,
-        clientCep: data.clientZipcode,
-        consumption: data.consumptionMonthlyKwh,
-        tariff: data.consumptionTariff,
-        utility: data.clientUtility,
-        profile: data.clientModality,
-        moduleId: data.equipmentModules?.[0]?.catalogId,
-        inverterId: data.equipmentInverters?.[0]?.catalogId,
-        moduleQty: data.sizingModuleQty || data.equipmentModules?.[0]?.qty || 0,
-      });
+      const proposal = await api.post<any>(`/proposals/generate/${projectId}`);
       router.push(`/proposta/${proposal.id}`);
     } catch (err) {
       console.error('Error generating proposal:', err);

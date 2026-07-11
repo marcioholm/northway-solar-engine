@@ -3,11 +3,14 @@ import { InventoryModuleEntity } from '../../inventory/entities/inventory-module
 import { InventoryInverterEntity } from '../../inventory/entities/inventory-inverter.entity';
 import { Company } from '../../companies/entities/company.entity';
 import { SolarProject } from '../../solar-project/entities/solar-project.entity';
+import { Quote } from '../../solar-project/entities/quote.entity';
 
 @Entity('proposals')
 export class Proposal {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    // ────────── Data source references ──────────
 
     @Column({ name: 'solar_project_id', nullable: true })
     solarProjectId: string;
@@ -16,12 +19,29 @@ export class Proposal {
     @JoinColumn({ name: 'solar_project_id' })
     solarProject: SolarProject;
 
+    @Column({ name: 'quote_id', nullable: true })
+    quoteId: string;
+
+    @ManyToOne(() => Quote)
+    @JoinColumn({ name: 'quote_id' })
+    quote: Quote;
+
+    @Column({ name: 'template_name', default: 'default' })
+    templateName: string;
+
+    @Column({ type: 'jsonb', default: {} })
+    settings: Record<string, any>;
+
+    // ────────── Company ──────────
+
     @Column({ name: 'company_id', nullable: true })
     companyId: string;
 
     @ManyToOne(() => Company)
     @JoinColumn({ name: 'company_id' })
     company: Company;
+
+    // ────────── Client snapshot (denormalized for render speed) ──────────
 
     @Column({ name: 'client_name' })
     clientName: string;
@@ -43,6 +63,8 @@ export class Proposal {
 
     @Column({ name: 'consumption_kwh', type: 'float' })
     consumptionKwh: number;
+
+    // ────────── Legacy fields (kept for backward compatibility) ──────────
 
     @Column({ name: 'system_power_kwp', type: 'float' })
     systemPowerKwp: number;
@@ -93,6 +115,8 @@ export class Proposal {
 
     @Column({ name: 'payback_years', type: 'float' })
     paybackYears: number;
+
+    // ────────── Metadata ──────────
 
     @Column({ name: 'pdf_path', nullable: true })
     pdfPath: string;

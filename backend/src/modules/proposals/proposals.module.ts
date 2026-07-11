@@ -5,9 +5,17 @@ import { ProposalsService } from './proposals.service';
 import { ProposalsController } from './proposals.controller';
 import { SolarEngineModule } from '../solar-engine/solar-engine.module';
 import { SolarProjectModule } from '../solar-project/solar-project.module';
+import { PricingEngineModule } from '../pricing-engine/pricing-engine.module';
+import { CompaniesModule } from '../companies/companies.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Proposal]), SolarEngineModule, SolarProjectModule],
+  imports: [
+    TypeOrmModule.forFeature([Proposal]),
+    SolarEngineModule,
+    SolarProjectModule,
+    PricingEngineModule,
+    CompaniesModule,
+  ],
   controllers: [ProposalsController],
   providers: [ProposalsService],
   exports: [ProposalsService],
