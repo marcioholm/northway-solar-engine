@@ -1,8 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
 import { CatalogSupplier } from './catalog-supplier.entity';
+import { CatalogManufacturer } from './catalog-manufacturer.entity';
 
-export type ProductCategory = 'module' | 'inverter' | 'structure' | 'cable' | 'connector' | 'protection' | 'service';
+export type ProductCategory = 'module' | 'inverter' | 'structure' | 'cable' | 'connector' | 'protection' | 'service' | 'material';
 
 @Entity('catalog_products')
 export class CatalogProduct {
@@ -25,6 +26,13 @@ export class CatalogProduct {
     @ManyToOne(() => CatalogSupplier, { nullable: true })
     @JoinColumn({ name: 'supplier_id' })
     supplier: CatalogSupplier;
+
+    @Column({ name: 'manufacturer_id', nullable: true })
+    manufacturerId: string;
+
+    @ManyToOne(() => CatalogManufacturer, { nullable: true })
+    @JoinColumn({ name: 'manufacturer_id' })
+    manufacturer: CatalogManufacturer;
 
     @Column()
     brand: string;
@@ -49,6 +57,16 @@ export class CatalogProduct {
 
     @Column({ default: true })
     active: boolean;
+
+    // Future stock fields (no movements yet)
+    @Column({ name: 'stock_quantity', type: 'decimal', precision: 10, scale: 2, default: 0 })
+    stockQuantity: number;
+
+    @Column({ name: 'min_stock', type: 'decimal', precision: 10, scale: 2, default: 0 })
+    minStock: number;
+
+    @Column({ name: 'warranty_years', nullable: true, type: 'int' })
+    warrantyYears: number;
 
     @Column({ type: 'jsonb', default: {} })
     specs: Record<string, any>;

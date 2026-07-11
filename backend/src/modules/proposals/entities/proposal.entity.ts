@@ -1,6 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { InventoryModuleEntity } from '../../inventory/entities/inventory-module.entity';
-import { InventoryInverterEntity } from '../../inventory/entities/inventory-inverter.entity';
 import { Company } from '../../companies/entities/company.entity';
 import { SolarProject } from '../../solar-project/entities/solar-project.entity';
 import { Quote } from '../../solar-project/entities/quote.entity';
@@ -69,19 +67,19 @@ export class Proposal {
     @Column({ name: 'system_power_kwp', type: 'float' })
     systemPowerKwp: number;
 
+    // Deprecated: kept for backward compatibility. Use catalog_product fields for new proposals.
     @Column({ name: 'module_id', nullable: true })
     moduleId: string;
-
-    @ManyToOne(() => InventoryModuleEntity)
-    @JoinColumn({ name: 'module_id' })
-    module: InventoryModuleEntity;
 
     @Column({ name: 'inverter_id', nullable: true })
     inverterId: string;
 
-    @ManyToOne(() => InventoryInverterEntity)
-    @JoinColumn({ name: 'inverter_id' })
-    inverter: InventoryInverterEntity;
+    // Future: Catalog Product references
+    @Column({ name: 'catalog_product_module_id', nullable: true })
+    catalogProductModuleId: string;
+
+    @Column({ name: 'catalog_product_inverter_id', nullable: true })
+    catalogProductInverterId: string;
 
     @Column({ name: 'module_qty', type: 'int' })
     moduleQty: number;

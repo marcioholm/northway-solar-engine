@@ -4,6 +4,8 @@ import { Repository, Like } from 'typeorm';
 import { CatalogProduct } from './entities/catalog-product.entity';
 import { CatalogSupplier } from './entities/catalog-supplier.entity';
 import { CatalogKit } from './entities/catalog-kit.entity';
+import { CatalogManufacturer } from './entities/catalog-manufacturer.entity';
+import { CatalogDocument, DocumentType } from './entities/catalog-document.entity';
 import { CreateCatalogProductDto } from './dto/create-catalog-product.dto';
 import { UpdateCatalogProductDto } from './dto/update-catalog-product.dto';
 import { CreateCatalogSupplierDto } from './dto/create-catalog-supplier.dto';
@@ -18,6 +20,10 @@ export class CatalogService {
         private suppliersRepo: Repository<CatalogSupplier>,
         @InjectRepository(CatalogKit)
         private kitsRepo: Repository<CatalogKit>,
+        @InjectRepository(CatalogManufacturer)
+        private manufacturersRepo: Repository<CatalogManufacturer>,
+        @InjectRepository(CatalogDocument)
+        private documentsRepo: Repository<CatalogDocument>,
     ) { }
 
     // ─── Products ────────────────────────────────────────
@@ -33,6 +39,10 @@ export class CatalogService {
             suggestedPrice: dto.suggestedPrice,
             unit: dto.unit || 'un',
             active: dto.active ?? true,
+            manufacturerId: dto.manufacturerId,
+            stockQuantity: dto.stockQuantity ?? 0,
+            minStock: dto.minStock ?? 0,
+            warrantyYears: dto.warrantyYears,
             specs: dto.specs || {},
             compatibility: dto.compatibility || {},
             tags: dto.tags || [],
@@ -113,6 +123,55 @@ export class CatalogService {
             if (p.active) groups[p.category].active++;
         }
         return Object.entries(groups).map(([category, counts]) => ({ category, ...counts }));
+    }
+
+    // ─── Manufacturers ──────────────────────────────────
+
+    async createManufacturer(companyId: string, dto: { name: string; website?: string; contact?: string; email?: string; phone?: string; country?: string }): Promise<CatalogManufacturer> {
+        const m = this.manufacturersRepo.create({ ...dto, companyId });
+        return this.manufacturersRepo.save(m);
+    }
+
+    findAllManufacturers(companyId: string): Promise<CatalogManufacturer[]> {
+        return this.manufacturersRepo.find({ where: { companyId, active: true }, order: { name: 'ASC' } });
+    }
+
+    async findManufacturer(id: string): Promise<CatalogManufacturer> {
+        const m = await this.manufacturersRepo.findOneBy({ id });
+        if (!m) throw new NotFoundException('Manufacturer not found');
+        return m;
+    }
+
+    async updateManufacturer(id: string, dto: Partial<{ name: string; website: string; contact: string; email: string; phone: string; country: string }>): Promise<CatalogManufacturer> {
+        const m = await this.findManufacturer(id);
+        Object.assign(m, dto);
+        return this.manufacturersRepo.save(m);
+    }
+
+    async removeManufacturer(id: string): Promise<void> {
+        const m = await this.findManufacturer(id);
+        m.active = false;
+        await this.manufacturersRepo.save(m);
+    }
+
+    // ─── Documents ──────────────────────────────────────
+
+    async createDocument(dto: { productId: string; type: DocumentType; name: string; description?: string; fileUrl: string; fileType?: string; language?: string }): Promise<CatalogDocument> {
+        await this.findProduct(dto.productId);
+        const doc = new CatalogDocument();
+        Object.assign(doc, dto);
+        return this.documentsRepo.save(doc);
+    }
+
+    findDocumentsByProduct(productId: string): Promise<CatalogDocument[]> {
+        return this.documentsRepo.find({ where: { productId, active: true }, order: { createdAt: 'DESC' as any } });
+    }
+
+    async removeDocument(id: string): Promise<void> {
+        const doc = await this.documentsRepo.findOneBy({ id });
+        if (!doc) throw new NotFoundException('Document not found');
+        doc.active = false;
+        await this.documentsRepo.save(doc);
     }
 
     // ─── Suppliers ───────────────────────────────────────

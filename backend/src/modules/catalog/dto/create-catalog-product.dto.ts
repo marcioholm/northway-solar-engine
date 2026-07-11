@@ -1,5 +1,5 @@
 export class CreateCatalogProductDto {
-    category: 'module' | 'inverter' | 'structure' | 'cable' | 'connector' | 'protection' | 'service';
+    category: 'module' | 'inverter' | 'structure' | 'cable' | 'connector' | 'protection' | 'service' | 'material';
     brand: string;
     line?: string;
     model: string;
@@ -8,6 +8,10 @@ export class CreateCatalogProductDto {
     suggestedPrice?: number;
     unit?: string;
     active?: boolean;
+    manufacturerId?: string;
+    stockQuantity?: number;
+    minStock?: number;
+    warrantyYears?: number;
     specs?: Record<string, any>;
     compatibility?: Record<string, any>;
     tags?: string[];

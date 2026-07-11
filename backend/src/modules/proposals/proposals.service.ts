@@ -221,7 +221,6 @@ export class ProposalsService {
     findByLead(leadId: string) {
         return this.proposalsRepository.find({
             where: { leadId },
-            relations: ['module', 'inverter'],
         });
     }
 
@@ -241,7 +240,7 @@ export class ProposalsService {
     async findOneWithRelations(id: string) {
         const proposal = await this.proposalsRepository.findOne({
             where: { id },
-            relations: ['module', 'inverter', 'company', 'solarProject']
+            relations: ['company', 'solarProject']
         });
         if (!proposal) return null;
         return this.mergeProjectData(proposal);
@@ -330,19 +329,19 @@ export class ProposalsService {
             paymentCardInstallments: project.paymentCardInstallments ?? project.payment?.cardInstallments,
             paymentFinanceInstallments: project.paymentFinanceInstallments ?? project.payment?.financeInstallments,
             paymentValidityDays: project.paymentValidityDays ?? project.payment?.validityDays,
-            equipment: moduleData || project.equipment?.modules?.[0] || proposal.module ? [{
+            equipment: moduleData || project.equipment?.modules?.[0] ? [{
                 type: 'module' as const,
-                brand: moduleData?.brand || proposal.module?.brand || project.equipment?.modules?.[0]?.brand,
-                model: moduleData?.model || proposal.module?.model || project.equipment?.modules?.[0]?.model,
+                brand: moduleData?.brand || project.equipment?.modules?.[0]?.brand,
+                model: moduleData?.model || project.equipment?.modules?.[0]?.model,
                 quantity: moduleData?.qty || project.sizingModuleQty || project.sizing?.moduleQty || proposal.moduleQty,
-                power: moduleData?.power ? `${moduleData.power}W` : proposal.module?.powerWatt ? `${proposal.module.powerWatt}W` : undefined,
+                power: moduleData?.power ? `${moduleData.power}W` : undefined,
             }] : undefined,
-            equipmentInverters: inverterData || project.equipment?.inverters?.[0] || proposal.inverter ? [{
+            equipmentInverters: inverterData || project.equipment?.inverters?.[0] ? [{
                 type: 'inverter' as const,
-                brand: inverterData?.brand || proposal.inverter?.brand || project.equipment?.inverters?.[0]?.brand,
-                model: inverterData?.model || proposal.inverter?.model || project.equipment?.inverters?.[0]?.model,
+                brand: inverterData?.brand || project.equipment?.inverters?.[0]?.brand,
+                model: inverterData?.model || project.equipment?.inverters?.[0]?.model,
                 quantity: inverterData?.qty || 1,
-                power: inverterData?.powerKw ? `${inverterData.powerKw}kW` : proposal.inverter?.nominalPowerKw ? `${proposal.inverter.nominalPowerKw}kW` : undefined,
+                power: inverterData?.powerKw ? `${inverterData.powerKw}kW` : undefined,
             }] : undefined,
             quotes: project.quotes || undefined,
         };

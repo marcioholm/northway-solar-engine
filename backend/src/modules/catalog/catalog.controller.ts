@@ -121,4 +121,56 @@ export class CatalogController {
     removeKit(@Param('id') id: string) {
         return this.service.removeKit(id);
     }
+
+    // ─── Manufacturers ────────────────────────────────────
+
+    @Post('manufacturers')
+    @ApiOperation({ summary: 'Create manufacturer' })
+    createManufacturer(@Request() req, @Body() dto: { name: string; website?: string; contact?: string; email?: string; phone?: string; country?: string }) {
+        return this.service.createManufacturer(req.user.companyId, dto);
+    }
+
+    @Get('manufacturers')
+    @ApiOperation({ summary: 'List manufacturers' })
+    findAllManufacturers(@Request() req) {
+        return this.service.findAllManufacturers(req.user.companyId);
+    }
+
+    @Get('manufacturers/:id')
+    @ApiOperation({ summary: 'Get manufacturer' })
+    findManufacturer(@Param('id') id: string) {
+        return this.service.findManufacturer(id);
+    }
+
+    @Patch('manufacturers/:id')
+    @ApiOperation({ summary: 'Update manufacturer' })
+    updateManufacturer(@Param('id') id: string, @Body() dto: { name?: string; website?: string; contact?: string; email?: string; phone?: string; country?: string }) {
+        return this.service.updateManufacturer(id, dto);
+    }
+
+    @Delete('manufacturers/:id')
+    @ApiOperation({ summary: 'Deactivate manufacturer' })
+    removeManufacturer(@Param('id') id: string) {
+        return this.service.removeManufacturer(id);
+    }
+
+    // ─── Documents ────────────────────────────────────────
+
+    @Post('products/:id/documents')
+    @ApiOperation({ summary: 'Upload document for product' })
+    createDocument(@Param('id') productId: string, @Body() dto: { type: string; name: string; description?: string; fileUrl: string; fileType?: string; language?: string }) {
+        return this.service.createDocument({ ...dto, productId, type: dto.type as any });
+    }
+
+    @Get('products/:id/documents')
+    @ApiOperation({ summary: 'List documents for product' })
+    findDocuments(@Param('id') id: string) {
+        return this.service.findDocumentsByProduct(id);
+    }
+
+    @Delete('documents/:id')
+    @ApiOperation({ summary: 'Remove document' })
+    removeDocument(@Param('id') id: string) {
+        return this.service.removeDocument(id);
+    }
 }
