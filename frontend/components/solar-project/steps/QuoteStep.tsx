@@ -118,8 +118,14 @@ export function QuoteStep({ data, onChange, projectId }: { data: Record<string, 
     if (!projectId) return;
     try {
       await api.patch(`/solar-project/${projectId}/quotes/${qid}/select`);
+      const q = quotes.find(x => x.id === qid);
       setSelectedId(qid);
-      onChange({ supplierName: quotes.find(q => q.id === qid)?.supplierName });
+      if (q) {
+        onChange({
+          supplierName: q.supplierName,
+          pricingEquipmentCost: Number(q.totalAmount),
+        });
+      }
     } catch (err) {
       console.error('Error selecting quote:', err);
     }

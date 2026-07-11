@@ -6,74 +6,83 @@ import { Stack } from '../../primitives/Stack';
 import { Flex } from '../../primitives/Flex';
 import { formatBRL } from '../../../lib/format';
 
-interface CostsData {
-  pricingEquipmentCost: number;
-  pricingLaborCost: number;
-  pricingProjectCost: number;
-  pricingFreightCost: number;
-  pricingTravelCost: number;
-  pricingCommission: number;
-  pricingTaxes: number;
-  pricingAdminCost: number;
-}
+const GROUP_OPERATIONAL = [
+  { label: 'Projeto', key: 'pricingProjectCost' },
+  { label: 'ART', key: 'pricingArtCost' },
+  { label: 'Instalação', key: 'pricingInstallationCost' },
+  { label: 'Hotel', key: 'pricingHotelCost' },
+  { label: 'Frete', key: 'pricingFreightCost' },
+  { label: 'Alimentação', key: 'pricingFoodCost' },
+  { label: 'Deslocamento', key: 'pricingTravelCost' },
+  { label: 'Pedágio', key: 'pricingTollCost' },
+  { label: 'Comissão', key: 'pricingCommission' },
+  { label: 'Guindaste', key: 'pricingCraneCost' },
+  { label: 'Terceiros', key: 'pricingThirdPartiesCost' },
+  { label: 'Administrativo', key: 'pricingAdminCost' },
+  { label: 'Impostos', key: 'pricingTaxes' },
+  { label: 'Outros', key: 'pricingOtherCost' },
+];
 
-export function CostsStep({ data, onChange }: { data: Partial<CostsData>; onChange: (d: Partial<CostsData>) => void }) {
+export function CostsStep({ data, onChange }: { data: Record<string, any>; onChange: (d: Record<string, any>) => void }) {
   const setNumber = (key: string, val: string) => onChange({ ...data, [key]: val ? Number(val) : undefined });
 
   const equipmentCost = data.pricingEquipmentCost || 0;
-  const laborCost = data.pricingLaborCost || 0;
-  const projectCost = data.pricingProjectCost || 0;
-  const freightCost = data.pricingFreightCost || 0;
-  const travelCost = data.pricingTravelCost || 0;
-  const commission = data.pricingCommission || 0;
-  const taxes = data.pricingTaxes || 0;
-  const adminCost = data.pricingAdminCost || 0;
-  const totalCost = equipmentCost + laborCost + projectCost + freightCost + travelCost + commission + taxes + adminCost;
-
-  const costItems = [
-    { label: 'Equipamentos', key: 'pricingEquipmentCost', value: equipmentCost },
-    { label: 'Mão de Obra', key: 'pricingLaborCost', value: laborCost },
-    { label: 'Projeto', key: 'pricingProjectCost', value: projectCost },
-    { label: 'Frete', key: 'pricingFreightCost', value: freightCost },
-    { label: 'Viagem', key: 'pricingTravelCost', value: travelCost },
-    { label: 'Comissão', key: 'pricingCommission', value: commission },
-    { label: 'Impostos', key: 'pricingTaxes', value: taxes },
-    { label: 'Administrativo', key: 'pricingAdminCost', value: adminCost },
-  ];
+  const operationalCosts = GROUP_OPERATIONAL.reduce((acc, { key }) => {
+    acc[key] = data[key] || 0;
+    return acc;
+  }, {} as Record<string, number>);
+  const operationalTotal = Object.values(operationalCosts).reduce((a, b) => a + b, 0);
+  const totalCost = equipmentCost + operationalTotal;
 
   return (
     <Stack gap={5}>
       <div>
-        <Text variant="h3">Custos</Text>
-        <Text variant="body" color="secondary">Todos os custos envolvidos no projeto.</Text>
+        <Text variant="h3">Custos Operacionais</Text>
+        <Text variant="body" color="secondary">Equipamentos (da cotação) + custos operacionais do projeto.</Text>
       </div>
 
+      {/* Summary */}
       <Flex gap={4} style={{
         background: 'var(--surface-muted)', padding: '20px 24px', borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--line)',
       }}>
         <div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>CUSTO TOTAL</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>CUSTO TOTAL</div>
           <div style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text)' }}>{formatBRL(totalCost)}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+            Equip.: {formatBRL(equipmentCost)} + Operac.: {formatBRL(operationalTotal)}
+          </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', marginLeft: '24px', flex: 1 }}>
-          {costItems.map(item => (
-            <Flex key={item.key} justify="between">
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{item.label}</span>
-              <span style={{ fontSize: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatBRL(item.value)}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 24px', marginLeft: '24px', flex: 1, alignContent: 'start' }}>
+          <Flex justify="between">
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Equipamentos</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatBRL(equipmentCost)}</span>
+          </Flex>
+          <div style={{ borderTop: '1px solid var(--line)', gridColumn: '1 / -1', margin: '2px 0' }} />
+          {GROUP_OPERATIONAL.map(({ label, key }) => (
+            <Flex key={key} justify="between">
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{formatBRL(data[key] || 0)}</span>
             </Flex>
           ))}
         </div>
       </Flex>
 
+      {/* Cost inputs */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        {costItems.map(item => (
+        <Input
+          label="Equipamentos (da cotação) (R$)"
+          variant="number"
+          value={equipmentCost || ''}
+          onChange={v => setNumber('pricingEquipmentCost', v)}
+        />
+        {GROUP_OPERATIONAL.map(({ label, key }) => (
           <Input
-            key={item.key}
-            label={`${item.label} (R$)`}
+            key={key}
+            label={`${label} (R$)`}
             variant="number"
-            value={item.value || ''}
-            onChange={v => setNumber(item.key, v)}
+            value={data[key] || ''}
+            onChange={v => setNumber(key, v)}
           />
         ))}
       </div>

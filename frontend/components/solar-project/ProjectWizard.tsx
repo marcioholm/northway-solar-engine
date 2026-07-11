@@ -37,8 +37,8 @@ const STEP_MODULES: Record<string, string[]> = {
   consumption: ['consumptionMonthlyKwh', 'consumptionTariff'],
   sizing: ['sizingPowerKwp', 'sizingGenerationKwh', 'sizingModuleQty'],
   quotes: ['supplierName'],
-  costs: ['pricingEquipmentCost', 'pricingLaborCost'],
-  pricing: ['pricingFinalPrice', 'pricingMarginPct'],
+  costs: ['pricingEquipmentCost'],
+  pricing: ['pricingFinalPrice', 'pricingMarginPct', 'pricingEffectiveMarginPct'],
   payment: ['paymentValidityDays'],
 };
 
@@ -64,10 +64,14 @@ export function ProjectWizard() {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<Record<string, any>>({});
 
-  const totalCost = (data.pricingEquipmentCost || 0) + (data.pricingLaborCost || 0)
-    + (data.pricingProjectCost || 0) + (data.pricingFreightCost || 0)
-    + (data.pricingTravelCost || 0) + (data.pricingCommission || 0)
-    + (data.pricingTaxes || 0) + (data.pricingAdminCost || 0);
+  const totalCost = (data.pricingEquipmentCost || 0) + (data.pricingProjectCost || 0)
+    + (data.pricingArtCost || 0) + (data.pricingInstallationCost || 0)
+    + (data.pricingHotelCost || 0) + (data.pricingFreightCost || 0)
+    + (data.pricingFoodCost || 0) + (data.pricingTravelCost || 0)
+    + (data.pricingTollCost || 0) + (data.pricingCommission || 0)
+    + (data.pricingCraneCost || 0) + (data.pricingThirdPartiesCost || 0)
+    + (data.pricingAdminCost || 0) + (data.pricingTaxes || 0)
+    + (data.pricingOtherCost || 0);
 
   const stepStatuses = STEPS.map(s => computeStepStatus(s.key, data));
   const currentStepStatus = stepStatuses[step];
@@ -210,7 +214,7 @@ export function ProjectWizard() {
         {step === 3 && <SizingStep data={data} consumptionKwh={data.consumptionMonthlyKwh} onChange={handleDataChange} />}
         {step === 4 && <QuoteStep data={data} onChange={handleDataChange} projectId={projectId || undefined} />}
         {step === 5 && <CostsStep data={data} onChange={handleDataChange} />}
-        {step === 6 && <PricingStep data={data} onChange={handleDataChange} totalCost={totalCost} />}
+        {step === 6 && <PricingStep data={data} onChange={handleDataChange} />}
         {step === 7 && <PaymentStep data={data} onChange={handleDataChange} />}
         {step === 8 && <ProposalStep data={data} projectId={projectId || undefined} />}
       </div>

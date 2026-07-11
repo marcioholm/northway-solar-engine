@@ -192,6 +192,50 @@ export class SolarProject {
     @Column({ name: 'pricing_discount_pct', type: 'float', nullable: true })
     pricingDiscountPct: number;
 
+    // Novos campos de custo operacional
+    @Column({ name: 'pricing_art_cost', type: 'float', nullable: true })
+    pricingArtCost: number;
+
+    @Column({ name: 'pricing_installation_cost', type: 'float', nullable: true })
+    pricingInstallationCost: number;
+
+    @Column({ name: 'pricing_hotel_cost', type: 'float', nullable: true })
+    pricingHotelCost: number;
+
+    @Column({ name: 'pricing_food_cost', type: 'float', nullable: true })
+    pricingFoodCost: number;
+
+    @Column({ name: 'pricing_toll_cost', type: 'float', nullable: true })
+    pricingTollCost: number;
+
+    @Column({ name: 'pricing_crane_cost', type: 'float', nullable: true })
+    pricingCraneCost: number;
+
+    @Column({ name: 'pricing_third_parties_cost', type: 'float', nullable: true })
+    pricingThirdPartiesCost: number;
+
+    @Column({ name: 'pricing_other_cost', type: 'float', nullable: true })
+    pricingOtherCost: number;
+
+    // Engine outputs
+    @Column({ name: 'pricing_total_cost', type: 'float', nullable: true })
+    pricingTotalCost: number;
+
+    @Column({ name: 'pricing_profit', type: 'float', nullable: true })
+    pricingProfit: number;
+
+    @Column({ name: 'pricing_recommended_price', type: 'float', nullable: true })
+    pricingRecommendedPrice: number;
+
+    @Column({ name: 'pricing_effective_margin_pct', type: 'float', nullable: true })
+    pricingEffectiveMarginPct: number;
+
+    @Column({ name: 'pricing_min_margin_pct', type: 'float', nullable: true })
+    pricingMinMarginPct: number;
+
+    @Column({ name: 'pricing_recommended_margin_pct', type: 'float', nullable: true })
+    pricingRecommendedMarginPct: number;
+
     // ───────────────────── PAYMENT ─────────────────────
 
     @Column({ name: 'payment_cash_discount', type: 'float', nullable: true })
