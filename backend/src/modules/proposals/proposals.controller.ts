@@ -5,23 +5,27 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('proposals')
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
 @Controller('proposals')
 export class ProposalsController {
   constructor(private readonly proposalsService: ProposalsService) { }
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   create(@Request() req, @Body() createProposalDto: CreateProposalDto) {
     return this.proposalsService.create(req.user.companyId, req.user.userId, createProposalDto);
   }
 
   @Get()
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   findAll(@Request() req) {
     return this.proposalsService.findAll(req.user.companyId);
   }
 
   @Get('lead/:leadId')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   findByLead(@Param('leadId') leadId: string) {
     return this.proposalsService.findByLead(leadId);
   }
