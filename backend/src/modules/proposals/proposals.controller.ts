@@ -21,6 +21,11 @@ export class ProposalsController {
     return this.proposalsService.findAll(req.user.companyId);
   }
 
+  @Get('lead/:leadId')
+  findByLead(@Param('leadId') leadId: string) {
+    return this.proposalsService.findByLead(leadId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.proposalsService.findOne(id);

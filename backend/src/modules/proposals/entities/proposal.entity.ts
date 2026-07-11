@@ -80,6 +80,12 @@ export class Proposal {
     @Column({ name: 'pdf_path', nullable: true })
     pdfPath: string;
 
+    @Column({ name: 'lead_id', nullable: true })
+    leadId: string;
+
+    @Column({ name: 'stage', nullable: true })
+    stage: string;
+
     @Column({ name: 'created_by' })
     createdBy: string;
 

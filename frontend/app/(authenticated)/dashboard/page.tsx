@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
     BoltIcon,
     MapPinIcon,
     CalculatorIcon
-} from '@heroicons/react/24/outline'; // Using generic icons if heroicons not fully available, but structure remains
+} from '@heroicons/react/24/outline';
 
 interface IBGEState {
     id: number;
@@ -19,13 +20,18 @@ interface IBGECity {
 }
 
 export default function Dashboard() {
-    // Client State
-    const [clientName, setClientName] = useState('');
+    const searchParams = useSearchParams();
+    const leadId = searchParams.get('leadId');
+    const leadName = searchParams.get('name');
+    const leadCity = searchParams.get('city');
+    const leadState = searchParams.get('state');
+    const leadConsumption = searchParams.get('consumption');
 
-    // Calculator State
-    const [consumption, setConsumption] = useState(0);
-    const [selectedState, setSelectedState] = useState('');
-    const [selectedCity, setSelectedCity] = useState('');
+    const [clientName, setClientName] = useState(leadName || '');
+
+    const [consumption, setConsumption] = useState(leadConsumption ? Number(leadConsumption) : 0);
+    const [selectedState, setSelectedState] = useState(leadState || '');
+    const [selectedCity, setSelectedCity] = useState(leadCity || '');
 
     // Data State
     const [states, setStates] = useState<IBGEState[]>([]);
@@ -71,12 +77,22 @@ export default function Dashboard() {
                     consumption,
                     city: `${selectedCity} - ${selectedState}`,
                     clientName: clientName || 'Cliente Visitante',
-                    clientCep: '00000-000'
+                    clientCep: '00000-000',
+                    leadId: leadId || undefined,
                 }),
             });
 
             if (!res.ok) throw new Error('Failed to create proposal');
             const proposal = await res.json();
+
+            // Update lead stage if coming from CRM
+            if (leadId) {
+                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/leads/${leadId}/stage`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ stage: 'proposal_sent' }),
+                });
+            }
 
             // 2. Fetch PDF blob with Auth header
             const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposal.id}/pdf`, {

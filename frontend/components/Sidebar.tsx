@@ -7,8 +7,10 @@ import {
     CubeIcon,
     DocumentTextIcon,
     Cog6ToothIcon,
-    ArrowLeftOnRectangleIcon
-} from '@heroicons/react/24/outline'; // Need generic fallback if not installed
+    ArrowLeftOnRectangleIcon,
+    UsersIcon,
+    CheckCircleIcon,
+} from '@heroicons/react/24/outline';
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -20,9 +22,12 @@ export default function Sidebar() {
     };
 
     const navItems = [
-        { name: 'Dashboard', href: '/dashboard', icon: Squares2X2Icon },
+        { name: 'Dimensionamento', href: '/dashboard', icon: Squares2X2Icon },
+        { name: 'CRM', href: '/crm', icon: UsersIcon },
+        { name: 'Leads', href: '/crm/leads', icon: CheckCircleIcon },
         { name: 'Estoque', href: '/inventory', icon: CubeIcon },
         { name: 'Propostas', href: '/proposals', icon: DocumentTextIcon },
+        { name: 'Tarefas', href: '/crm/tasks', icon: Cog6ToothIcon },
         { name: 'Configurações', href: '/settings', icon: Cog6ToothIcon },
     ];
 

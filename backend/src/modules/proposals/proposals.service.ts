@@ -15,10 +15,8 @@ export class ProposalsService {
     ) { }
 
     async create(companyId: string, userId: string, dto: CreateProposalDto) {
-        // 1. Calculate using Solar Engine
         const calculation = await this.solarEngineService.calculate(companyId, dto.consumption, dto.city);
 
-        // 2. Map calculation to Proposal entity
         const proposal = this.proposalsRepository.create({
             companyId,
             createdBy: userId,
@@ -26,6 +24,8 @@ export class ProposalsService {
             clientCep: dto.clientCep,
             clientCity: dto.city,
             consumptionKwh: dto.consumption,
+            leadId: dto.leadId,
+            stage: 'proposal_sent',
 
             systemPowerKwp: calculation.system_power_kwp,
             moduleId: calculation.module.id,
@@ -46,6 +46,13 @@ export class ProposalsService {
         });
 
         return this.proposalsRepository.save(proposal);
+    }
+
+    findByLead(leadId: string) {
+        return this.proposalsRepository.find({
+            where: { leadId },
+            relations: ['module', 'inverter'],
+        });
     }
 
     findAll(companyId: string) {

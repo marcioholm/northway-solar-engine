@@ -3,4 +3,5 @@ export class CreateProposalDto {
     clientCep: string;
     city: string;
     consumption: number;
+    leadId?: string;
 }
