@@ -14,6 +14,7 @@ import { Text } from '../../../../components/primitives/Text';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 import { ProjectTimeline } from '../../../../components/solar-project/ProjectTimeline';
 import { api } from '../../../../lib/api';
+import { formatBRL, formatPercent } from '../../../../lib/format';
 
 function DetailRow({ label, value }: { label: string; value?: string | number | null }) {
   if (!value && value !== 0) return null;
@@ -129,7 +130,7 @@ export default function ProjectDetailPage() {
           <SummaryGrid label="POTÊNCIA" value={project.sizingPowerKwp ? `${project.sizingPowerKwp.toFixed(2)} kWp` : undefined} />
           <SummaryGrid label="GERAÇÃO" value={project.sizingGenerationKwh ? `${project.sizingGenerationKwh.toFixed(0)} kWh/mês` : undefined} />
           <SummaryGrid label="MÓDULOS" value={project.sizingModuleQty ? `${project.sizingModuleQty}` : undefined} />
-          <SummaryGrid label="VALOR" value={project.pricingFinalPrice ? `R$ ${Number(project.pricingFinalPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : undefined} />
+          <SummaryGrid label="VALOR" value={project.pricingFinalPrice ? formatBRL(Number(project.pricingFinalPrice)) : undefined} />
         </div>
 
         {/* Tabs */}
@@ -163,7 +164,7 @@ export default function ProjectDetailPage() {
 
             <SectionCard title="Consumo">
               <DetailRow label="Consumo (kWh/mês)" value={project.consumptionMonthlyKwh ? `${project.consumptionMonthlyKwh} kWh` : undefined} />
-              <DetailRow label="Conta (R$)" value={project.consumptionMonthlyBill ? `R$ ${project.consumptionMonthlyBill.toFixed(2)}` : undefined} />
+              <DetailRow label="Conta (R$)" value={project.consumptionMonthlyBill ? formatBRL(project.consumptionMonthlyBill) : undefined} />
               <DetailRow label="Tarifa" value={project.consumptionTariff ? `R$ ${project.consumptionTariff.toFixed(3)}` : undefined} />
               <DetailRow label="Demanda" value={project.consumptionDemand} />
               <DetailRow label="Modalidade" value={project.consumptionModality} />
@@ -180,18 +181,18 @@ export default function ProjectDetailPage() {
             </SectionCard>
 
             <SectionCard title="Precificação">
-              <DetailRow label="Custo Equip." value={project.pricingEquipmentCost ? `R$ ${project.pricingEquipmentCost.toFixed(2)}` : undefined} />
-              <DetailRow label="Mão de Obra" value={project.pricingLaborCost ? `R$ ${project.pricingLaborCost.toFixed(2)}` : undefined} />
-              <DetailRow label="Frete" value={project.pricingFreightCost ? `R$ ${project.pricingFreightCost.toFixed(2)}` : undefined} />
-              <DetailRow label="Margem" value={project.pricingMarginPct ? `${project.pricingMarginPct}%` : undefined} />
-              <DetailRow label="Preço Final" value={project.pricingFinalPrice ? `R$ ${project.pricingFinalPrice.toFixed(2)}` : undefined} />
+              <DetailRow label="Custo Equip." value={project.pricingEquipmentCost ? formatBRL(project.pricingEquipmentCost) : undefined} />
+              <DetailRow label="Mão de Obra" value={project.pricingLaborCost ? formatBRL(project.pricingLaborCost) : undefined} />
+              <DetailRow label="Frete" value={project.pricingFreightCost ? formatBRL(project.pricingFreightCost) : undefined} />
+              <DetailRow label="Margem" value={project.pricingMarginPct ? formatPercent(project.pricingMarginPct) : undefined} />
+              <DetailRow label="Preço Final" value={project.pricingFinalPrice ? formatBRL(project.pricingFinalPrice) : undefined} />
             </SectionCard>
 
             <SectionCard title="Pagamento">
-              <DetailRow label="Desconto à Vista" value={project.paymentCashDiscount ? `${project.paymentCashDiscount}%` : undefined} />
-              <DetailRow label="Taxa Cartão" value={project.paymentCardTax ? `${project.paymentCardTax}%` : undefined} />
+              <DetailRow label="Desconto à Vista" value={project.paymentCashDiscount ? formatPercent(project.paymentCashDiscount) : undefined} />
+              <DetailRow label="Taxa Cartão" value={project.paymentCardTax ? formatPercent(project.paymentCardTax) : undefined} />
               <DetailRow label="Parcelas Cartão" value={project.paymentCardInstallments ? `${project.paymentCardInstallments}x` : undefined} />
-              <DetailRow label="Taxa Financ." value={project.paymentFinanceTax ? `${project.paymentFinanceTax}%` : undefined} />
+              <DetailRow label="Taxa Financ." value={project.paymentFinanceTax ? formatPercent(project.paymentFinanceTax) : undefined} />
               <DetailRow label="Parcelas Financ." value={project.paymentFinanceInstallments ? `${project.paymentFinanceInstallments}x` : undefined} />
               <DetailRow label="Validade" value={project.paymentValidityDays ? `${project.paymentValidityDays} dias` : undefined} />
             </SectionCard>
@@ -206,7 +207,7 @@ export default function ProjectDetailPage() {
                 {project.equipmentModules?.length > 0 ? project.equipmentModules.map((m: any, i: number) => (
                   <Flex key={i} justify="between" style={{ padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
                     <span style={{ fontWeight: 600 }}>{m.brand} {m.model}</span>
-                    <span>{m.qty}x R$ {Number(m.unitPrice).toFixed(2)}</span>
+                    <span>{m.qty}x {formatBRL(Number(m.unitPrice))}</span>
                   </Flex>
                 )) : <Text variant="body" color="secondary">Nenhum módulo cadastrado.</Text>}
               </div>
@@ -215,7 +216,7 @@ export default function ProjectDetailPage() {
                 {project.equipmentInverters?.length > 0 ? project.equipmentInverters.map((inv: any, i: number) => (
                   <Flex key={i} justify="between" style={{ padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
                     <span style={{ fontWeight: 600 }}>{inv.brand} {inv.model}</span>
-                    <span>{inv.qty}x R$ {Number(inv.unitPrice).toFixed(2)}</span>
+                    <span>{inv.qty}x {formatBRL(Number(inv.unitPrice))}</span>
                   </Flex>
                 )) : <Text variant="body" color="secondary">Nenhum inversor cadastrado.</Text>}
               </div>
@@ -236,7 +237,7 @@ export default function ProjectDetailPage() {
                     <span style={{ fontWeight: 600 }}>{q.supplierName || 'Fornecedor'}</span>
                     <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>{q.status}</span>
                   </div>
-                  <span style={{ fontWeight: 700 }}>R$ {Number(q.totalAmount).toFixed(2)}</span>
+                  <span style={{ fontWeight: 700 }}>{formatBRL(Number(q.totalAmount))}</span>
                 </Flex>
               )) : <Text variant="body" color="secondary">Nenhuma cotação cadastrada.</Text>}
             </Stack>
@@ -250,7 +251,7 @@ export default function ProjectDetailPage() {
               {project.proposals?.length > 0 ? project.proposals.map((p: any) => (
                 <Flex key={p.id} justify="between" style={{ padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-lg)' }}>
                   <span style={{ fontWeight: 600 }}>Proposta</span>
-                  <span style={{ fontWeight: 700 }}>R$ {Number(p.finalPrice).toFixed(2)}</span>
+                  <span style={{ fontWeight: 700 }}>{formatBRL(Number(p.finalPrice))}</span>
                 </Flex>
               )) : <Text variant="body" color="secondary">Nenhuma proposta vinculada.</Text>}
             </Stack>

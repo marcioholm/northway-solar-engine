@@ -4,6 +4,7 @@ import { Input } from '../../ui/Input';
 import { Text } from '../../primitives/Text';
 import { Stack } from '../../primitives/Stack';
 import { Flex } from '../../primitives/Flex';
+import { formatBRL, formatPercent } from '../../../lib/format';
 
 interface PricingData {
   pricingEquipmentCost: number;
@@ -50,18 +51,18 @@ export function PricingStep({ data, onChange }: { data: Partial<PricingData>; on
       }}>
         <div>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>CUSTO TOTAL</div>
-          <div style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text)' }}>R$ {totalCost.toFixed(2)}</div>
+          <div style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text)' }}>{formatBRL(totalCost)}</div>
         </div>
         <div style={{ width: '1px', height: '40px', background: 'var(--line)' }} />
         <div>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>PREÇO FINAL</div>
-          <div style={{ fontSize: '28px', fontWeight: 900, color: 'var(--green-dark)' }}>R$ {finalPrice.toFixed(2)}</div>
+          <div style={{ fontSize: '28px', fontWeight: 900, color: 'var(--green-dark)' }}>{formatBRL(finalPrice)}</div>
         </div>
         <div style={{ width: '1px', height: '40px', background: 'var(--line)' }} />
         <div>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>MARGEM</div>
           <div style={{ fontSize: '28px', fontWeight: 900, color: effectiveMargin >= 20 ? 'var(--green-dark)' : 'var(--danger)' }}>
-            {effectiveMargin.toFixed(1)}%
+            {formatPercent(effectiveMargin)}
           </div>
         </div>
       </Flex>

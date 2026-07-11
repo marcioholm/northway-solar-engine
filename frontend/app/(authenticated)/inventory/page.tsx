@@ -13,7 +13,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Flex } from '../../../components/primitives/Flex';
 import { Text } from '../../../components/primitives/Text';
 import { Stack } from '../../../components/primitives/Stack';
-import { powerLabel } from '../../../lib/format';
+import { powerLabel, formatBRL } from '../../../lib/format';
 
 interface InventoryItem {
   id: string;
@@ -99,7 +99,7 @@ export default function InventoryPage() {
       label: 'Custo (R$)',
       render: (item: InventoryItem) => (
         <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-          R$ {Number(item.cost).toFixed(2)}
+          {formatBRL(Number(item.cost))}
         </span>
       ),
     },
@@ -223,7 +223,7 @@ export default function InventoryPage() {
               <Text variant="body" color="secondary">{item.model}</Text>
               <Flex justify="between" align="center">
                 <Text variant="body-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  R$ {Number(item.cost).toFixed(2)}
+                  {formatBRL(Number(item.cost))}
                 </Text>
                 <Flex gap={1}>
                   <button aria-label="Editar" style={{ width: '36px', height: '36px', display: 'grid', placeItems: 'center', border: 'none', borderRadius: 'var(--radius-md)', background: 'transparent', color: 'var(--text-secondary-v2)', cursor: 'pointer' }}>

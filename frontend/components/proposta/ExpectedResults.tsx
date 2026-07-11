@@ -1,5 +1,6 @@
 'use client';
 import { ProposalData, hasSavingsData, hasFinancialData } from '../../lib/proposal-types';
+import { formatBRL } from '../../lib/format';
 
 export function ExpectedResults({ data }: { data: ProposalData }) {
   if (!hasSavingsData(data) && !hasFinancialData(data)) return null;
@@ -14,7 +15,7 @@ export function ExpectedResults({ data }: { data: ProposalData }) {
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', padding: '24px', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Economia Anual</div>
               <div style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 900, color: 'var(--green-dark)', letterSpacing: '-0.02em' }}>
-                R$ {data.yearlySavings.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {formatBRL(data.yearlySavings)}
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: 4 }}>Valor que deixa de pagar à concessionária por ano</div>
             </div>

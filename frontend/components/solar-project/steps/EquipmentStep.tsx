@@ -6,6 +6,7 @@ import { Stack } from '../../primitives/Stack';
 import { Flex } from '../../primitives/Flex';
 import { Button } from '../../ui/Button';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { formatBRL } from '../../../lib/format';
 
 interface EquipmentData {
   equipmentModules: Array<{ name: string; brand: string; model: string; power: number; qty: number; unitPrice: number }>;
@@ -50,7 +51,7 @@ export function EquipmentStep({ data, onChange }: { data: Partial<EquipmentData>
           border: '1px solid var(--line)',
         }}>
           <div>
-            <div style={{ fontSize: '18px', fontWeight: 700 }}>R$ {(moduleCost + inverterCost).toFixed(2)}</div>
+            <div style={{ fontSize: '18px', fontWeight: 700 }}>{formatBRL(moduleCost + inverterCost)}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.05em', fontWeight: 600 }}>CUSTO TOTAL EQUIPAMENTOS</div>
           </div>
         </Flex>

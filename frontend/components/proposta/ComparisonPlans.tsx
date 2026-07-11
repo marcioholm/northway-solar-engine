@@ -1,5 +1,6 @@
 'use client';
 import { ProposalData } from '../../lib/proposal-types';
+import { formatBRL } from '../../lib/format';
 
 export function ComparisonPlans({ data }: { data: ProposalData }) {
   const plans = data.optionalPlans;
@@ -22,7 +23,7 @@ export function ComparisonPlans({ data }: { data: ProposalData }) {
             <div key={plan.name} style={{ background: plan.name === 'Recomendado' ? 'var(--surface)' : 'var(--bg)', borderRadius: 'var(--radius-xl)', padding: '28px 20px', border: plan.name === 'Recomendado' ? '2px solid var(--green)' : '1px solid var(--border)', position: 'relative', boxShadow: plan.name === 'Recomendado' ? 'var(--shadow-glow)' : 'none' }}>
               {plan.name === 'Recomendado' && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'var(--green)', color: '#fff', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 14px', borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Mais indicado</div>}
               <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)', marginBottom: 16 }}>{plan.name}</div>
-              {plan.finalPrice != null && <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 16 }}>R$ {plan.finalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>}
+              {plan.finalPrice != null && <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 16 }}>{formatBRL(plan.finalPrice)}</div>}
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
                 {plan.monthlySavings != null && <Row label="Economia/mês" value={`R$ ${plan.monthlySavings.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`} />}
                 {plan.paybackYears != null && <Row label="Payback" value={`${plan.paybackYears.toFixed(1)} anos`} />}

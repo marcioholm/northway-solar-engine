@@ -5,6 +5,7 @@ import { Card } from '../ui/Card';
 import { Text } from '../primitives/Text';
 import { Flex } from '../primitives/Flex';
 import { Chip } from '../ui/Chip';
+import { formatBRL } from '../../lib/format';
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho',
@@ -83,7 +84,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <div>
                 <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>VALOR</div>
                 <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--green-dark)' }}>
-                  R$ {Number(project.pricingFinalPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {formatBRL(Number(project.pricingFinalPrice))}
                 </div>
               </div>
             )}

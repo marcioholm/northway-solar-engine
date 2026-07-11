@@ -3,6 +3,7 @@
 import { Text } from '../../primitives/Text';
 import { Stack } from '../../primitives/Stack';
 import { Flex } from '../../primitives/Flex';
+import { formatBRL, formatPercent } from '../../../lib/format';
 
 interface FullProjectData {
   clientName?: string;
@@ -86,7 +87,7 @@ export function ReviewStep({ data }: { data: FullProjectData }) {
 
         <SectionCard title="Consumo">
           <Row label="Mensal (kWh)" value={data.consumptionMonthlyKwh ? `${data.consumptionMonthlyKwh} kWh` : undefined} />
-          <Row label="Valor Conta" value={data.consumptionMonthlyBill ? `R$ ${data.consumptionMonthlyBill.toFixed(2)}` : undefined} />
+          <Row label="Valor Conta" value={data.consumptionMonthlyBill ? formatBRL(data.consumptionMonthlyBill) : undefined} />
           <Row label="Tarifa" value={data.consumptionTariff ? `R$ ${data.consumptionTariff.toFixed(3)}` : undefined} />
         </SectionCard>
 
@@ -104,7 +105,7 @@ export function ReviewStep({ data }: { data: FullProjectData }) {
             <div style={{ marginBottom: '8px' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>MÓDULOS</div>
               {data.equipmentModules?.map((m: any, i: number) => (
-                <div key={i} style={{ fontSize: '13px' }}>{m.brand} {m.model} — {m.qty}x R$ {Number(m.unitPrice).toFixed(2)}</div>
+                <div key={i} style={{ fontSize: '13px' }}>{m.brand} {m.model} — {m.qty}x {formatBRL(Number(m.unitPrice))}</div>
               ))}
             </div>
           )}
@@ -112,18 +113,18 @@ export function ReviewStep({ data }: { data: FullProjectData }) {
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>INVERSORES</div>
               {data.equipmentInverters?.map((inv: any, i: number) => (
-                <div key={i} style={{ fontSize: '13px' }}>{inv.brand} {inv.model} — {inv.qty}x R$ {Number(inv.unitPrice).toFixed(2)}</div>
+                <div key={i} style={{ fontSize: '13px' }}>{inv.brand} {inv.model} — {inv.qty}x {formatBRL(Number(inv.unitPrice))}</div>
               ))}
             </div>
           )}
         </SectionCard>
 
         <SectionCard title="Precificação">
-          <Row label="Custo Equipamentos" value={data.pricingEquipmentCost ? `R$ ${data.pricingEquipmentCost.toFixed(2)}` : undefined} />
-          <Row label="Mão de Obra" value={data.pricingLaborCost ? `R$ ${data.pricingLaborCost.toFixed(2)}` : undefined} />
-          <Row label="Margem" value={data.pricingMarginPct ? `${data.pricingMarginPct}%` : undefined} />
-          <Row label="Valor Margem" value={data.pricingMarginValue ? `R$ ${data.pricingMarginValue.toFixed(2)}` : undefined} />
-          <Row label="Preço Final" value={data.pricingFinalPrice ? `R$ ${data.pricingFinalPrice.toFixed(2)}` : undefined} />
+          <Row label="Custo Equipamentos" value={data.pricingEquipmentCost ? formatBRL(data.pricingEquipmentCost) : undefined} />
+          <Row label="Mão de Obra" value={data.pricingLaborCost ? formatBRL(data.pricingLaborCost) : undefined} />
+          <Row label="Margem" value={data.pricingMarginPct ? formatPercent(data.pricingMarginPct) : undefined} />
+          <Row label="Valor Margem" value={data.pricingMarginValue ? formatBRL(data.pricingMarginValue) : undefined} />
+          <Row label="Preço Final" value={data.pricingFinalPrice ? formatBRL(data.pricingFinalPrice) : undefined} />
         </SectionCard>
       </div>
     </Stack>

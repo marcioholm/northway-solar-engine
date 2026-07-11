@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { formatBRL } from '../../../../../lib/format';
 
 const STAGE_OPTIONS = [
     { value: 'new', label: 'Novo Lead', color: 'bg-sky-500' },
@@ -132,7 +133,7 @@ export default function LeadDetailPage() {
                         <InfoRow label="Endereço" value={lead.address || '-'} />
                         <InfoRow label="CEP" value={lead.zipcode || '-'} />
                         <InfoRow label="Consumo" value={lead.monthlyConsumption ? `${lead.monthlyConsumption} kWh` : '-'} />
-                        <InfoRow label="Conta Média" value={lead.avgMonthlyBill ? `R$ ${Number(lead.avgMonthlyBill).toFixed(2)}` : '-'} />
+                        <InfoRow label="Conta Média" value={lead.avgMonthlyBill ? formatBRL(Number(lead.avgMonthlyBill)) : '-'} />
                         <InfoRow label="Concessionária" value={lead.utility || '-'} />
                         <InfoRow label="Origem" value={lead.source || '-'} />
                         <InfoRow label="Criado em" value={new Date(lead.createdAt).toLocaleDateString('pt-BR')} />
@@ -208,7 +209,7 @@ export default function LeadDetailPage() {
                                 <div key={p.id} className="rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] p-4 flex items-center justify-between">
                                     <div>
                                         <p className="text-sm font-bold text-white">{p.clientName}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{Number(p.systemPowerKwp).toFixed(2)} kWp · R$ {Number(p.finalPrice).toLocaleString('pt-BR')}</p>
+                                        <p className="text-xs text-gray-500 mt-1">{Number(p.systemPowerKwp).toFixed(2)} kWp · {formatBRL(Number(p.finalPrice))}</p>
                                     </div>
                                     <a href={`${api}/proposals/${p.id}/pdf`} target="_blank" className="text-xs text-[var(--color-primary)] font-bold hover:underline">PDF</a>
                                 </div>

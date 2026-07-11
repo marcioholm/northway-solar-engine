@@ -1,5 +1,6 @@
 'use client';
 import { ProposalData, generateTexts, hasSavingsData } from '../../lib/proposal-types';
+import { formatBRL } from '../../lib/format';
 
 export function CurrentReality({ data }: { data: ProposalData }) {
   const t = generateTexts(data);
@@ -15,7 +16,7 @@ export function CurrentReality({ data }: { data: ProposalData }) {
           {data.monthlyBill != null && (
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', padding: '28px 24px', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Conta de Luz</div>
-              <div style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)' }}>R$ {data.monthlyBill.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text)' }}>{formatBRL(data.monthlyBill)}</div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: 4 }}>média mensal</div>
             </div>
           )}
@@ -38,12 +39,12 @@ export function CurrentReality({ data }: { data: ProposalData }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div style={{ background: '#fef2f2', borderRadius: 'var(--radius-xl)', padding: '32px', border: '1px solid #fecaca' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Hoje</div>
-              <div style={{ fontSize: 'clamp(28px, 3.5vw, 40px)', fontWeight: 900, letterSpacing: '-0.02em', color: '#991b1b' }}>R$ {data.monthlyBill!.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: 'clamp(28px, 3.5vw, 40px)', fontWeight: 900, letterSpacing: '-0.02em', color: '#991b1b' }}>{formatBRL(data.monthlyBill!)}</div>
               <div style={{ fontSize: '14px', color: '#7f1d1d', marginTop: 4 }}>por mês • pagando energia</div>
             </div>
             <div style={{ background: 'var(--green-bg)', borderRadius: 'var(--radius-xl)', padding: '32px', border: '1px solid var(--green-light)' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--green-dark)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Com Energia Solar</div>
-              <div style={{ fontSize: 'clamp(28px, 3.5vw, 40px)', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--green-dark)' }}>R$ {Math.max(0, data.monthlyBill! - data.monthlySavings!).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: 'clamp(28px, 3.5vw, 40px)', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--green-dark)' }}>{formatBRL(Math.max(0, data.monthlyBill! - data.monthlySavings!))}</div>
               <div style={{ fontSize: '14px', color: '#166534', marginTop: 4 }}>por mês • economia estimada</div>
               <div style={{ fontSize: '13px', color: '#166534', marginTop: 12, opacity: 0.8 }}>Economia de R$ {data.monthlySavings!.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}/mês</div>
             </div>

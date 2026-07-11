@@ -7,6 +7,7 @@ import {
   PlusIcon, MagnifyingGlassIcon, XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { Modal } from '../../../components/ui/Modal';
+import { formatBRL } from '../../../lib/format';
 
 type Category = 'module' | 'inverter' | 'structure' | 'cable' | 'connector' | 'protection' | 'service';
 interface Product {
@@ -33,7 +34,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 function fmt(v?: number) {
   if (v == null) return '—';
-  return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  return formatBRL(v);
 }
 
 export default function CatalogPage() {

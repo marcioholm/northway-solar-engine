@@ -1,11 +1,12 @@
 'use client';
-import { ProposalData, hasSavingsData, hasFinancialData, formatCurrency } from '../../lib/proposal-types';
+import { ProposalData, hasSavingsData, hasFinancialData } from '../../lib/proposal-types';
+import { formatBRL } from '../../lib/format';
 
 function SavingsBar({ label, value, visible }: { label: string; value?: string | number; visible: boolean }) {
   if (!visible || value == null) return null;
   return (
     <div style={{ background: 'var(--green-bg)', borderRadius: 'var(--radius-lg)', padding: '24px 16px', textAlign: 'center', border: '1px solid var(--green-light)' }}>
-      <div style={{ fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 800, color: 'var(--green-dark)', letterSpacing: '-0.02em' }}>{typeof value === 'number' ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : value}</div>
+      <div style={{ fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 800, color: 'var(--green-dark)', letterSpacing: '-0.02em' }}>{typeof value === 'number' ? formatBRL(value) : value}</div>
       <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>{label}</div>
     </div>
   );

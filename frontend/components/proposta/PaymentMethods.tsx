@@ -1,5 +1,6 @@
 'use client';
 import { ProposalData } from '../../lib/proposal-types';
+import { formatBRL } from '../../lib/format';
 
 export function PaymentMethods({ data }: { data: ProposalData }) {
   const pm = data.paymentMethods;
@@ -11,7 +12,7 @@ export function PaymentMethods({ data }: { data: ProposalData }) {
     methods.push({
       title: 'PIX',
       subtitle: pm.pix.discountPercent ? `À vista com ${pm.pix.discountPercent}% de desconto` : 'À vista',
-      value: `R$ ${pm.pix.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      value: formatBRL(pm.pix.total),
       badge: pm.pix.discountPercent ? `${pm.pix.discountPercent}% OFF` : undefined,
       badgeColor: 'var(--green)',
     });
@@ -21,7 +22,7 @@ export function PaymentMethods({ data }: { data: ProposalData }) {
     methods.push({
       title: 'Cartão de Crédito',
       subtitle: 'Parcelamento',
-      value: `${pm.creditCard.installments}x de R$ ${pm.creditCard.monthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      value: `${pm.creditCard.installments}x de ${formatBRL(pm.creditCard.monthly)}`,
       badge: pm.creditCard.installments <= 12 ? 'Sem juros' : undefined,
       badgeColor: 'var(--info)',
     });
@@ -31,7 +32,7 @@ export function PaymentMethods({ data }: { data: ProposalData }) {
     methods.push({
       title: 'Financiamento',
       subtitle: pm.financing.entry != null && pm.financing.entry === 0 ? 'Sem entrada' : 'Crédito bancário',
-      value: `${pm.financing.maxInstallments}x de R$ ${pm.financing.monthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      value: `${pm.financing.maxInstallments}x de ${formatBRL(pm.financing.monthly)}`,
       badge: 'Financiamento',
       badgeColor: 'var(--warning)',
     });
@@ -41,7 +42,7 @@ export function PaymentMethods({ data }: { data: ProposalData }) {
     methods.push({
       title: 'Consórcio',
       subtitle: 'Sem juros',
-      value: `${pm.consortium.estimatedMonths}x de R$ ${pm.consortium.monthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      value: `${pm.consortium.estimatedMonths}x de ${formatBRL(pm.consortium.monthly)}`,
       badge: 'Consórcio',
       badgeColor: 'var(--green)',
     });

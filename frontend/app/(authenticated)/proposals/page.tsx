@@ -8,7 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { Text } from '../../../components/primitives/Text';
 import { Stack } from '../../../components/primitives/Stack';
 import { Flex } from '../../../components/primitives/Flex';
-import { formatCurrency } from '../../../lib/format';
+import { formatBRL, formatPercent, formatCurrency } from '../../../lib/format';
 
 export default function ProposalsPage() {
   const router = useRouter();
