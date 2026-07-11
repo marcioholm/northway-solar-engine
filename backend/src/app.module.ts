@@ -14,6 +14,7 @@ import { LeadsModule } from './modules/leads/leads.module';
 import { TimelineModule } from './modules/timeline/timeline.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { CrmDashboardModule } from './modules/crm-dashboard/crm-dashboard.module';
+import { SupabaseModule } from './supabase/supabase.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { CrmDashboardModule } from './modules/crm-dashboard/crm-dashboard.module
     TimelineModule,
     TasksModule,
     CrmDashboardModule,
+    SupabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
