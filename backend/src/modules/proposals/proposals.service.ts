@@ -23,6 +23,9 @@ export class ProposalsService {
             clientCep: dto.clientCep,
             clientCity: dto.city,
             consumptionKwh: dto.consumption,
+            utility: dto.utility,
+            tariff: dto.tariff,
+            profile: dto.profile,
             leadId: dto.leadId,
             stage: 'proposal_sent',
 

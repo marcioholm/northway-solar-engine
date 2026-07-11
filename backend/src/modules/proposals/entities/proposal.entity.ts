@@ -24,6 +24,15 @@ export class Proposal {
     @Column({ name: 'client_city' })
     clientCity: string;
 
+    @Column({ name: 'utility', nullable: true })
+    utility: string;
+
+    @Column({ name: 'tariff', type: 'float', nullable: true })
+    tariff: number;
+
+    @Column({ name: 'profile', nullable: true })
+    profile: string;
+
     @Column({ name: 'consumption_kwh', type: 'float' })
     consumptionKwh: number;
 
