@@ -99,7 +99,7 @@ export default function LeadDetailPage() {
     const currentStage = STAGE_OPTIONS.find(s => s.value === lead.stage);
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
+        <div className="legacy-page max-w-5xl mx-auto space-y-6">
             <div className="flex items-start justify-between">
                 <div>
                     <div className="flex items-center gap-3 mb-2">

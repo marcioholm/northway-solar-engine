@@ -8,6 +8,17 @@
   @page { margin: 20mm 15mm; }
 }
 
+/* ===== LEGACY TAILWIND PAGES (text colors for light mode) ===== */
+.legacy-page .text-white { color: var(--text) !important; }
+.legacy-page .text-gray-100 { color: var(--text) !important; }
+.legacy-page .text-gray-300 { color: var(--text-secondary) !important; }
+.legacy-page .text-gray-400 { color: var(--text-secondary) !important; }
+.legacy-page .text-gray-500 { color: var(--text-muted) !important; }
+.legacy-page .text-gray-600 { color: var(--text-muted) !important; }
+.legacy-page .text-green-400 { color: var(--success) !important; }
+.legacy-page .text-blue-400 { color: var(--info) !important; }
+.legacy-page .border-gray-800 { border-color: var(--border) !important; }
+
 :root {
   /* === BACKGROUNDS === */
   --bg: #F6F8F5;

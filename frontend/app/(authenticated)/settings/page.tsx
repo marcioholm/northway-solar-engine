@@ -15,7 +15,7 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="space-y-8 text-gray-100">
+        <div className="legacy-page space-y-8 text-gray-100">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-white">Configurações</h1>

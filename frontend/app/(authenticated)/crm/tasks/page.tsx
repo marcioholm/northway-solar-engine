@@ -62,7 +62,7 @@ export default function TasksPage() {
     if (loading) return <div className="text-gray-400 p-8">Carregando...</div>;
 
     return (
-        <div className="space-y-6">
+        <div className="legacy-page space-y-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-white">Tarefas</h1>
