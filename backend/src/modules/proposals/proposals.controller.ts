@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, UseGuards, Request, Header } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, UseGuards, Request, Header, Logger } from '@nestjs/common';
 import { ProposalsService } from './proposals.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -7,7 +7,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 @ApiTags('proposals')
 @Controller('proposals')
 export class ProposalsController {
-  constructor(private readonly proposalsService: ProposalsService) { }
+  private readonly logger = new Logger(ProposalsController.name);
+  constructor(private readonly proposalsService: ProposalsService) {}
 
   @Post()
   @ApiBearerAuth()
@@ -33,15 +34,27 @@ export class ProposalsController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
-      return await this.proposalsService.findOne(id);
-    } catch {
-      return await this.proposalsService.findOnePublic(id);
+      this.logger.log(`findOne: ${id}`);
+      const result = await this.proposalsService.findOne(id);
+      this.logger.log(`findOne result: ${result ? 'found' : 'null'}`);
+      return result;
+    } catch (err) {
+      this.logger.error(`findOne error: ${err.message}`);
+      try {
+        const result = await this.proposalsService.findOnePublic(id);
+        this.logger.log(`findOnePublic result: ${result ? 'found' : 'null'}`);
+        return result;
+      } catch (err2) {
+        this.logger.error(`findOnePublic error: ${err2.message}`);
+        throw err2;
+      }
     }
   }
 
   @Get(':id/pdf')
   @Header('Content-Type', 'text/html; charset=utf-8')
   async downloadPdf(@Param('id') id: string) {
+    this.logger.log(`downloadPdf: ${id}`);
     const { html } = await this.proposalsService.generatePdf(id);
     return html;
   }

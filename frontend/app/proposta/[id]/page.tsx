@@ -42,8 +42,11 @@ export default function ProposalPage({ params }: { params: { id: string } }) {
     fetch(`${api}/proposals/${params.id}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
-      .then(res => {
-        if (!res.ok) throw new Error(`Erro ${res.status}: proposta não encontrada`);
+      .then(async res => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Erro ${res.status}: ${text || 'proposta não encontrada'}`);
+        }
         return res.json();
       })
       .then((proposal: any) => {
