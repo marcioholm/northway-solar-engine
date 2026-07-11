@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Quote } from './entities/quote.entity';
@@ -25,11 +25,15 @@ export class QuoteService {
             supplierContact: dto.supplierContact,
             supplierPhone: dto.supplierPhone,
             supplierEmail: dto.supplierEmail,
+            quoteNumber: dto.quoteNumber,
+            quoteDate: dto.quoteDate,
+            validUntil: dto.validUntil,
+            paymentCondition: dto.paymentCondition,
             status: dto.status || 'draft',
             shippingCost: dto.shippingCost || 0,
-            validUntil: dto.validUntil ? new Date(dto.validUntil) : undefined,
             notes: dto.notes,
             totalAmount: itemsTotal + (dto.shippingCost || 0),
+            selected: false,
             items: dto.items.map(i => this.itemRepository.create({
                 productType: i.productType,
                 productName: i.productName,
@@ -63,9 +67,34 @@ export class QuoteService {
 
     async update(id: string, dto: UpdateQuoteDto): Promise<Quote> {
         const quote = await this.findOne(id);
+        if (dto.validUntil) quote.validUntil = dto.validUntil;
         Object.assign(quote, dto);
-        if (dto.validUntil) quote.validUntil = new Date(dto.validUntil);
         return this.quoteRepository.save(quote);
+    }
+
+    async select(projectId: string, quoteId: string): Promise<Quote> {
+        const quote = await this.findOne(quoteId);
+        if (quote.solarProjectId !== projectId) {
+            throw new BadRequestException('Quote does not belong to this project');
+        }
+
+        // Deselect all other quotes in the project
+        await this.quoteRepository.update(
+            { solarProjectId: projectId, selected: true },
+            { selected: false },
+        );
+
+        // Select this one
+        quote.selected = true;
+        return this.quoteRepository.save(quote);
+    }
+
+    async getSelected(projectId: string): Promise<Quote | null> {
+        const quote = await this.quoteRepository.findOne({
+            where: { solarProjectId: projectId, selected: true },
+            relations: ['items'],
+        });
+        return quote || null;
     }
 
     async remove(id: string): Promise<void> {

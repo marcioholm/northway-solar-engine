@@ -102,6 +102,18 @@ export class SolarProjectController {
         return this.quoteService.update(qid, dto);
     }
 
+    @Patch(':id/quotes/:qid/select')
+    @ApiOperation({ summary: 'Select a quote for the project (deselects others)' })
+    selectQuote(@Param('id') id: string, @Param('qid') qid: string) {
+        return this.quoteService.select(id, qid);
+    }
+
+    @Get(':id/quotes/selected')
+    @ApiOperation({ summary: 'Get the selected quote for the project' })
+    getSelectedQuote(@Param('id') id: string) {
+        return this.quoteService.getSelected(id);
+    }
+
     @Delete(':id/quotes/:qid')
     @ApiOperation({ summary: 'Delete a quote' })
     removeQuote(@Param('qid') qid: string) {

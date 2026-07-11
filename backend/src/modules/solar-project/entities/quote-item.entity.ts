@@ -13,6 +13,9 @@ export class QuoteItem {
     @JoinColumn({ name: 'quote_id' })
     quote: Quote;
 
+    @Column({ name: 'catalog_product_id', nullable: true })
+    catalogProductId: string;
+
     @Column({ name: 'product_type' })
     productType: string;
 

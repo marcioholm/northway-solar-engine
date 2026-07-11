@@ -26,6 +26,21 @@ export class Quote {
     @Column({ name: 'supplier_email', nullable: true })
     supplierEmail: string;
 
+    @Column({ name: 'quote_number', nullable: true })
+    quoteNumber: string;
+
+    @Column({ name: 'quote_date', type: 'date', nullable: true })
+    quoteDate: string;
+
+    @Column({ name: 'valid_until', type: 'date', nullable: true })
+    validUntil: string;
+
+    @Column({ name: 'payment_condition', nullable: true })
+    paymentCondition: string;
+
+    @Column({ name: 'pdf_path', nullable: true })
+    pdfPath: string;
+
     @Column({ default: 'draft' })
     status: string;
 
@@ -35,8 +50,8 @@ export class Quote {
     @Column({ name: 'shipping_cost', type: 'decimal', precision: 10, scale: 2, default: 0 })
     shippingCost: number;
 
-    @Column({ name: 'valid_until', nullable: true })
-    validUntil: Date;
+    @Column({ default: false })
+    selected: boolean;
 
     @Column({ type: 'text', nullable: true })
     notes: string;

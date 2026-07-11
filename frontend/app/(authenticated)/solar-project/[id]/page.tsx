@@ -8,6 +8,7 @@ import { Tabs } from '../../../../components/ui/Tabs';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
 import { Chip } from '../../../../components/ui/Chip';
+import { Badge } from '../../../../components/ui/Badge';
 import { Flex } from '../../../../components/primitives/Flex';
 import { Stack } from '../../../../components/primitives/Stack';
 import { Text } from '../../../../components/primitives/Text';
@@ -225,23 +226,36 @@ export default function ProjectDetailPage() {
         )}
 
         {activeTab === 'cotacoes' && (
-          <Card padding="md">
-            <Stack gap={4}>
-              <Flex justify="between" align="center">
-                <Text variant="h3">Cotações de Fornecedores</Text>
-                <Button variant="primary" size="sm">Nova Cotação</Button>
-              </Flex>
-              {project.quotes?.length > 0 ? project.quotes.map((q: any) => (
-                <Flex key={q.id} justify="between" style={{ padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-lg)' }}>
-                  <div>
-                    <span style={{ fontWeight: 600 }}>{q.supplierName || 'Fornecedor'}</span>
-                    <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>{q.status}</span>
-                  </div>
-                  <span style={{ fontWeight: 700 }}>{formatBRL(Number(q.totalAmount))}</span>
-                </Flex>
-              )) : <Text variant="body" color="secondary">Nenhuma cotação cadastrada.</Text>}
-            </Stack>
-          </Card>
+          <Stack gap={4}>
+            <Flex justify="between" align="center">
+              <Text variant="h3">Cotações de Fornecedores</Text>
+            </Flex>
+            {project.quotes?.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                {project.quotes.map((q: any) => (
+                  <Card key={q.id} padding="md" variant={q.selected ? 'highlight' : 'default'}>
+                    <Stack gap={3}>
+                      <Flex justify="between" align="center">
+                        <Text variant="body-bold">{q.supplierName || 'Fornecedor'}</Text>
+                        <Badge variant={q.selected ? 'success' : 'info'}>
+                          {q.selected ? 'Selecionada' : q.status}
+                        </Badge>
+                      </Flex>
+                      {q.quoteNumber && <Chip variant="default">#{q.quoteNumber}</Chip>}
+                      <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--green-dark)' }}>
+                        {formatBRL(Number(q.totalAmount))}
+                      </div>
+                      <Flex gap={2} wrap style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {q.items?.length > 0 && <span>{q.items.length} itens</span>}
+                        {q.paymentCondition && <span>· {q.paymentCondition}</span>}
+                        {q.validUntil && <span>· Val: {q.validUntil}</span>}
+                      </Flex>
+                    </Stack>
+                  </Card>
+                ))}
+              </div>
+            ) : <Card padding="md"><Text variant="body" color="secondary">Nenhuma cotação cadastrada.</Text></Card>}
+          </Stack>
         )}
 
         {activeTab === 'propostas' && (
