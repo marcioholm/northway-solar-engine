@@ -2,11 +2,19 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Jo
 import { InventoryModuleEntity } from '../../inventory/entities/inventory-module.entity';
 import { InventoryInverterEntity } from '../../inventory/entities/inventory-inverter.entity';
 import { Company } from '../../companies/entities/company.entity';
+import { SolarProject } from '../../solar-project/entities/solar-project.entity';
 
 @Entity('proposals')
 export class Proposal {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @Column({ name: 'solar_project_id', nullable: true })
+    solarProjectId: string;
+
+    @ManyToOne(() => SolarProject)
+    @JoinColumn({ name: 'solar_project_id' })
+    solarProject: SolarProject;
 
     @Column({ name: 'company_id', nullable: true })
     companyId: string;

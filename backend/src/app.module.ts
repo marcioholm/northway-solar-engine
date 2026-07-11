@@ -15,6 +15,7 @@ import { TimelineModule } from './modules/timeline/timeline.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { CrmDashboardModule } from './modules/crm-dashboard/crm-dashboard.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { SolarProjectModule } from './modules/solar-project/solar-project.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { SupabaseModule } from './supabase/supabase.module';
     TasksModule,
     CrmDashboardModule,
     SupabaseModule,
+    SolarProjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],

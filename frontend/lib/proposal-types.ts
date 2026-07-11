@@ -74,6 +74,7 @@ export interface ProposalData {
   carsEquivalent?: number;
   company?: {
     name?: string;
+    logoUrl?: string;
     clients?: number;
     yearsInMarket?: number;
     satisfactionRate?: number;

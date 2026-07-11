@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proposal } from './entities/proposal.entity';
 import { SolarEngineService } from '../solar-engine/solar-engine.service';
+import { SolarProjectService } from '../solar-project/solar-project.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 
 @Injectable()
@@ -11,14 +12,63 @@ export class ProposalsService {
         @InjectRepository(Proposal)
         private proposalsRepository: Repository<Proposal>,
         private solarEngineService: SolarEngineService,
+        private solarProjectService: SolarProjectService,
     ) { }
 
     async create(companyId: string, userId: string, dto: CreateProposalDto) {
         const calculation = await this.solarEngineService.calculate(companyId, dto.consumption, dto.city, dto.moduleId, dto.inverterId, dto.moduleQty);
 
+        const moduleData = calculation.module ? { id: calculation.module.id, brand: calculation.module.brand, model: calculation.module.model, powerWatt: calculation.module.powerWatt, qty: calculation.module_qty } : {};
+        const inverterData = calculation.inverter ? { id: calculation.inverter.id, brand: calculation.inverter.brand, model: calculation.inverter.model, powerKw: calculation.inverter.nominalPowerKw, qty: 1 } : {};
+
+        const solarProject = await this.solarProjectService.create(companyId, userId, {
+            leadId: dto.leadId,
+            client: {
+                name: dto.clientName,
+                city: dto.city,
+                zipcode: dto.clientCep,
+            },
+            consumption: {
+                monthlyConsumption: dto.consumption,
+                tariff: dto.tariff,
+                utility: dto.utility,
+            },
+        });
+
+        await this.solarProjectService.update(solarProject.id, {
+            status: 'sized',
+            sizing: {
+                systemPowerKwp: calculation.system_power_kwp,
+                monthlyGenerationKwh: calculation.monthly_generation,
+                moduleQty: calculation.module_qty,
+                inverterQty: 1,
+            },
+            equipment: {
+                modules: [moduleData],
+                inverters: [inverterData],
+                structureCost: calculation.cost_structure,
+                laborCost: calculation.cost_labor,
+                travelCost: calculation.cost_travel,
+            },
+            pricing: {
+                equipmentCost: calculation.cost_modules + calculation.cost_inverter,
+                structureCost: calculation.cost_structure,
+                laborCost: calculation.cost_labor,
+                travelCost: calculation.cost_travel,
+                subtotal: calculation.subtotal,
+                marginPct: calculation.margin_pct,
+                marginValue: calculation.margin_value,
+                finalPrice: calculation.final_price,
+            },
+            payment: {
+                paybackYears: calculation.payback_years,
+            },
+        });
+
         const proposal = this.proposalsRepository.create({
             companyId,
             createdBy: userId,
+            solarProjectId: solarProject.id,
             clientName: dto.clientName,
             clientCep: dto.clientCep,
             clientCity: dto.city,
@@ -30,8 +80,8 @@ export class ProposalsService {
             stage: 'proposal_sent',
 
             systemPowerKwp: calculation.system_power_kwp,
-            moduleId: calculation.module.id,
-            inverterId: calculation.inverter.id,
+            moduleId: calculation.module?.id,
+            inverterId: calculation.inverter?.id,
             moduleQty: calculation.module_qty,
 
             costModules: calculation.cost_modules,
@@ -62,18 +112,68 @@ export class ProposalsService {
     }
 
     async findOne(id: string) {
-        return this.proposalsRepository.findOneBy({ id });
+        const proposal = await this.proposalsRepository.findOne({
+            where: { id },
+            relations: ['company', 'solarProject'],
+        });
+        if (!proposal) return null;
+        return this.mergeProjectData(proposal);
     }
 
     async findOneWithRelations(id: string) {
-        return this.proposalsRepository.findOne({
+        const proposal = await this.proposalsRepository.findOne({
             where: { id },
-            relations: ['module', 'inverter', 'company']
+            relations: ['module', 'inverter', 'company', 'solarProject']
         });
+        if (!proposal) return null;
+        return this.mergeProjectData(proposal);
     }
 
     async findOnePublic(id: string) {
-        return this.proposalsRepository.findOneBy({ id });
+        const proposal = await this.proposalsRepository.findOne({
+            where: { id },
+            relations: ['solarProject'],
+        });
+        if (!proposal) return null;
+        return this.mergeProjectData(proposal);
+    }
+
+    private mergeProjectData(proposal: Proposal): any {
+        const project = proposal.solarProject;
+        if (!project) return proposal;
+
+        return {
+            ...proposal,
+            solarProject: undefined,
+            solarProjectId: project.id,
+            projectStatus: project.status,
+            clientName: project.client?.name || proposal.clientName,
+            clientCity: project.client?.city || proposal.clientCity,
+            clientDocument: project.client?.document,
+            clientPhone: project.client?.phone,
+            clientEmail: project.client?.email,
+            clientState: project.client?.state,
+            utility: project.consumption?.utility || proposal.utility,
+            tariff: project.consumption?.tariff || proposal.tariff,
+            consumption: project.consumption?.monthlyConsumption || proposal.consumptionKwh,
+            monthlyBill: project.consumption?.monthlyBill,
+            systemPowerKwp: project.sizing?.systemPowerKwp || proposal.systemPowerKwp,
+            moduleQty: project.sizing?.moduleQty || proposal.moduleQty,
+            treesPreserved: project.sizing?.treesPreserved,
+            co2Avoided: project.sizing?.co2Avoided,
+            cleanEnergyKwh: project.sizing?.cleanEnergyKwh,
+            monthlySavings: project.pricing?.monthlySavings,
+            yearlySavings: project.pricing?.yearlySavings,
+            savings25Years: project.pricing?.savings25Years,
+            roi: project.pricing?.roi,
+            equipment: project.equipment?.modules || proposal.module ? [{
+                type: 'module',
+                brand: proposal.module?.brand || project.equipment?.modules?.[0]?.brand,
+                model: proposal.module?.model || project.equipment?.modules?.[0]?.model,
+                quantity: project.equipment?.modules?.[0]?.qty || proposal.moduleQty,
+                power: proposal.module?.powerWatt ? `${proposal.module.powerWatt}W` : undefined,
+            }] : undefined,
+        };
     }
 
     async generatePdf(id: string) {

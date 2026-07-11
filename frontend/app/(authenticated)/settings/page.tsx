@@ -1,103 +1,209 @@
 'use client';
 
-import { useState } from 'react';
-import { Cog6ToothIcon, CurrencyDollarIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { Cog6ToothIcon, CurrencyDollarIcon, BuildingOfficeIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { decodeToken } from '../../../lib/jwt';
 
 export default function SettingsPage() {
-    // Mock State for now
-    const [companyName, setCompanyName] = useState('SolarNorte');
-    const [margin, setMargin] = useState(25);
-    const [kwhPrice, setKwhPrice] = useState(0.92);
+  const [companyId, setCompanyId] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [baseCity, setBaseCity] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [defaultMargin, setDefaultMargin] = useState(25);
+  const [cardTax, setCardTax] = useState(15);
+  const [financeTax, setFinanceTax] = useState(20);
+  const [cashDiscount, setCashDiscount] = useState(5);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
-    const handleSave = (e: React.FormEvent) => {
-        e.preventDefault();
-        alert('Configurações salvas localmente (Demo). Em produção, isso atualizaria o banco de dados.');
-    };
+  const api = process.env.NEXT_PUBLIC_API_URL;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-    return (
-        <div className="legacy-page space-y-8 text-gray-100">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-white">Configurações</h1>
-                    <p className="text-sm text-gray-400 mt-1">Gerencie os parâmetros globais da sua conta.</p>
-                </div>
+  useEffect(() => {
+    if (!token || !api) return;
+    const payload = decodeToken(token);
+    if (!payload?.companyId) return;
+    setCompanyId(payload.companyId);
+
+    fetch(`${api}/companies/${payload.companyId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(c => {
+        setCompanyName(c.name || '');
+        setBaseCity(c.baseCity || '');
+        setLogoUrl(c.logoUrl || '');
+        setDefaultMargin(Number(c.defaultMargin) || 25);
+        setCardTax(Number(c.cardTax) || 15);
+        setFinanceTax(Number(c.financeTax) || 20);
+        setCashDiscount(Number(c.cashDiscount) || 5);
+      })
+      .catch(() => {});
+  }, [api, token]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+    setUploading(true);
+    setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+      const res = await fetch(`${api}/companies/${companyId}/logo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setLogoUrl(data.logoUrl);
+      setMessage('Logo atualizado!');
+    } catch {
+      setMessage('Erro ao fazer upload');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      const res = await fetch(`${api}/companies/${companyId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: companyName,
+          baseCity,
+          defaultMargin,
+          cardTax,
+          financeTax,
+          cashDiscount,
+        }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      setMessage('Configurações salvas!');
+    } catch {
+      setMessage('Erro ao salvar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%', padding: '0 24px' }}>
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Configurações</h1>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>Gerencie os parâmetros da sua empresa</p>
+      </div>
+
+      <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Empresa */}
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+              <BuildingOfficeIcon style={{ width: 20, height: 20 }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Empresa</span>
             </div>
-
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-                {/* General Settings */}
-                <div className="rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-8 shadow-lg">
-                    <div className="flex items-center gap-2 mb-6 text-[var(--color-primary)]">
-                        <BuildingOfficeIcon className="w-5 h-5" />
-                        <h2 className="text-xs font-bold uppercase tracking-widest">Dados da Empresa</h2>
-                    </div>
-
-                    <form onSubmit={handleSave} className="space-y-6">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nome da Empresa</label>
-                            <input
-                                type="text"
-                                value={companyName}
-                                onChange={e => setCompanyName(e.target.value)}
-                                className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-3 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">CNPJ</label>
-                            <input
-                                type="text"
-                                value="12.345.678/0001-90"
-                                disabled
-                                className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-gray-500 p-3 cursor-not-allowed opacity-50"
-                            />
-                            <p className="text-[10px] text-gray-600 mt-1">Entre em contato com o suporte para alterar o CNPJ.</p>
-                        </div>
-                    </form>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Field label="Nome">
+                <input value={companyName} onChange={e => setCompanyName(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="Cidade Base">
+                <input value={baseCity} onChange={e => setBaseCity(e.target.value)} style={inputStyle} placeholder="Ex: São Paulo - SP" />
+              </Field>
+              <Field label="Logo">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 80, height: 80, borderRadius: 'var(--radius-md)', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg)' }}>
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <PhotoIcon style={{ width: 28, height: 28, color: 'var(--text-muted)', opacity: 0.5 }} />
+                    )}
+                  </div>
+                  <label style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
+                    {uploading ? 'Enviando...' : 'Escolher imagem'}
+                    <input type="file" accept="image/png,image/jpeg" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                  </label>
                 </div>
-
-                {/* Financial Settings */}
-                <div className="rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] p-8 shadow-lg">
-                    <div className="flex items-center gap-2 mb-6 text-[var(--color-primary)]">
-                        <CurrencyDollarIcon className="w-5 h-5" />
-                        <h2 className="text-xs font-bold uppercase tracking-widest">Financeiro & Margens</h2>
-                    </div>
-
-                    <form onSubmit={handleSave} className="space-y-6">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Margem de Lucro Padrão (%)</label>
-                            <div className="relative">
-                                <input
-                                    type="number"
-                                    value={margin}
-                                    onChange={e => setMargin(Number(e.target.value))}
-                                    className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-3 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                                />
-                                <span className="absolute right-3 top-3.5 text-gray-500 text-sm font-medium">%</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Custo Base do kWh (R$)</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-3.5 text-gray-500 text-sm font-medium">R$</span>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={kwhPrice}
-                                    onChange={e => setKwhPrice(Number(e.target.value))}
-                                    className="block w-full rounded-lg bg-[var(--input-bg)] border-[var(--border-color)] text-white p-3 pl-10 focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="w-full rounded-lg bg-[var(--color-primary)] px-8 py-3 text-sm font-bold text-white shadow-lg hover:bg-[var(--color-primary-hover)] transition-all uppercase tracking-wide"
-                        >
-                            Salvar Alterações
-                        </button>
-                    </form>
-                </div>
+              </Field>
             </div>
+          </div>
+
+          {/* Financeiro */}
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+              <CurrencyDollarIcon style={{ width: 20, height: 20 }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Financeiro</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <Field label="Margem Padrão (%)">
+                <input type="number" value={defaultMargin} onChange={e => setDefaultMargin(Number(e.target.value))} style={inputStyle} />
+              </Field>
+              <Field label="Desconto à Vista (%)">
+                <input type="number" value={cashDiscount} onChange={e => setCashDiscount(Number(e.target.value))} style={inputStyle} />
+              </Field>
+              <Field label="Taxa Cartão (%)">
+                <input type="number" value={cardTax} onChange={e => setCardTax(Number(e.target.value))} style={inputStyle} />
+              </Field>
+              <Field label="Taxa Financiamento (%)">
+                <input type="number" value={financeTax} onChange={e => setFinanceTax(Number(e.target.value))} style={inputStyle} />
+              </Field>
+            </div>
+          </div>
         </div>
-    );
+
+        {/* Preview / ações */}
+        <div>
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28, position: 'sticky', top: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+              <Cog6ToothIcon style={{ width: 20, height: 20 }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ações</span>
+            </div>
+
+            <button type="submit" disabled={saving} style={{
+              width: '100%', padding: '12px 24px', borderRadius: 'var(--radius-md)', border: 'none',
+              background: 'var(--green)', color: '#fff', fontSize: '13px', fontWeight: 700,
+              cursor: 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit',
+            }}>
+              {saving ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+
+            {message && (
+              <p style={{ marginTop: 12, fontSize: '12px', fontWeight: 600, color: message.includes('Erro') ? 'var(--danger)' : 'var(--success)', textAlign: 'center' }}>
+                {message}
+              </p>
+            )}
+
+            {logoUrl && (
+              <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', marginBottom: 12 }}>Preview na Proposta</p>
+                <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 80 }}>
+                  <img src={logoUrl} alt="Logo preview" style={{ maxHeight: 48, objectFit: 'contain' }} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </form>
+    </div>
+  );
 }
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  display: 'block', width: '100%', padding: '10px 14px', background: 'var(--bg)',
+  border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: 'var(--text)',
+  fontSize: '14px', outline: 'none', fontFamily: 'inherit',
+};
