@@ -2,209 +2,242 @@
 
 import { useState, useEffect } from 'react';
 import { PlusIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { PageHeader } from '../../../components/compositions/PageHeader';
+import { DataGrid } from '../../../components/compositions/DataGrid';
+import { Tabs } from '../../../components/ui/Tabs';
+import { Button } from '../../../components/ui/Button';
+import { Chip } from '../../../components/ui/Chip';
+import { Modal } from '../../../components/ui/Modal';
+import { Input } from '../../../components/ui/Input';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { Flex } from '../../../components/primitives/Flex';
+import { Text } from '../../../components/primitives/Text';
+import { Stack } from '../../../components/primitives/Stack';
+import { powerLabel } from '../../../lib/format';
+
+interface InventoryItem {
+  id: string;
+  brand: string;
+  model: string;
+  powerWatt?: number;
+  nominalPowerKw?: number;
+  cost: number;
+  active: boolean;
+}
 
 export default function InventoryPage() {
-    const [activeTab, setActiveTab] = useState<'modules' | 'inverters'>('modules');
-    const [data, setData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [newItem, setNewItem] = useState<any>({});
-    const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'modules' | 'inverters'>('modules');
+  const [data, setData] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [newItem, setNewItem] = useState<Record<string, any>>({});
 
-    const fetchInventory = async () => {
-        setLoading(true);
-        try {
-            const token = localStorage.getItem('token');
-            const endpoint = activeTab === 'modules' ? 'modules' : 'inverters';
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory/${endpoint}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                setData(await res.json());
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const fetchInventory = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const endpoint = activeTab === 'modules' ? 'modules' : 'inverters';
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory/${endpoint}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setData(await res.json());
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
+  useEffect(() => { fetchInventory(); }, [activeTab]);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const endpoint = activeTab === 'modules' ? 'modules' : 'inverters';
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...newItem, active: true }),
+      });
+      if (res.ok) {
+        setNewItem({});
+        setShowForm(false);
         fetchInventory();
-    }, [activeTab]);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const token = localStorage.getItem('token');
-            const endpoint = activeTab === 'modules' ? 'modules' : 'inverters';
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory/${endpoint}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ ...newItem, active: true })
-            });
-            if (res.ok) {
-                setNewItem({});
-                setShowForm(false);
-                fetchInventory();
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
+  const columns = [
+    {
+      key: 'brand' as const,
+      label: 'Marca',
+      render: (item: InventoryItem) => (
+        <Flex gap={3} align="center">
+          <span style={{
+            width: '10px', height: '10px', borderRadius: '50%',
+            background: 'var(--green)', flexShrink: 0,
+          }} />
+          <span style={{ fontWeight: 600 }}>{item.brand}</span>
+        </Flex>
+      ),
+    },
+    { key: 'model' as const, label: 'Modelo' },
+    {
+      key: 'power' as const,
+      label: 'Potência',
+      render: (item: InventoryItem) => (
+        <Chip variant="default">
+          {powerLabel(item.powerWatt, item.nominalPowerKw, activeTab === 'inverters' ? 'inverter' : 'module')}
+        </Chip>
+      ),
+    },
+    {
+      key: 'cost' as const,
+      label: 'Custo (R$)',
+      render: (item: InventoryItem) => (
+        <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+          R$ {Number(item.cost).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: 'actions' as const,
+      label: 'Ações',
+      width: '120px',
+      align: 'right' as const,
+      render: () => (
+        <Flex gap={1} justify="end">
+          <button
+            aria-label="Editar"
+            style={{
+              width: '36px', height: '36px', display: 'grid', placeItems: 'center',
+              border: 'none', borderRadius: 'var(--radius-md)',
+              background: 'transparent', color: 'var(--text-secondary-v2)',
+              cursor: 'pointer', transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-muted)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <PencilIcon className="w-4 h-4" />
+          </button>
+          <button
+            aria-label="Excluir"
+            style={{
+              width: '36px', height: '36px', display: 'grid', placeItems: 'center',
+              border: 'none', borderRadius: 'var(--radius-md)',
+              background: 'transparent', color: 'var(--danger)',
+              cursor: 'pointer', transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#FEF0EF'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </Flex>
+      ),
+    },
+  ];
 
-    const powerLabel = (item: any) =>
-        activeTab === 'modules' ? `${item.powerWatt}W` : `${item.nominalPowerKw}kW`;
+  const isModule = activeTab === 'modules';
 
-    return (
-        <div className="inventory-page">
-            {/* Header */}
-            <div className="inventory-header">
-                <div>
-                    <h1 className="inventory-title">Inventário de Equipamentos</h1>
-                    <p className="inventory-subtitle">Gerencie módulos e inversores disponíveis para seus projetos.</p>
-                </div>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="inventory-add-btn"
-                    aria-label="Adicionar novo item"
-                >
-                    <PlusIcon className="w-5 h-5" />
-                    Adicionar Novo Item
-                </button>
-            </div>
+  return (
+    <div style={{ maxWidth: '1440px', padding: '32px 36px', background: 'var(--bg)' }}>
+      <Stack gap={6}>
+        <PageHeader
+          title="Inventário de Equipamentos"
+          subtitle="Gerencie módulos e inversores disponíveis para seus projetos."
+          actions={
+            <Button
+              variant="primary"
+              size="md"
+              icon={<PlusIcon className="w-5 h-5" />}
+              onClick={() => setShowForm(!showForm)}
+            >
+              Adicionar Novo Item
+            </Button>
+          }
+        />
 
-            {/* Tabs */}
-            <div className="inventory-tabs">
-                <button
-                    className={`inventory-tab ${activeTab === 'modules' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('modules')}
-                    aria-label="Módulos Fotovoltaicos"
-                >
-                    Módulos Fotovoltaicos
-                </button>
-                <button
-                    className={`inventory-tab ${activeTab === 'inverters' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('inverters')}
-                    aria-label="Inversores"
-                >
-                    Inversores
-                </button>
-            </div>
+        <Tabs
+          variant="underline"
+          tabs={[
+            { key: 'modules', label: 'Módulos Fotovoltaicos', count: activeTab === 'modules' ? data.length : undefined },
+            { key: 'inverters', label: 'Inversores', count: activeTab === 'inverters' ? data.length : undefined },
+          ]}
+          activeKey={activeTab}
+          onChange={key => setActiveTab(key as 'modules' | 'inverters')}
+        />
 
-            {/* Create Form */}
-            {showForm && (
-                <div className="inventory-form-card">
-                    <h3 className="inventory-form-title">Novo {activeTab === 'modules' ? 'Módulo' : 'Inversor'}</h3>
-                    <form onSubmit={handleCreate} className="inventory-form">
-                        <div>
-                            <label className="inventory-form-label" htmlFor="inv-brand">Marca</label>
-                            <input
-                                id="inv-brand"
-                                placeholder="Ex: Canadian"
-                                className="inventory-form-input"
-                                value={newItem.brand || ''}
-                                onChange={e => setNewItem({ ...newItem, brand: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="inventory-form-label" htmlFor="inv-model">Modelo</label>
-                            <input
-                                id="inv-model"
-                                placeholder="Ex: Hiku6"
-                                className="inventory-form-input"
-                                value={newItem.model || ''}
-                                onChange={e => setNewItem({ ...newItem, model: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="inventory-form-label" htmlFor="inv-power">Potência</label>
-                            <input
-                                id="inv-power"
-                                type="number"
-                                placeholder={activeTab === 'modules' ? 'Watts (W)' : 'Kilowatts (kW)'}
-                                className="inventory-form-input"
-                                value={activeTab === 'modules' ? (newItem.powerWatt ?? '') : (newItem.nominalPowerKw ?? '')}
-                                onChange={e => setNewItem({
-                                    ...newItem,
-                                    [activeTab === 'modules' ? 'powerWatt' : 'nominalPowerKw']: Number(e.target.value)
-                                })}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="inventory-form-label" htmlFor="inv-cost">Custo (R$)</label>
-                            <input
-                                id="inv-cost"
-                                type="number"
-                                placeholder="0,00"
-                                step="0.01"
-                                className="inventory-form-input"
-                                value={newItem.cost ?? ''}
-                                onChange={e => setNewItem({ ...newItem, cost: Number(e.target.value) })}
-                                required
-                            />
-                        </div>
-                        <button type="submit" className="inventory-form-submit" aria-label="Salvar item">
-                            Salvar Item
-                        </button>
-                    </form>
-                </div>
-            )}
+        {showForm && (
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-xl)', padding: '28px',
+            boxShadow: 'var(--shadow-md)',
+          }}>
+            <Text variant="h3" style={{ marginBottom: '20px' }}>
+              Novo {isModule ? 'Módulo' : 'Inversor'}
+            </Text>
+            <form onSubmit={handleCreate} style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '16px', alignItems: 'end',
+            }}>
+              <Input label="Marca" placeholder="Ex: Canadian" value={newItem.brand || ''} onChange={v => setNewItem({ ...newItem, brand: v })} required />
+              <Input label="Modelo" placeholder="Ex: Hiku6" value={newItem.model || ''} onChange={v => setNewItem({ ...newItem, model: v })} required />
+              <Input
+                label="Potência"
+                variant="number"
+                placeholder={isModule ? 'Watts (W)' : 'Kilowatts (kW)'}
+                value={isModule ? (newItem.powerWatt ?? '') : (newItem.nominalPowerKw ?? '')}
+                onChange={v => setNewItem({
+                  ...newItem,
+                  [isModule ? 'powerWatt' : 'nominalPowerKw']: Number(v),
+                })}
+                required
+              />
+              <Input label="Custo (R$)" variant="number" placeholder="0,00" step="0.01" value={newItem.cost ?? ''} onChange={v => setNewItem({ ...newItem, cost: Number(v) })} required />
+              <Button type="submit" variant="primary" size="md" style={{ height: '42px' }}>Salvar Item</Button>
+            </form>
+          </div>
+        )}
 
-            {/* Table Card */}
-            <div className="inventory-card">
-                <table className="inventory-table">
-                    <thead>
-                        <tr>
-                            <th>Marca</th>
-                            <th>Modelo</th>
-                            <th>Potência</th>
-                            <th>Custo (R$)</th>
-                            <th className="inventory-th-actions">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr>
-                                <td colSpan={5} className="inventory-empty">Carregando...</td>
-                            </tr>
-                        ) : data.length === 0 ? (
-                            <tr>
-                                <td colSpan={5} className="inventory-empty">Nenhum equipamento encontrado.</td>
-                            </tr>
-                        ) : data.map((item: any) => (
-                            <tr key={item.id} className="inventory-row">
-                                <td className="inventory-cell-brand" data-label="Marca">
-                                    <div className="inventory-brand-dot" />
-                                    <span className="inventory-brand-name">{item.brand}</span>
-                                </td>
-                                <td className="inventory-cell-model" data-label="Modelo">
-                                    {item.model}
-                                </td>
-                                <td className="inventory-cell-power" data-label="Potência">
-                                    <span className="inventory-power-chip">{powerLabel(item)}</span>
-                                </td>
-                                <td className="inventory-cell-cost" data-label="Custo">
-                                    R$ {Number(item.cost).toFixed(2)}
-                                </td>
-                                <td className="inventory-cell-actions">
-                                    <button className="inventory-action-btn inventory-action-edit" aria-label="Editar">
-                                        <PencilIcon className="w-4 h-4" />
-                                    </button>
-                                    <button className="inventory-action-btn inventory-action-delete" aria-label="Excluir">
-                                        <TrashIcon className="w-4 h-4" />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
+        <DataGrid
+          columns={columns}
+          data={data}
+          keyExtractor={item => item.id}
+          loading={loading}
+          emptyMessage="Nenhum equipamento encontrado."
+          mobileCard={item => (
+            <Stack gap={2}>
+              <Flex justify="between" align="center">
+                <Flex gap={3} align="center">
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--green)' }} />
+                  <Text variant="body-bold">{item.brand}</Text>
+                </Flex>
+                <Chip variant="default">
+                  {powerLabel(item.powerWatt, item.nominalPowerKw, isModule ? 'module' : 'inverter')}
+                </Chip>
+              </Flex>
+              <Text variant="body" color="secondary">{item.model}</Text>
+              <Flex justify="between" align="center">
+                <Text variant="body-bold" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  R$ {Number(item.cost).toFixed(2)}
+                </Text>
+                <Flex gap={1}>
+                  <button aria-label="Editar" style={{ width: '36px', height: '36px', display: 'grid', placeItems: 'center', border: 'none', borderRadius: 'var(--radius-md)', background: 'transparent', color: 'var(--text-secondary-v2)', cursor: 'pointer' }}>
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
+                  <button aria-label="Excluir" style={{ width: '36px', height: '36px', display: 'grid', placeItems: 'center', border: 'none', borderRadius: 'var(--radius-md)', background: 'transparent', color: 'var(--danger)', cursor: 'pointer' }}>
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </Flex>
+              </Flex>
+            </Stack>
+          )}
+        />
+      </Stack>
+    </div>
+  );
 }
