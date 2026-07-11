@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Cog6ToothIcon, CurrencyDollarIcon, BuildingOfficeIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { decodeToken } from '../../../lib/jwt';
+import { Input } from '../../../components/ui/Input';
 
 export default function SettingsPage() {
   const [companyId, setCompanyId] = useState('');
@@ -141,16 +142,16 @@ export default function SettingsPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <Field label="Margem Padrão (%)">
-                <input type="number" value={defaultMargin} onChange={e => setDefaultMargin(Number(e.target.value))} style={inputStyle} />
+                <Input variant="number" value={defaultMargin} onChange={v => setDefaultMargin(Number(v))} />
               </Field>
               <Field label="Desconto à Vista (%)">
-                <input type="number" value={cashDiscount} onChange={e => setCashDiscount(Number(e.target.value))} style={inputStyle} />
+                <Input variant="number" value={cashDiscount} onChange={v => setCashDiscount(Number(v))} />
               </Field>
               <Field label="Taxa Cartão (%)">
-                <input type="number" value={cardTax} onChange={e => setCardTax(Number(e.target.value))} style={inputStyle} />
+                <Input variant="number" value={cardTax} onChange={v => setCardTax(Number(v))} />
               </Field>
               <Field label="Taxa Financiamento (%)">
-                <input type="number" value={financeTax} onChange={e => setFinanceTax(Number(e.target.value))} style={inputStyle} />
+                <Input variant="number" value={financeTax} onChange={v => setFinanceTax(Number(v))} />
               </Field>
             </div>
           </div>

@@ -166,7 +166,7 @@ export default function ProjectDetailPage() {
             <SectionCard title="Consumo">
               <DetailRow label="Consumo (kWh/mês)" value={project.consumptionMonthlyKwh ? `${project.consumptionMonthlyKwh} kWh` : undefined} />
               <DetailRow label="Conta (R$)" value={project.consumptionMonthlyBill ? formatBRL(project.consumptionMonthlyBill) : undefined} />
-              <DetailRow label="Tarifa" value={project.consumptionTariff ? `R$ ${project.consumptionTariff.toFixed(3)}` : undefined} />
+              <DetailRow label="Tarifa" value={project.consumptionTariff ? `R$ ${project.consumptionTariff.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}` : undefined} />
               <DetailRow label="Demanda" value={project.consumptionDemand} />
               <DetailRow label="Modalidade" value={project.consumptionModality} />
               <DetailRow label="Grupo" value={project.consumptionGroup} />

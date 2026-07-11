@@ -10,6 +10,7 @@ import { CreateCatalogProductDto } from './dto/create-catalog-product.dto';
 import { UpdateCatalogProductDto } from './dto/update-catalog-product.dto';
 import { CreateCatalogSupplierDto } from './dto/create-catalog-supplier.dto';
 import { CatalogQueryDto } from './dto/catalog-query.dto';
+import { paginate, PaginatedResult } from '../../common/dto/pagination.dto';
 
 @Injectable()
 export class CatalogService {
@@ -53,23 +54,31 @@ export class CatalogService {
         return this.productsRepo.save(product);
     }
 
-    async findAllProducts(companyId: string, query: CatalogQueryDto): Promise<CatalogProduct[]> {
+    async findAllProducts(companyId: string, query: CatalogQueryDto): Promise<PaginatedResult<CatalogProduct>> {
         const where: any = { companyId };
         if (query.category) where.category = query.category;
         if (query.brand) where.brand = query.brand;
         if (query.active !== undefined) where.active = query.active === 'true';
         if (query.supplierId) where.supplierId = query.supplierId;
+        const page = query.page || 1;
+        const limit = query.limit || 50;
+        const skip = (page - 1) * limit;
+        const order = { brand: 'ASC' as const, model: 'ASC' as const };
         if (query.q) {
-            return this.productsRepo.find({
+            const [data, total] = await this.productsRepo.findAndCount({
                 where: [
                     { ...where, brand: Like(`%${query.q}%`) },
                     { ...where, model: Like(`%${query.q}%`) },
                     { ...where, line: Like(`%${query.q}%`) },
                 ],
-                order: { brand: 'ASC', model: 'ASC' },
+                order,
+                skip,
+                take: limit,
             });
+            return paginate(data, total, page, limit);
         }
-        return this.productsRepo.find({ where, order: { brand: 'ASC', model: 'ASC' } });
+        const [data, total] = await this.productsRepo.findAndCount({ where, order, skip, take: limit });
+        return paginate(data, total, page, limit);
     }
 
     async findProduct(id: string): Promise<CatalogProduct> {

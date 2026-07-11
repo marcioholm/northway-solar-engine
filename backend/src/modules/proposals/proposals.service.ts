@@ -8,6 +8,7 @@ import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { PricingInputDto } from '../pricing-engine/dto/pricing-input.dto';
+import { paginate, PaginatedResult } from '../../common/dto/pagination.dto';
 import { ProposalHtmlRenderer } from './renderers/proposal-html.renderer';
 import { ProposalWebRenderer } from './renderers/proposal-web.renderer';
 import { ProposalPdfRenderer } from './renderers/proposal-pdf.renderer';
@@ -224,8 +225,15 @@ export class ProposalsService {
         });
     }
 
-    findAll(companyId: string) {
-        return this.proposalsRepository.findBy({ companyId });
+    async findAll(companyId: string, page = 1, limit = 50): Promise<PaginatedResult<Proposal>> {
+        const skip = (page - 1) * limit;
+        const [data, total] = await this.proposalsRepository.findAndCount({
+            where: { companyId },
+            order: { createdAt: 'DESC' },
+            skip,
+            take: limit,
+        });
+        return paginate(data, total, page, limit);
     }
 
     async findOne(id: string) {

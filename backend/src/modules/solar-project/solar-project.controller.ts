@@ -31,13 +31,17 @@ export class SolarProjectController {
     @ApiQuery({ name: 'status', required: false })
     @ApiQuery({ name: 'q', required: false, description: 'Search by client name' })
     @ApiQuery({ name: 'consultant', required: false })
+    @ApiQuery({ name: 'page', required: false, description: 'Page number (default 1)' })
+    @ApiQuery({ name: 'limit', required: false, description: 'Items per page (default 50)' })
     findAll(
         @Request() req,
         @Query('status') status?: string,
         @Query('q') q?: string,
         @Query('consultant') consultant?: string,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number,
     ) {
-        return this.service.findAll(req.user.companyId, { status, query: q, consultant });
+        return this.service.findAll(req.user.companyId, { status, query: q, consultant, page, limit });
     }
 
     @Get('lead/:leadId')

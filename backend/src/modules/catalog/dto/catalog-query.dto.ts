@@ -4,4 +4,6 @@ export class CatalogQueryDto {
     brand?: string;
     active?: string;
     supplierId?: string;
+    page?: number = 1;
+    limit?: number = 50;
 }

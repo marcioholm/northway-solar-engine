@@ -18,20 +18,26 @@ export default function ProposalsPage() {
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [trackingId, setTrackingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchProposals = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals?page=${page}&limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setProposals(await res.json());
+      if (res.ok) {
+        const json = await res.json();
+        setProposals(Array.isArray(json) ? json : json.data);
+        if (!Array.isArray(json)) setTotalPages(json.totalPages || 1);
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchProposals(); }, []);
+  useEffect(() => { fetchProposals(); }, [page]);
 
   const handleDownload = (id: string) => {
     window.open(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${id}/pdf`, '_blank');
@@ -93,6 +99,25 @@ export default function ProposalsPage() {
           loading={loading}
           emptyMessage="Nenhuma proposta encontrada."
         />
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px 0' }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.4 : 1, fontFamily: 'inherit' }}
+            >
+              Anterior
+            </button>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{page} de {totalPages}</span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.4 : 1, fontFamily: 'inherit' }}
+            >
+              Próximo
+            </button>
+          </div>
+        )}
       </Stack>
 
       {/* Tracking modal */}

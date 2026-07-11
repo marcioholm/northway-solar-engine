@@ -4,6 +4,7 @@ import { Repository, Like } from 'typeorm';
 import { SolarProject } from './entities/solar-project.entity';
 import { CreateSolarProjectDto } from './dto/create-solar-project.dto';
 import { UpdateSolarProjectDto } from './dto/update-solar-project.dto';
+import { paginate, PaginatedResult } from '../../common/dto/pagination.dto';
 
 const STATUS_FLOW = ['draft', 'client', 'site', 'consumption', 'sizing', 'quotes', 'costs', 'pricing', 'payment', 'review', 'proposal', 'closed_won', 'closed_lost'];
 
@@ -133,17 +134,23 @@ export class SolarProjectService {
         return this.repository.save(project);
     }
 
-    findAll(companyId: string, filters?: { status?: string; query?: string; consultant?: string }): Promise<SolarProject[]> {
+    async findAll(companyId: string, filters?: { status?: string; query?: string; consultant?: string; page?: number; limit?: number }): Promise<PaginatedResult<SolarProject>> {
         const where: any = { companyId };
         if (filters?.status) where.status = filters.status;
         if (filters?.consultant) where.consultantName = filters.consultant;
         if (filters?.query) {
             where.clientName = Like(`%${filters.query}%`);
         }
-        return this.repository.find({
+        const page = filters?.page || 1;
+        const limit = filters?.limit || 50;
+        const skip = (page - 1) * limit;
+        const [data, total] = await this.repository.findAndCount({
             where,
             order: { updatedAt: 'DESC' },
+            skip,
+            take: limit,
         });
+        return paginate(data, total, page, limit);
     }
 
     async findOne(id: string): Promise<SolarProject> {

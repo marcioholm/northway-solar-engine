@@ -88,7 +88,7 @@ export function ReviewStep({ data }: { data: FullProjectData }) {
         <SectionCard title="Consumo">
           <Row label="Mensal (kWh)" value={data.consumptionMonthlyKwh ? `${data.consumptionMonthlyKwh} kWh` : undefined} />
           <Row label="Valor Conta" value={data.consumptionMonthlyBill ? formatBRL(data.consumptionMonthlyBill) : undefined} />
-          <Row label="Tarifa" value={data.consumptionTariff ? `R$ ${data.consumptionTariff.toFixed(3)}` : undefined} />
+          <Row label="Tarifa" value={data.consumptionTariff ? `R$ ${data.consumptionTariff.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}` : undefined} />
         </SectionCard>
 
         <SectionCard title="Dimensionamento">

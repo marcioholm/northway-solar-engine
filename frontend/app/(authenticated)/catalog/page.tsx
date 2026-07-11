@@ -44,6 +44,8 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const api = process.env.NEXT_PUBLIC_API_URL;
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -54,11 +56,18 @@ export default function CatalogPage() {
       const p = new URLSearchParams();
       if (filterCat) p.set('category', filterCat);
       if (search) p.set('q', search);
+      p.set('page', String(page));
+      p.set('limit', '50');
       const r = await fetch(`${api}/catalog/products?${p}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (r.ok) setProducts(await r.json());
+      if (r.ok) {
+        const res = await r.json();
+        setProducts(Array.isArray(res) ? res : res.data);
+        if (!Array.isArray(res)) setTotalPages(res.totalPages || 1);
+      }
     } catch {} finally { setLoading(false); }
-  }, [api, token, filterCat, search]);
+  }, [api, token, filterCat, search, page]);
 
+  useEffect(() => { setPage(1); }, [filterCat, search]);
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const specSummary = (p: Product) => {
@@ -126,34 +135,55 @@ export default function CatalogPage() {
           <p style={{ fontSize: 12, marginTop: 4 }}>Cadastre seu primeiro produto no catálogo técnico.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-          {products.map(p => (
-            <div key={p.id} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: 20, cursor: 'default' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', background: CATEGORY_COLORS[p.category] + '18', color: CATEGORY_COLORS[p.category] }}>
-                  {CATEGORIES.find(c => c.key === p.category)?.label || p.category}
-                </span>
-                {!p.active && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--danger)' }}>Inativo</span>}
-              </div>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '0 0 2px' }}>{p.brand}</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{p.model}</p>
-              {p.line && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 10px' }}>Linha: {p.line}</p>}
-              {specSummary(p) && <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{specSummary(p)}</div>}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>Compra</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{fmt(p.purchasePrice)}</div>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {products.map(p => (
+              <div key={p.id} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: 20, cursor: 'default' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 999, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', background: CATEGORY_COLORS[p.category] + '18', color: CATEGORY_COLORS[p.category] }}>
+                    {CATEGORIES.find(c => c.key === p.category)?.label || p.category}
+                  </span>
+                  {!p.active && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--danger)' }}>Inativo</span>}
                 </div>
-                {p.suggestedPrice && (
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 10, color: 'var(--green)', fontWeight: 600 }}>Sugerido</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)' }}>{fmt(p.suggestedPrice)}</div>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '0 0 2px' }}>{p.brand}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{p.model}</p>
+                {p.line && <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 10px' }}>Linha: {p.line}</p>}
+                {specSummary(p) && <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>{specSummary(p)}</div>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>Compra</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{fmt(p.purchasePrice)}</div>
                   </div>
-                )}
+                  {p.suggestedPrice && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 10, color: 'var(--green)', fontWeight: 600 }}>Sugerido</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)' }}>{fmt(p.suggestedPrice)}</div>
+                    </div>
+                  )}
+                </div>
               </div>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '16px 0' }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: page <= 1 ? 'not-allowed' : 'pointer', opacity: page <= 1 ? 0.4 : 1, fontFamily: 'inherit' }}
+              >
+                Anterior
+              </button>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{page} de {totalPages}</span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.4 : 1, fontFamily: 'inherit' }}
+              >
+                Próximo
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <ProductFormModal
@@ -315,11 +345,11 @@ function ProductFormModal({ open, onClose, onSaved, api, token }: { open: boolea
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={labelStyle()}>Preço de Compra *</label>
-            <input type="number" step="0.01" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} placeholder="0,00" style={inputStyle()} />
+            <input type="text" inputMode="decimal" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))} placeholder="0,00" style={inputStyle()} />
           </div>
           <div>
             <label style={labelStyle()}>Preço Sugerido</label>
-            <input type="number" step="0.01" value={suggestedPrice} onChange={e => setSuggestedPrice(e.target.value)} placeholder="0,00" style={inputStyle()} />
+            <input type="text" inputMode="decimal" value={suggestedPrice} onChange={e => setSuggestedPrice(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))} placeholder="0,00" style={inputStyle()} />
           </div>
         </div>
 
@@ -327,13 +357,22 @@ function ProductFormModal({ open, onClose, onSaved, api, token }: { open: boolea
           <div>
             <label style={{ ...labelStyle(), marginBottom: 8, color: 'var(--text)' }}>Especificações Técnicas</label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {SPEC_FIELDS[cat].map(f => (
-                <div key={f.key}>
-                  <label style={labelStyle()}>{f.label}</label>
-                  <input type={f.type} value={specs[f.key] || ''} onChange={e => setSpecs(s => ({ ...s, [f.key]: e.target.value }))}
-                    placeholder={f.hint || ''} style={inputStyle()} />
-                </div>
-              ))}
+                  {SPEC_FIELDS[cat].map(f => (
+                    <div key={f.key}>
+                      <label style={labelStyle()}>{f.label}</label>
+                      <input
+                        type={f.type === 'number' ? 'text' : f.type}
+                        inputMode={f.type === 'number' ? 'decimal' : undefined}
+                        value={specs[f.key] || ''}
+                        onChange={e => {
+                          const v = f.type === 'number'
+                            ? e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
+                            : e.target.value;
+                          setSpecs(s => ({ ...s, [f.key]: v }));
+                        }}
+                        placeholder={f.hint || ''} style={inputStyle()} />
+                    </div>
+                  ))}
             </div>
           </div>
         )}

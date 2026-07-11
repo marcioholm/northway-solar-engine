@@ -10,6 +10,7 @@ import { Input } from '../../../components/ui/Input';
 import { Text } from '../../../components/primitives/Text';
 import { Flex } from '../../../components/primitives/Flex';
 import { Stack } from '../../../components/primitives/Stack';
+import { formatBRL } from '../../../lib/format';
 
 interface IBGEState { id: number; sigla: string; nome: string; }
 interface IBGECity { id: number; nome: string; }
@@ -50,8 +51,11 @@ function DashboardContent() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const cached = sessionStorage.getItem('ibge_states');
+    if (cached) { try { setStates(JSON.parse(cached)); return; } catch {} }
     fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome')
-      .then(res => res.json()).then(setStates);
+      .then(res => res.json())
+      .then(data => { setStates(data); sessionStorage.setItem('ibge_states', JSON.stringify(data)); });
   }, []);
 
   useEffect(() => {
@@ -59,9 +63,11 @@ function DashboardContent() {
     const api = process.env.NEXT_PUBLIC_API_URL;
     if (!api || !token) return;
     Promise.all([
-      fetch(`${api}/inventory/modules`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch(`${api}/inventory/inverters`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-    ]).then(([mods, invs]) => {
+      fetch(`${api}/catalog/products?category=module&limit=100`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`${api}/catalog/products?category=inverter&limit=100`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ]).then(([modsRes, invsRes]) => {
+      const mods = Array.isArray(modsRes) ? modsRes : modsRes.data || [];
+      const invs = Array.isArray(invsRes) ? invsRes : invsRes.data || [];
       setModules(mods);
       setInverters(invs);
       if (mods.length) setSelectedModuleId(mods[0].id);
@@ -71,8 +77,11 @@ function DashboardContent() {
 
   useEffect(() => {
     if (selectedState) {
+      const cached = sessionStorage.getItem(`ibge_cities_${selectedState}`);
+      if (cached) { try { setCities(JSON.parse(cached)); return; } catch {} }
       fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedState}/municipios`)
-        .then(res => res.json()).then(setCities);
+        .then(res => res.json())
+        .then(data => { setCities(data); sessionStorage.setItem(`ibge_cities_${selectedState}`, JSON.stringify(data)); });
     } else { setCities([]); setSelectedCity(''); }
   }, [selectedState]);
 
@@ -172,14 +181,14 @@ function DashboardContent() {
                   ]} />
                 {modules.length > 0 && (
                   <Input label="Módulo Solar" variant="select" value={selectedModuleId} onChange={setSelectedModuleId}
-                    options={modules.map(m => ({ label: `${m.brand} ${m.model} (${m.powerWatt}W - R$ ${Number(m.cost).toFixed(0)})`, value: m.id }))} />
+                    options={modules.map(m => ({ label: `${m.brand} ${m.model} (${(m.specs?.powerWatt || m.powerWatt)}W - ${formatBRL(m.purchasePrice || m.cost || 0)})`, value: m.id }))} />
                 )}
                 {modules.length > 0 && (
                   <Input label="Quantidade de Módulos" variant="number" placeholder="Auto" value={moduleQty || ''} onChange={v => setModuleQty(Number(v))} />
                 )}
                 {inverters.length > 0 && (
                   <Input label="Inversor" variant="select" value={selectedInverterId} onChange={setSelectedInverterId}
-                    options={inverters.map(inv => ({ label: `${inv.brand} ${inv.model} (${inv.nominalPowerKw}kW - R$ ${Number(inv.cost).toFixed(0)})`, value: inv.id }))} />
+                    options={inverters.map(inv => ({ label: `${inv.brand} ${inv.model} (${(inv.specs?.nominalPowerKw || inv.nominalPowerKw)}kW - ${formatBRL(inv.purchasePrice || inv.cost || 0)})`, value: inv.id }))} />
                 )}
                 <div style={{ gridColumn: 'span 3' }}>
                   <Button type="submit" loading={loading} size="md" style={{ padding: '12px 28px' }}>Calcular Proposta</Button>

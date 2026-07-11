@@ -26,8 +26,8 @@ export class ProposalsController {
   @Get()
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
-  findAll(@Request() req) {
-    return this.proposalsService.findAll(req.user.companyId);
+  findAll(@Request() req, @Query('page') page?: number, @Query('limit') limit?: number) {
+    return this.proposalsService.findAll(req.user.companyId, page, limit);
   }
 
   @Get('lead/:leadId')

@@ -112,9 +112,9 @@ export function Input({
             onChange={e => {
               let v = e.target.value;
               if (variant === 'number') {
-                v = v.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
-                const parts = v.split('.');
-                if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+                v = v.replace(/[^0-9.,]/g, '');
+                v = v.replace(/\.(?=.*\.|.*,)/g, '');
+                v = v.replace(/,/g, '.');
               }
               onChange?.(v);
             }}
