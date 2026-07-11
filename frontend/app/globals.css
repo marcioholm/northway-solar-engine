@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #121214;
+  --foreground: #ededed;
+
+  /* Reference Red */
+  --color-primary: #E50914;
+  --color-primary-hover: #b20710;
+
+  /* Dark Surface Colors */
+  --card-bg: #202024;
+  --input-bg: #121214;
+  --border-color: #323238;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom Scrollbar for Dark Mode */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
