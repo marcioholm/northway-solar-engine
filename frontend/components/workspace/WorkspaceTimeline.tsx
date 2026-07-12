@@ -1,7 +1,5 @@
 'use client';
 
-import { CheckIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
-
 interface WorkspaceTimelineProps {
   project: any;
 }
@@ -22,26 +20,25 @@ export function WorkspaceTimeline({ project }: WorkspaceTimelineProps) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 0, padding: '0 24px', height: 44,
-      background: 'var(--ws-surface)', borderTop: '1px solid var(--ws-border)', flexShrink: 0,
+      background: 'var(--surface)', borderTop: '1px solid var(--border)', flexShrink: 0,
       overflow: 'hidden',
     }}>
       {MILESTONES.map((m, i) => {
         const isCompleted = i <= currentIndex;
         const isCurrent = i === currentIndex;
-        const isUpcoming = i > currentIndex;
 
         return (
           <div key={m.key} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
               <div style={{
                 width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                background: isCompleted ? 'var(--ws-accent)' : 'var(--ws-border)',
-                boxShadow: isCurrent ? '0 0 0 3px rgba(245, 158, 11, 0.2)' : 'none',
+                background: isCompleted ? 'var(--green)' : 'var(--border)',
+                boxShadow: isCurrent ? '0 0 0 3px var(--green-bg)' : 'none',
                 transition: 'all 0.3s',
               }} />
               <span style={{
                 fontSize: 11, fontWeight: isCurrent ? 600 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                color: isCompleted ? 'var(--ws-text)' : 'var(--ws-text-muted)',
+                color: isCompleted ? 'var(--text)' : 'var(--text-muted)',
                 transition: 'color 0.3s',
               }}>
                 {m.label}
@@ -49,7 +46,7 @@ export function WorkspaceTimeline({ project }: WorkspaceTimelineProps) {
             </div>
 
             {i < MILESTONES.length - 1 && (
-              <div style={{ flex: 1, height: 1, margin: '0 4px', background: i < currentIndex ? 'var(--ws-accent)' : 'var(--ws-border)', opacity: i < currentIndex ? 0.5 : 1 }} />
+              <div style={{ flex: 1, height: 1, margin: '0 4px', background: i < currentIndex ? 'var(--green)' : 'var(--border)', opacity: i < currentIndex ? 0.5 : 1 }} />
             )}
           </div>
         );

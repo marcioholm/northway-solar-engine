@@ -31,10 +31,10 @@ export function ClientOverview({ project }: { project: any; onUpdate: (p: any) =
 
 function StepCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--ws-surface-raised)', borderRadius: 'var(--ws-radius-lg)', border: '1px solid var(--ws-border)', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px', borderBottom: '1px solid var(--ws-border)' }}>
-        <span style={{ color: 'var(--ws-accent)', display: 'flex' }}>{icon}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ws-text)' }}>{title}</span>
+    <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ color: 'var(--green)', display: 'flex' }}>{icon}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{title}</span>
       </div>
       <div style={{ padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px' }}>
         {children}
@@ -47,8 +47,8 @@ function Field({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   return (
     <div>
-      <span style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--ws-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ws-text)' }}>{value}</span>
+      <span style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{value}</span>
     </div>
   );
 }

@@ -28,8 +28,8 @@ export function ConsumptionOverview({ project }: { project: any; onUpdate: (p: a
       {project.consumptionInvoices?.length > 0 && (
         <StepCard icon={<DocumentTextIcon style={{ width: 16, height: 16 }} />} title="Faturas">
           {project.consumptionInvoices.map((inv: any, i: number) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--ws-border)', fontSize: 12, color: 'var(--ws-text-secondary)', gridColumn: 'span 2' }}>
-              <span style={{ fontWeight: 600, color: 'var(--ws-text)' }}>{inv.month}</span>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-secondary)', gridColumn: 'span 2' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text)' }}>{inv.month}</span>
               <span>{inv.consumption} kWh · {formatBRL(inv.bill)}</span>
             </div>
           ))}

@@ -46,8 +46,8 @@ function StepSkeleton() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {[1, 2, 3].map(i => (
-        <div key={i} style={{ height: 120, borderRadius: 12, background: 'linear-gradient(135deg, #1A1A1E 0%, #1E1E22 100%)', border: '1px solid #2A2A2E', overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.03) 50%, transparent 100%)', animation: 'shimmer 2s infinite' }} />
+        <div key={i} style={{ height: 120, borderRadius: 'var(--radius-lg)', background: 'var(--surface)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', background: 'linear-gradient(90deg, transparent 0%, var(--green-bg) 50%, transparent 100%)', animation: 'shimmer 2s infinite' }} />
         </div>
       ))}
       <style>{`@keyframes shimmer { 0% { transform: translateX(-100%) } 100% { transform: translateX(100%) } }`}</style>
@@ -55,43 +55,12 @@ function StepSkeleton() {
   );
 }
 
-const SHELL_STYLES = `
-  .workspace-shell {
-    --ws-bg: #0A0A0B;
-    --ws-surface: #121214;
-    --ws-surface-raised: #1A1A1E;
-    --ws-surface-hover: #222226;
-    --ws-border: #2A2A2E;
-    --ws-border-light: #333338;
-    --ws-text: #EDEDEF;
-    --ws-text-secondary: #888891;
-    --ws-text-muted: #5C5C66;
-    --ws-accent: #F59E0B;
-    --ws-accent-glow: rgba(245, 158, 11, 0.15);
-    --ws-green: #22C55E;
-    --ws-green-bg: rgba(34, 197, 94, 0.1);
-    --ws-red: #EF4444;
-    --ws-red-bg: rgba(239, 68, 68, 0.1);
-    --ws-blue: #3B82F6;
-    --ws-blue-bg: rgba(59, 130, 246, 0.1);
-    --ws-radius: 10px;
-    --ws-radius-lg: 14px;
-    --ws-radius-xl: 18px;
-    --ws-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
-    --ws-shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
-    --ws-shadow-glow: 0 0 20px rgba(245, 158, 11, 0.08);
-    font-feature-settings: 'tnum' 1, 'cv05' 1;
-  }
-`;
-
 export function WorkspaceShell({ project, activeStep, stepStatuses, onStepChange, onProjectUpdate }: WorkspaceShellProps) {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const StepComponent = STEP_COMPONENTS[activeStep];
 
   return (
-    <div className="workspace-shell" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--ws-bg)', color: 'var(--ws-text)', fontFamily: 'system-ui', overflow: 'hidden' }}>
-      <style>{SHELL_STYLES}</style>
-
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-body)', overflow: 'hidden' }}>
       <WorkspaceHeader
         project={project}
         activeStep={activeStep}
@@ -110,8 +79,8 @@ export function WorkspaceShell({ project, activeStep, stepStatuses, onStepChange
           <Suspense fallback={<StepSkeleton />}>
             <div style={{ maxWidth: 720, margin: '0 auto' }}>
               <div style={{ marginBottom: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--ws-text)', letterSpacing: '-0.01em' }}>{STEP_LABELS[activeStep]}</h2>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ws-text-secondary)' }}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.01em' }}>{STEP_LABELS[activeStep]}</h2>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
                   {getStepSubtitle(activeStep)}
                 </p>
               </div>

@@ -109,7 +109,7 @@ export default function ProjectDetailPage() {
           actions={
             <Flex gap={3}>
               <Button variant="primary" size="md" onClick={() => router.push(`/workspace/${params.id}`)}>
-                Workspace
+                Workspace ⚡
               </Button>
             </Flex>
           }

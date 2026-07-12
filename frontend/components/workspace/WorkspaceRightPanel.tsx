@@ -33,12 +33,11 @@ export function WorkspaceRightPanel({ project, activeStep }: WorkspaceRightPanel
 
   return (
     <aside style={{
-      width: 280, flexShrink: 0, background: 'var(--ws-surface)', borderLeft: '1px solid var(--ws-border)',
+      width: 280, flexShrink: 0, background: 'var(--surface)', borderLeft: '1px solid var(--border)',
       overflow: 'auto', display: 'flex', flexDirection: 'column',
     }}>
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Financial Summary */}
         <PanelSection title="Resumo Financeiro">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Row label="Custo Total" value={formatBRL(totalCost)} />
@@ -50,7 +49,6 @@ export function WorkspaceRightPanel({ project, activeStep }: WorkspaceRightPanel
           </div>
         </PanelSection>
 
-        {/* Checklist */}
         <PanelSection title="Checklist">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <CheckItem checked={!!project.clientName} label="Cliente cadastrado" />
@@ -61,20 +59,18 @@ export function WorkspaceRightPanel({ project, activeStep }: WorkspaceRightPanel
           </div>
         </PanelSection>
 
-        {/* Next Action */}
         <PanelSection title="Próxima Ação">
-          <div style={{ padding: 12, borderRadius: 8, background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.12)' }}>
+          <div style={{ padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--green-bg)', border: '1px solid var(--green-light)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <ArrowRightIcon style={{ width: 14, height: 14, color: 'var(--ws-accent)', flexShrink: 0, marginTop: 1 }} />
+              <ArrowRightIcon style={{ width: 14, height: 14, color: 'var(--green)', flexShrink: 0, marginTop: 1 }} />
               <div>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--ws-text)', lineHeight: 1.4 }}>{nextStep.label}</p>
-                <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 600, color: 'var(--ws-accent)' }}>{nextStep.action} →</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text)', lineHeight: 1.4 }}>{nextStep.label}</p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 600, color: 'var(--green)' }}>{nextStep.action} →</p>
               </div>
             </div>
           </div>
         </PanelSection>
 
-        {/* Activity / Timeline */}
         <PanelSection title="Atividades">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <ActivityItem
@@ -99,7 +95,6 @@ export function WorkspaceRightPanel({ project, activeStep }: WorkspaceRightPanel
           </div>
         </PanelSection>
 
-        {/* Project Meta */}
         <PanelSection title="Meta">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12 }}>
             <Meta label="Criado em" value={createdAt} />
@@ -116,7 +111,7 @@ export function WorkspaceRightPanel({ project, activeStep }: WorkspaceRightPanel
 function PanelSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'var(--ws-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
         {title}
       </p>
       {children}
@@ -125,10 +120,10 @@ function PanelSection({ title, children }: { title: string; children: React.Reac
 }
 
 function Row({ label, value, bold, accent }: { label: string; value: string; bold?: boolean; accent?: 'green' | 'amber' | 'red' }) {
-  const color = accent === 'green' ? 'var(--ws-green)' : accent === 'amber' ? 'var(--ws-accent)' : accent === 'red' ? 'var(--ws-red)' : 'var(--ws-text)';
+  const color = accent === 'green' ? 'var(--green)' : accent === 'amber' ? 'var(--warning)' : accent === 'red' ? 'var(--danger)' : 'var(--text)';
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--ws-border)' }}>
-      <span style={{ fontSize: 11, color: 'var(--ws-text-secondary)' }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+      <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{label}</span>
       <span style={{ fontSize: 13, fontWeight: bold ? 700 : 600, color, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   );
@@ -137,8 +132,8 @@ function Row({ label, value, bold, accent }: { label: string; value: string; bol
 function CheckItem({ checked, label }: { checked: boolean; label: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <CheckCircleIcon style={{ width: 14, height: 14, color: checked ? 'var(--ws-green)' : 'var(--ws-text-muted)', opacity: checked ? 1 : 0.3 }} />
-      <span style={{ fontSize: 12, color: checked ? 'var(--ws-text)' : 'var(--ws-text-muted)' }}>{label}</span>
+      <CheckCircleIcon style={{ width: 14, height: 14, color: checked ? 'var(--green)' : 'var(--text-muted)', opacity: checked ? 1 : 0.3 }} />
+      <span style={{ fontSize: 12, color: checked ? 'var(--text)' : 'var(--text-muted)' }}>{label}</span>
     </div>
   );
 }
@@ -146,9 +141,9 @@ function CheckItem({ checked, label }: { checked: boolean; label: string }) {
 function ActivityItem({ icon, text, time }: { icon: React.ReactNode; text: string; time: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-      <span style={{ color: 'var(--ws-text-muted)', display: 'flex' }}>{icon}</span>
-      <span style={{ color: 'var(--ws-text-secondary)', flex: 1 }}>{text}</span>
-      <span style={{ color: 'var(--ws-text-muted)', fontSize: 11 }}>{time}</span>
+      <span style={{ color: 'var(--text-muted)', display: 'flex' }}>{icon}</span>
+      <span style={{ color: 'var(--text-secondary)', flex: 1 }}>{text}</span>
+      <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{time}</span>
     </div>
   );
 }
@@ -156,27 +151,19 @@ function ActivityItem({ icon, text, time }: { icon: React.ReactNode; text: strin
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <span style={{ color: 'var(--ws-text-muted)' }}>{label}</span>
-      <span style={{ color: 'var(--ws-text-secondary)', fontWeight: 500 }}>{value}</span>
+      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{value}</span>
     </div>
   );
 }
 
 function calcTotalCost(project: any): number {
-  return (
-    Number(project.pricingEquipmentCost) || 0 +
-    Number(project.pricingLaborCost) || 0 +
-    Number(project.pricingFreightCost) || 0 +
-    Number(project.pricingProjectCost) || 0 +
-    Number(project.pricingArtCost) || 0 +
-    Number(project.pricingHotelCost) || 0 +
-    Number(project.pricingFoodCost) || 0 +
-    Number(project.pricingTravelCost) || 0 +
-    Number(project.pricingCommission) || 0 +
-    Number(project.pricingCraneCost) || 0 +
-    Number(project.pricingThirdPartiesCost) || 0 +
-    Number(project.pricingAdminCost) || 0 +
-    Number(project.pricingTaxes) || 0 +
-    Number(project.pricingOtherCost) || 0
-  );
+  const fields = [
+    'pricingEquipmentCost', 'pricingLaborCost', 'pricingFreightCost',
+    'pricingProjectCost', 'pricingArtCost', 'pricingHotelCost',
+    'pricingFoodCost', 'pricingTravelCost', 'pricingCommission',
+    'pricingCraneCost', 'pricingThirdPartiesCost', 'pricingAdminCost',
+    'pricingTaxes', 'pricingOtherCost',
+  ];
+  return fields.reduce((sum, f) => sum + (Number(project[f]) || 0), 0);
 }
