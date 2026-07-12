@@ -49,7 +49,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const statusColor = STATUS_COLORS[project.status] || 'var(--text-secondary)';
 
   return (
-    <Card variant="interactive" padding="md" onClick={() => router.push(`/solar-project/${project.id}`)}>
+    <Card variant="interactive" padding="md" onClick={() => router.push(`/workspace/${project.id}`)}>
       <Flex direction="column" gap={3}>
         <Flex justify="between" align="center">
           <Text variant="body-bold" style={{ fontSize: '16px' }}>
