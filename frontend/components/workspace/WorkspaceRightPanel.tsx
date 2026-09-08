@@ -44,7 +44,7 @@ export function WorkspaceRightPanel({ project, activeStep }: WorkspaceRightPanel
             <Row label="Preço Final" value={formatBRL(finalPrice)} bold />
             <Row label="Margem" value={formatPercent(marginPct)} 
               accent={marginPct >= 25 ? 'green' : marginPct >= 15 ? 'amber' : 'red'} />
-            <Row label="Lucro Estimado" value={formatBRL(profit)}
+            <Row label="Marg. Contribuição" value={formatBRL(profit)}
               accent={profit > 0 ? 'green' : 'red'} />
           </div>
         </PanelSection>

@@ -7,6 +7,42 @@ export function ProposalOverview({ project }: { project: any; onUpdate: (p: any)
   const proposals = project.proposals || [];
   const latestProposal = proposals[proposals.length - 1];
 
+  const handleView = () => {
+    if (!latestProposal) return;
+    if (latestProposal.publicToken) {
+      window.open(`${process.env.NEXT_PUBLIC_API_URL}/proposals/public/${latestProposal.publicToken}?format=html`, '_blank');
+    } else {
+      alert('Proposta ainda não possui link público.');
+    }
+  };
+
+  const handlePdf = async () => {
+    if (!latestProposal) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${latestProposal.id}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Erro ao gerar PDF');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      alert('Não foi possível gerar o PDF da proposta.');
+    }
+  };
+
+  const handleShare = () => {
+    if (!latestProposal) return;
+    if (latestProposal.publicToken) {
+      const link = `${process.env.NEXT_PUBLIC_API_URL}/proposals/public/${latestProposal.publicToken}/pdf`;
+      navigator.clipboard.writeText(link);
+      alert('Link direto do PDF copiado com sucesso!');
+    } else {
+      alert('Proposta não possui token público para compartilhamento.');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {proposals.length > 0 ? (
@@ -18,9 +54,9 @@ export function ProposalOverview({ project }: { project: any; onUpdate: (p: any)
                 <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Versão atual · {latestProposal.stage || 'proposal_sent'}</p>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <IconButton icon={<EyeIcon style={{ width: 14, height: 14 }} />} label="Visualizar" />
-                <IconButton icon={<ArrowDownTrayIcon style={{ width: 14, height: 14 }} />} label="PDF" />
-                <IconButton icon={<ShareIcon style={{ width: 14, height: 14 }} />} label="Compartilhar" />
+                <IconButton onClick={handleView} icon={<EyeIcon style={{ width: 14, height: 14 }} />} label="Visualizar" />
+                <IconButton onClick={handlePdf} icon={<ArrowDownTrayIcon style={{ width: 14, height: 14 }} />} label="PDF" />
+                <IconButton onClick={handleShare} icon={<ShareIcon style={{ width: 14, height: 14 }} />} label="Compartilhar" />
               </div>
             </div>
             <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
@@ -51,9 +87,12 @@ export function ProposalOverview({ project }: { project: any; onUpdate: (p: any)
   );
 }
 
-function IconButton({ icon, label }: { icon: React.ReactNode; label: string }) {
+function IconButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
   return (
-    <button style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+    <button onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+    >
       {icon}
       {label}
     </button>
