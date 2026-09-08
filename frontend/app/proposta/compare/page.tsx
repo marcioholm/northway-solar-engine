@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircleIcon, CurrencyDollarIcon, SunIcon, BoltIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-export default function ComparePage() {
+function CompareContent() {
   const searchParams = useSearchParams();
   const token1 = searchParams?.get('token1');
   const token2 = searchParams?.get('token2');
@@ -71,6 +71,18 @@ export default function ComparePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFC' }}>
+        <p style={{ color: '#64748b', fontSize: 14 }}>Carregando comparativo...</p>
+      </div>
+    }>
+      <CompareContent />
+    </Suspense>
   );
 }
 

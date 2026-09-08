@@ -101,6 +101,8 @@ export default function ProposalPage() {
     return <ProposalError title="Proposta vazia" message="Esta proposta não possui dados preenchidos. Solicite ao consultor que complete as informações." />;
   }
 
+  const isExpired = data.expirationDate ? new Date(data.expirationDate).getTime() < new Date().getTime() : false;
+
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 24px', background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)' }}>
@@ -122,13 +124,22 @@ export default function ProposalPage() {
 
       {/* Action buttons */}
       {!accepted && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', gap: 12, justifyContent: 'center', padding: '16px 24px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)' }}>
-          <button onClick={() => setShowChangeModal(true)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '14px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
-            Solicitar Alteração
-          </button>
-          <button onClick={() => { trackAccept(); setAccepted(true); }} style={{ padding: '12px 32px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            Aceitar Proposta
-          </button>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center', padding: '16px 24px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)' }}>
+          {isExpired && (
+            <div style={{ textAlign: 'center', color: '#B91C1C', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+              ⚠️ Esta proposta perdeu a validade em {new Date(data.expirationDate!).toLocaleDateString('pt-BR')}. Os valores e disponibilidade de equipamentos podem ter mudado.
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={() => setShowChangeModal(true)} style={{ padding: '12px 24px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '14px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer', fontFamily: 'inherit' }}>
+              {isExpired ? 'Solicitar Proposta Atualizada' : 'Solicitar Alteração'}
+            </button>
+            {!isExpired && (
+              <button onClick={() => { trackAccept(); setAccepted(true); }} style={{ padding: '12px 32px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Aceitar Proposta
+              </button>
+            )}
+          </div>
         </div>
       )}
 

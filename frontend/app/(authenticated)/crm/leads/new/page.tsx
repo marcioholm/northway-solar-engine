@@ -25,6 +25,7 @@ export default function NewLeadPage() {
     email: '', city: '', state: '', address: '', zipcode: '',
     clientType: 'residential', source: '', monthlyConsumption: 0,
     avgMonthlyBill: 0, utility: '', notes: '',
+    utmSource: '', utmMedium: '', utmCampaign: '', utmTerm: '', utmContent: '', fbclid: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -97,6 +98,20 @@ export default function NewLeadPage() {
                   <Input variant="number" label="Consumo Médio (kWh)" value={form.monthlyConsumption || ''} onChange={update('monthlyConsumption')} placeholder="300" min={0} />
                   <Input variant="number" label="Valor Médio da Conta (R$)" value={form.avgMonthlyBill || ''} onChange={update('avgMonthlyBill')} placeholder="250" min={0} />
                   <Input label="Concessionária" value={form.utility} onChange={update('utility')} placeholder="Enel, EDP, CPFL..." />
+                </div>
+              </Stack>
+            </Card>
+
+            <Card padding="lg">
+              <Stack gap={5}>
+                <Text variant="xxs" color="accent">Rastreamento & Marketing</Text>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                  <Input label="UTM Source" value={form.utmSource} onChange={update('utmSource')} placeholder="Ex: google" />
+                  <Input label="UTM Medium" value={form.utmMedium} onChange={update('utmMedium')} placeholder="Ex: cpc" />
+                  <Input label="UTM Campaign" value={form.utmCampaign} onChange={update('utmCampaign')} placeholder="Ex: blackfriday" />
+                  <Input label="UTM Term" value={form.utmTerm} onChange={update('utmTerm')} placeholder="Ex: energia solar" />
+                  <Input label="UTM Content" value={form.utmContent} onChange={update('utmContent')} placeholder="Ex: banner1" />
+                  <Input label="FBCLID" value={form.fbclid} onChange={update('fbclid')} placeholder="Facebook Click ID" />
                 </div>
               </Stack>
             </Card>

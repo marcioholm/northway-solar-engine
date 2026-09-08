@@ -80,6 +80,18 @@ export class Company {
   @Column({ name: 'logo_url', nullable: true })
   logoUrl: string;
 
+  @Column({ name: 'meta_pixel_id', nullable: true })
+  metaPixelId: string;
+
+  @Column({ name: 'meta_access_token', nullable: true })
+  metaAccessToken: string;
+
+  @Column({ name: 'meta_ad_account_id', nullable: true })
+  metaAdAccountId: string;
+
+  @Column({ name: 'meta_dataset_id', nullable: true })
+  metaDatasetId: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

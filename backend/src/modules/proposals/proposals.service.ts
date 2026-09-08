@@ -282,6 +282,7 @@ export class ProposalsService {
       profile: dto.profile,
       leadId: dto.leadId,
       stage: 'proposal_sent',
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
 
       systemPowerKwp: calculation.system_power_kwp,
       moduleId: calculation.module?.id,
@@ -381,6 +382,7 @@ export class ProposalsService {
       solarProject: undefined,
       solarProjectId: project.id,
       projectStatus: project.status,
+      expirationDate: proposal.expiresAt,
       clientName:
         project.clientName || project.client?.name || proposal.clientName,
       clientCity:

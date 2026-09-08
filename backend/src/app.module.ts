@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -20,12 +21,15 @@ import { SolarProjectModule } from './modules/solar-project/solar-project.module
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { PricingEngineModule } from './modules/pricing-engine/pricing-engine.module';
 import { ProposalTrackingModule } from './modules/proposal-tracking/proposal-tracking.module';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
+import { MetaAdsModule } from './modules/meta-ads/meta-ads.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -59,6 +63,8 @@ import { ProposalTrackingModule } from './modules/proposal-tracking/proposal-tra
     CatalogModule,
     PricingEngineModule,
     ProposalTrackingModule,
+    WhatsappModule,
+    MetaAdsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

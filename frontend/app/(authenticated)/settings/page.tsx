@@ -14,6 +14,13 @@ export default function SettingsPage() {
   const [cardTax, setCardTax] = useState(15);
   const [financeTax, setFinanceTax] = useState(20);
   const [cashDiscount, setCashDiscount] = useState(5);
+  
+  // Meta Integration
+  const [metaPixelId, setMetaPixelId] = useState('');
+  const [metaAccessToken, setMetaAccessToken] = useState('');
+  const [metaAdAccountId, setMetaAdAccountId] = useState('');
+  const [metaDatasetId, setMetaDatasetId] = useState('');
+
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -39,6 +46,11 @@ export default function SettingsPage() {
         setCardTax(Number(c.cardTax) || 15);
         setFinanceTax(Number(c.financeTax) || 20);
         setCashDiscount(Number(c.cashDiscount) || 5);
+        
+        setMetaPixelId(c.metaPixelId || '');
+        setMetaAccessToken(c.metaAccessToken || '');
+        setMetaAdAccountId(c.metaAdAccountId || '');
+        setMetaDatasetId(c.metaDatasetId || '');
       })
       .catch(() => {});
   }, [api, token]);
@@ -83,6 +95,10 @@ export default function SettingsPage() {
           cardTax,
           financeTax,
           cashDiscount,
+          metaPixelId,
+          metaAccessToken,
+          metaAdAccountId,
+          metaDatasetId,
         }),
       });
       if (!res.ok) throw new Error('Save failed');
@@ -152,6 +168,53 @@ export default function SettingsPage() {
               </Field>
               <Field label="Taxa Financiamento (%)">
                 <Input variant="number" value={financeTax} onChange={v => setFinanceTax(Number(v))} />
+              </Field>
+            </div>
+          </div>
+          {/* Integrações - WhatsApp */}
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+              <Cog6ToothIcon style={{ width: 20, height: 20 }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Integração: WhatsApp (Evolution API)</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Field label="Nome da Instância">
+                <input style={inputStyle} placeholder="Ex: solar_vendas_1" />
+              </Field>
+              <Field label="URL da API">
+                <input style={inputStyle} placeholder="https://sua-evolution-api.com" />
+              </Field>
+              <Field label="Global API Key">
+                <input style={inputStyle} type="password" placeholder="••••••••••••" />
+              </Field>
+              <button type="button" style={{
+                padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+                background: 'var(--bg)', color: 'var(--text)', fontSize: '13px', fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit', marginTop: 8
+              }}>
+                Conectar e Gerar QR Code
+              </button>
+            </div>
+          </div>
+
+          {/* Integrações - Meta Ads */}
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+              <Cog6ToothIcon style={{ width: 20, height: 20 }} />
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Integração: Meta Ads (Conversões)</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Field label="Pixel ID (Opcional)">
+                <input style={inputStyle} placeholder="Ex: 1234567890" value={metaPixelId} onChange={e => setMetaPixelId(e.target.value)} />
+              </Field>
+              <Field label="Access Token">
+                <input style={inputStyle} type="password" placeholder="EAAB..." value={metaAccessToken} onChange={e => setMetaAccessToken(e.target.value)} />
+              </Field>
+              <Field label="Ad Account ID">
+                <input style={inputStyle} placeholder="act_123456" value={metaAdAccountId} onChange={e => setMetaAdAccountId(e.target.value)} />
+              </Field>
+              <Field label="Dataset ID">
+                <input style={inputStyle} placeholder="Dataset/Offline Event Set ID" value={metaDatasetId} onChange={e => setMetaDatasetId(e.target.value)} />
               </Field>
             </div>
           </div>

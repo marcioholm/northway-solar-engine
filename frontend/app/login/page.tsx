@@ -64,9 +64,15 @@ export default function LoginPage() {
           <h1 style={{
             fontSize: '32px', fontWeight: 800, color: '#FFFFFF',
             margin: 0, letterSpacing: '-0.03em',
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
           }}>
             SolarOS
+            <span style={{
+              fontSize: '12px', fontWeight: 800, background: '#10B981', color: '#fff',
+              padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em',
+              transform: 'translateY(-2px)'
+            }}>v2</span>
           </h1>
           <p style={{
             fontSize: '15px', color: 'rgba(255, 255, 255, 0.8)',

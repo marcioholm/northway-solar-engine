@@ -63,16 +63,42 @@ export class Lead {
   @Column({ nullable: true })
   zipcode: string;
 
-  @Column({
-    name: 'client_type',
-    type: 'enum',
-    enum: ClientType,
-    default: ClientType.RESIDENTIAL,
-  })
+  @Column({ name: 'client_type', type: 'enum', enum: ClientType, default: ClientType.RESIDENTIAL })
   clientType: ClientType;
 
   @Column({ nullable: true })
   source: string;
+  
+  // ────────── META CONVERSIONS & UTM ──────────
+  
+  @Column({ name: 'utm_source', nullable: true })
+  utmSource: string;
+
+  @Column({ name: 'utm_medium', nullable: true })
+  utmMedium: string;
+
+  @Column({ name: 'utm_campaign', nullable: true })
+  utmCampaign: string;
+
+  @Column({ name: 'utm_content', nullable: true })
+  utmContent: string;
+
+  @Column({ name: 'utm_term', nullable: true })
+  utmTerm: string;
+
+  @Column({ nullable: true })
+  fbclid: string;
+
+  @Column({ name: 'landing_url', nullable: true })
+  landingUrl: string;
+
+  @Column({ nullable: true })
+  referrer: string;
+
+  @Column({ name: 'captured_at', type: 'timestamp', nullable: true })
+  capturedAt: Date;
+
+  // ────────── END META CONVERSIONS & UTM ──────────
 
   @Column({ name: 'monthly_consumption', type: 'float', nullable: true })
   monthlyConsumption: number;

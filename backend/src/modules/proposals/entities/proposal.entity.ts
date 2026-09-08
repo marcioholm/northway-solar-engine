@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
@@ -135,9 +136,15 @@ export class Proposal {
   @Column({ name: 'stage', nullable: true })
   stage: string;
 
+  @Column({ name: 'expires_at', type: 'timestamp', nullable: true })
+  expiresAt: Date;
+
   @Column({ name: 'created_by' })
   createdBy: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

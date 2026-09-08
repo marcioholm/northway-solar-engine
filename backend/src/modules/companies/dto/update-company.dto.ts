@@ -6,4 +6,8 @@ export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
   cardTax?: number;
   financeTax?: number;
   cashDiscount?: number;
+  metaPixelId?: string;
+  metaAccessToken?: string;
+  metaAdAccountId?: string;
+  metaDatasetId?: string;
 }

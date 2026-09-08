@@ -4,12 +4,17 @@ import { Repository } from 'typeorm';
 import { Lead, LeadStage } from './entities/lead.entity';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
+import { MetaAdsService } from '../meta-ads/meta-ads.service';
+import { Company } from '../companies/entities/company.entity';
 
 @Injectable()
 export class LeadsService {
   constructor(
     @InjectRepository(Lead)
     private leadsRepository: Repository<Lead>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
+    private metaAdsService: MetaAdsService,
   ) {}
 
   create(companyId: string, userId: string, dto: CreateLeadDto) {
@@ -52,7 +57,19 @@ export class LeadsService {
     const lead = await this.leadsRepository.findOneBy({ id, companyId });
     if (!lead) throw new NotFoundException('Lead not found');
     lead.stage = stage;
-    return this.leadsRepository.save(lead);
+    const saved = await this.leadsRepository.save(lead);
+
+    if (stage === LeadStage.CLOSED_WON) {
+      const company = await this.companyRepository.findOneBy({ id: companyId });
+      if (company && company.metaDatasetId && company.metaAccessToken) {
+        // Disparar envio assíncrono para o Meta
+        this.metaAdsService.sendPurchaseEvent(saved, company.metaDatasetId, company.metaAccessToken).catch(err => {
+          console.error(`Erro ao disparar evento de compra para o Meta: ${err.message}`);
+        });
+      }
+    }
+    
+    return saved;
   }
 
   async remove(id: string, companyId: string) {

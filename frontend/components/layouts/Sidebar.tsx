@@ -65,8 +65,9 @@ export default function Sidebar() {
           </div>
           {!collapsed && (
             <div style={{ opacity: 1, transition: 'opacity 0.15s' }}>
-              <div style={{ fontWeight: 800, fontSize: '18px', lineHeight: 1.1, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
+              <div style={{ fontWeight: 800, fontSize: '18px', lineHeight: 1.1, fontFamily: 'var(--font-body)', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 SolarOS
+                <span style={{ fontSize: '10px', background: '#10B981', color: '#fff', padding: '1px 4px', borderRadius: '4px', letterSpacing: '0.05em' }}>v2</span>
               </div>
               <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500, marginTop: '1px' }}>
                 Gestão inteligente

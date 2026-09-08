@@ -10,4 +10,5 @@ export class CreateProposalDto {
   moduleId?: string;
   inverterId?: string;
   moduleQty?: number;
+  expiresAt?: string;
 }

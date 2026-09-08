@@ -44,6 +44,7 @@ function DashboardContent() {
   const [selectedModuleId, setSelectedModuleId] = useState('');
   const [selectedInverterId, setSelectedInverterId] = useState('');
   const [moduleQty, setModuleQty] = useState(0);
+  const [validityDays, setValidityDays] = useState(7);
   const [states, setStates] = useState<IBGEState[]>([]);
   const [cities, setCities] = useState<IBGECity[]>([]);
   const [result, setResult] = useState<any>(null);
@@ -90,10 +91,13 @@ function DashboardContent() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + validityDays);
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, clientName: clientName || 'Cliente Visitante', clientCep: '00000-000', leadId: leadId || undefined, utility: utility || undefined, tariff: tariff || undefined, profile: profile || undefined, moduleId: selectedModuleId || undefined, inverterId: selectedInverterId || undefined, moduleQty: moduleQty > 0 ? moduleQty : undefined }),
+        body: JSON.stringify({ consumption, city: `${selectedCity} - ${selectedState}`, clientName: clientName || 'Cliente Visitante', clientCep: '00000-000', leadId: leadId || undefined, utility: utility || undefined, tariff: tariff || undefined, profile: profile || undefined, moduleId: selectedModuleId || undefined, inverterId: selectedInverterId || undefined, moduleQty: moduleQty > 0 ? moduleQty : undefined, expiresAt: expiresAt.toISOString() }),
       });
       if (!res.ok) throw new Error('Failed to create proposal');
       const proposal = await res.json();
@@ -190,6 +194,7 @@ function DashboardContent() {
                   <Input label="Inversor" variant="select" value={selectedInverterId} onChange={setSelectedInverterId}
                     options={inverters.map(inv => ({ label: `${inv.brand} ${inv.model} (${(inv.specs?.nominalPowerKw || inv.nominalPowerKw)}kW - ${formatBRL(inv.purchasePrice || inv.cost || 0)})`, value: inv.id }))} />
                 )}
+                <Input label="Validade (Dias)" variant="number" placeholder="7" value={validityDays || ''} onChange={v => setValidityDays(Number(v))} min={1} required />
                 <div style={{ gridColumn: 'span 3' }}>
                   <Button type="submit" loading={loading} size="md" style={{ padding: '12px 28px' }}>Calcular Proposta</Button>
                   {error && <Text variant="sm" color="danger" style={{ marginTop: '8px' }}>{error}</Text>}

@@ -136,6 +136,10 @@ export default function LeadDetailPage() {
                         <InfoRow label="Conta Média" value={lead.avgMonthlyBill ? formatBRL(Number(lead.avgMonthlyBill)) : '-'} />
                         <InfoRow label="Concessionária" value={lead.utility || '-'} />
                         <InfoRow label="Origem" value={lead.source || '-'} />
+                        {lead.utmSource && <InfoRow label="UTM Source" value={lead.utmSource} />}
+                        {lead.utmMedium && <InfoRow label="UTM Medium" value={lead.utmMedium} />}
+                        {lead.utmCampaign && <InfoRow label="UTM Campaign" value={lead.utmCampaign} />}
+                        {lead.fbclid && <InfoRow label="FBCLID" value={lead.fbclid} />}
                         <InfoRow label="Criado em" value={new Date(lead.createdAt).toLocaleDateString('pt-BR')} />
                     </div>
 
