@@ -84,7 +84,7 @@ export function WorkspaceShell({ project, activeStep, stepStatuses, onStepChange
                   {getStepSubtitle(activeStep)}
                 </p>
               </div>
-              <StepComponent project={project} onUpdate={onProjectUpdate} />
+              <StepComponent project={project} onUpdate={onProjectUpdate} onStepChange={onStepChange} />
             </div>
           </Suspense>
         </main>

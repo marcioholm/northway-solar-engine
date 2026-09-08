@@ -118,6 +118,7 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       co2,
       roi,
       annualSavings,
+      publicToken: proposal.publicToken,
     });
 
     return {

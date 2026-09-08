@@ -114,4 +114,29 @@ export class ProposalsController {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(content);
   }
+
+  @Post('public/:token/track')
+  async trackEvent(
+    @Param('token') token: string,
+    @Body() body: { eventType: string; durationSeconds?: number },
+    @Request() req,
+  ) {
+    const ip = req.ip || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    await this.proposalsService.trackEvent(
+      token,
+      body.eventType,
+      body.durationSeconds || 0,
+      ip,
+      userAgent,
+    );
+    return { success: true };
+  }
+
+  @Get(':id/events')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  getEvents(@Param('id') id: string) {
+    return this.proposalsService.getEvents(id);
+  }
 }

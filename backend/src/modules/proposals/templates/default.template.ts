@@ -57,6 +57,49 @@ export function defaultTemplate(data: any): string {
   .stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; margin-bottom: 2px; }
   @media print { body { background: #fff; } .page { max-width: none; padding: 20px; } .no-print { display: none; } }
 </style>
+${data.publicToken ? `
+<script>
+  (function() {
+    const token = '${data.publicToken}';
+    const track = (eventType, durationSeconds = 0) => {
+      fetch('/proposals/public/' + token + '/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventType, durationSeconds })
+      }).catch(() => {});
+    };
+
+    // 1. Send OPEN event immediately
+    track('OPEN');
+
+    // 2. Track when pricing section is viewed
+    document.addEventListener('DOMContentLoaded', () => {
+      const pricingEl = document.getElementById('investment-section');
+      if (pricingEl && window.IntersectionObserver) {
+        let startTime = 0;
+        let isViewed = false;
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              if (!startTime) startTime = Date.now();
+            } else {
+              if (startTime && !isViewed) {
+                const duration = Math.round((Date.now() - startTime) / 1000);
+                if (duration > 2) { // Only track if they stayed for more than 2 seconds
+                  track('VIEW_PRICING', duration);
+                  isViewed = true; // send once per session
+                  observer.disconnect();
+                }
+              }
+            }
+          });
+        }, { threshold: 0.5 });
+        observer.observe(pricingEl);
+      }
+    });
+  })();
+</script>
+` : ''}
 </head>
 <body>
 <div class="page">
@@ -124,7 +167,7 @@ export function defaultTemplate(data: any): string {
   }
 
   <!-- INVESTMENT -->
-  <h2 style="font-size:16px;font-weight:800;margin-top:32px;margin-bottom:12px;">Investimento</h2>
+  <h2 id="investment-section" style="font-size:16px;font-weight:800;margin-top:32px;margin-bottom:12px;">Investimento</h2>
   <div style="display:flex;gap:16px;">
     <div style="flex:2;padding:20px;background:#f0fdf4;border-radius:12px;border:2px solid #059669;">
       <div class="stat-label">Valor Total</div>

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proposal } from './entities/proposal.entity';
+import { ProposalEvent } from './entities/proposal-event.entity';
 import { SolarEngineService } from '../solar-engine/solar-engine.service';
 import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
@@ -25,11 +26,36 @@ export class ProposalsService {
   constructor(
     @InjectRepository(Proposal)
     private proposalsRepository: Repository<Proposal>,
+    @InjectRepository(ProposalEvent)
+    private proposalEventsRepository: Repository<ProposalEvent>,
     private solarEngineService: SolarEngineService,
     private solarProjectService: SolarProjectService,
     private pricingEngineService: PricingEngineService,
     private companiesService: CompaniesService,
   ) {}
+
+  // ────────── TRACKING ──────────
+  
+  async trackEvent(token: string, eventType: string, durationSeconds: number, ipAddress?: string, userAgent?: string) {
+    const proposal = await this.proposalsRepository.findOne({ where: { publicToken: token } });
+    if (!proposal) throw new NotFoundException('Proposal not found');
+
+    const event = this.proposalEventsRepository.create({
+      proposalId: proposal.id,
+      eventType,
+      durationSeconds,
+      ipAddress,
+      userAgent,
+    });
+    return this.proposalEventsRepository.save(event);
+  }
+
+  async getEvents(proposalId: string) {
+    return this.proposalEventsRepository.find({
+      where: { proposalId },
+      order: { createdAt: 'DESC' },
+    });
+  }
 
   // ────────── ASSEMBLER ──────────
 
