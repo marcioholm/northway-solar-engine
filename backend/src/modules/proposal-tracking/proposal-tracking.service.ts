@@ -1,18 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProposalTracking, TrackEventType } from './entities/proposal-tracking.entity';
+import {
+  ProposalTracking,
+  TrackEventType,
+} from './entities/proposal-tracking.entity';
 import { TrackEventDto } from './dto/track-event.dto';
 import { ProposalTrackingStatsDto } from './dto/tracking-stats.dto';
+import { Proposal } from '../proposals/entities/proposal.entity';
 
 @Injectable()
 export class ProposalTrackingService {
   constructor(
     @InjectRepository(ProposalTracking)
     private repository: Repository<ProposalTracking>,
+    @InjectRepository(Proposal)
+    private proposalRepository: Repository<Proposal>,
   ) {}
 
-  async track(proposalId: string, dto: TrackEventDto, ip?: string, userAgent?: string): Promise<ProposalTracking> {
+  async track(
+    proposalId: string,
+    dto: TrackEventDto,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<ProposalTracking> {
     const metadata: Record<string, any> = {
       ...(dto.metadata || {}),
     };
@@ -21,7 +32,7 @@ export class ProposalTrackingService {
 
     const event = this.repository.create({
       proposalId,
-      eventType: dto.eventType as TrackEventType,
+      eventType: dto.eventType,
       metadata,
       ipAddress: ip || '',
       userAgent: userAgent || '',
@@ -30,27 +41,46 @@ export class ProposalTrackingService {
     return this.repository.save(event);
   }
 
-  async getStats(proposalId: string): Promise<ProposalTrackingStatsDto> {
+  async getStats(proposalId: string, companyId: string): Promise<ProposalTrackingStatsDto> {
+    const proposal = await this.proposalRepository.findOneBy({ id: proposalId });
+    if (!proposal || proposal.companyId !== companyId) {
+      throw new UnauthorizedException('You do not have permission to view stats for this proposal');
+    }
+
     const events = await this.repository.find({
       where: { proposalId },
       order: { createdAt: 'ASC' },
     });
 
-    const views = events.filter(e => e.eventType === 'view');
-    const downloads = events.filter(e => e.eventType === 'download');
-    const whatsappClicks = events.filter(e => e.eventType === 'whatsapp_click');
-    const accepts = events.filter(e => e.eventType === 'accept');
-    const changeRequests = events.filter(e => e.eventType === 'change_request');
-    const sectionViews = events.filter(e => e.eventType === 'section_view');
+    const views = events.filter((e) => e.eventType === 'view');
+    const downloads = events.filter((e) => e.eventType === 'download');
+    const whatsappClicks = events.filter(
+      (e) => e.eventType === 'whatsapp_click',
+    );
+    const accepts = events.filter((e) => e.eventType === 'accept');
+    const changeRequests = events.filter(
+      (e) => e.eventType === 'change_request',
+    );
+    const sectionViews = events.filter((e) => e.eventType === 'section_view');
 
-    const totalDurationSeconds = views.reduce((sum, v) => sum + (v.metadata?.durationSeconds || 0), 0);
-    const averageDurationSeconds = views.length > 0 ? Math.round(totalDurationSeconds / views.length) : 0;
+    const totalDurationSeconds = views.reduce(
+      (sum, v) => sum + (v.metadata?.durationSeconds || 0),
+      0,
+    );
+    const averageDurationSeconds =
+      views.length > 0 ? Math.round(totalDurationSeconds / views.length) : 0;
 
     // Aggregate section data
-    const sectionMap = new Map<string, { views: number; totalDurationSeconds: number }>();
+    const sectionMap = new Map<
+      string,
+      { views: number; totalDurationSeconds: number }
+    >();
     for (const sv of sectionViews) {
       const name = sv.metadata?.section || 'unknown';
-      const entry = sectionMap.get(name) || { views: 0, totalDurationSeconds: 0 };
+      const entry = sectionMap.get(name) || {
+        views: 0,
+        totalDurationSeconds: 0,
+      };
       entry.views++;
       entry.totalDurationSeconds += sv.metadata?.durationSeconds || 0;
       sectionMap.set(name, entry);

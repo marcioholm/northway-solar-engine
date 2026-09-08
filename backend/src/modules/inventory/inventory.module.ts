@@ -6,9 +6,11 @@ import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([InventoryModuleEntity, InventoryInverterEntity])],
+  imports: [
+    TypeOrmModule.forFeature([InventoryModuleEntity, InventoryInverterEntity]),
+  ],
   controllers: [InventoryController],
   providers: [InventoryService],
   exports: [InventoryService],
 })
-export class InventoryModule { }
+export class InventoryModule {}

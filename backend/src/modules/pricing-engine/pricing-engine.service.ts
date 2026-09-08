@@ -27,7 +27,7 @@ export class PricingEngineService {
     const recommendedPrice = totalCost * (1 + input.recommendedMarginPct / 100);
     const finalPrice = totalCost * (1 + input.marginPct / 100);
     const profit = finalPrice - totalCost;
-    const effectiveMarginPct = finalPrice > 0 ? ((profit / finalPrice) * 100) : 0;
+    const effectiveMarginPct = finalPrice > 0 ? (profit / finalPrice) * 100 : 0;
 
     return {
       operationalCostTotal,

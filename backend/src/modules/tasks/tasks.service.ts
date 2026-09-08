@@ -7,54 +7,54 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
-    constructor(
-        @InjectRepository(Task)
-        private tasksRepository: Repository<Task>,
-    ) { }
+  constructor(
+    @InjectRepository(Task)
+    private tasksRepository: Repository<Task>,
+  ) {}
 
-    create(companyId: string, userId: string, dto: CreateTaskDto) {
-        const task = this.tasksRepository.create({
-            ...dto,
-            companyId,
-            createdBy: userId,
-            dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-        });
-        return this.tasksRepository.save(task);
-    }
+  create(companyId: string, userId: string, dto: CreateTaskDto) {
+    const task = this.tasksRepository.create({
+      ...dto,
+      companyId,
+      createdBy: userId,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+    });
+    return this.tasksRepository.save(task);
+  }
 
-    findAll(companyId: string) {
-        return this.tasksRepository.find({
-            where: { companyId },
-            order: { createdAt: 'DESC' },
-        });
-    }
+  findAll(companyId: string) {
+    return this.tasksRepository.find({
+      where: { companyId },
+      order: { createdAt: 'DESC' },
+    });
+  }
 
-    findByLead(leadId: string) {
-        return this.tasksRepository.find({
-            where: { leadId },
-            order: { dueDate: 'ASC' },
-        });
-    }
+  findByLead(leadId: string, companyId: string) {
+    return this.tasksRepository.find({
+      where: { leadId, companyId },
+      order: { dueDate: 'ASC' },
+    });
+  }
 
-    findPending(companyId: string) {
-        return this.tasksRepository.find({
-            where: { companyId, status: TaskStatus.PENDING },
-            order: { dueDate: 'ASC' },
-        });
-    }
+  findPending(companyId: string) {
+    return this.tasksRepository.find({
+      where: { companyId, status: TaskStatus.PENDING },
+      order: { dueDate: 'ASC' },
+    });
+  }
 
-    async update(id: string, dto: UpdateTaskDto) {
-        const task = await this.tasksRepository.findOneBy({ id });
-        if (!task) throw new NotFoundException('Task not found');
-        Object.assign(task, dto);
-        if (dto.status === TaskStatus.DONE) {
-            task.completedAt = new Date();
-        }
-        return this.tasksRepository.save(task);
+  async update(id: string, companyId: string, dto: UpdateTaskDto) {
+    const task = await this.tasksRepository.findOneBy({ id, companyId });
+    if (!task) throw new NotFoundException('Task not found');
+    Object.assign(task, dto);
+    if (dto.status === TaskStatus.DONE) {
+      task.completedAt = new Date();
     }
+    return this.tasksRepository.save(task);
+  }
 
-    async remove(id: string) {
-        const result = await this.tasksRepository.delete(id);
-        if (!result.affected) throw new NotFoundException('Task not found');
-    }
+  async remove(id: string, companyId: string) {
+    const result = await this.tasksRepository.delete({ id, companyId });
+    if (!result.affected) throw new NotFoundException('Task not found');
+  }
 }

@@ -9,4 +9,4 @@ import { IrradiationService } from './irradiation.service';
   providers: [IrradiationService],
   exports: [IrradiationService],
 })
-export class IrradiationModule { }
+export class IrradiationModule {}

@@ -10,7 +10,7 @@ export class CompaniesService {
   constructor(
     @InjectRepository(Company)
     private companiesRepository: Repository<Company>,
-  ) { }
+  ) {}
 
   create(createCompanyDto: CreateCompanyDto) {
     const company = this.companiesRepository.create(createCompanyDto);

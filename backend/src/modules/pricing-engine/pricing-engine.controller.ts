@@ -10,7 +10,9 @@ export class PricingEngineController {
   constructor(private readonly service: PricingEngineService) {}
 
   @Post('calculate')
-  @ApiOperation({ summary: 'Calcular preço de venda a partir de custos e margem' })
+  @ApiOperation({
+    summary: 'Calcular preço de venda a partir de custos e margem',
+  })
   calculate(@Body() input: PricingInputDto): PricingResultDto {
     return this.service.calculate(input);
   }

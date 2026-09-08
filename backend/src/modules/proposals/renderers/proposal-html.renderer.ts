@@ -1,11 +1,22 @@
-import { ProposalRenderer, ProposalAssembledData, RenderOutput } from './proposal-renderer.interface';
+import {
+  ProposalRenderer,
+  ProposalAssembledData,
+  RenderOutput,
+} from './proposal-renderer.interface';
 import { defaultTemplate } from '../templates/default.template';
 
 export class ProposalHtmlRenderer implements ProposalRenderer {
   readonly name = 'html';
 
   render(data: ProposalAssembledData): RenderOutput {
-    const { proposal, project, quote, company, consultantName, consultantPhone } = data;
+    const {
+      proposal,
+      project,
+      quote,
+      company,
+      consultantName,
+      consultantPhone,
+    } = data;
 
     const projectData = (project || {}) as any;
     const companyData = (company || {}) as any;
@@ -13,7 +24,9 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
     const cashDiscount = Number(companyData.cashDiscount || 5);
     const cardTax = Number(companyData.cardTax || 15);
     const financeTax = Number(companyData.financeTax || 20);
-    const finalPrice = Number(proposal.finalPrice || projectData.pricingFinalPrice || 0);
+    const finalPrice = Number(
+      proposal.finalPrice || projectData.pricingFinalPrice || 0,
+    );
     const paybackYears = Number(proposal.paybackYears || 0);
     const annualSavings = paybackYears > 0 ? finalPrice / paybackYears : 0;
 
@@ -23,19 +36,30 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
     const financeTotalPrice = finalPrice * (1 + financeTax / 100);
     const financeInstallment = financeTotalPrice / 60;
 
-    const trees = Math.round(Number(proposal.systemPowerKwp || projectData.sizingPowerKwp || 0) * 40);
-    const co2 = (Number(proposal.systemPowerKwp || projectData.sizingPowerKwp || 0) * 2.1).toFixed(1);
+    const trees = Math.round(
+      Number(proposal.systemPowerKwp || projectData.sizingPowerKwp || 0) * 40,
+    );
+    const co2 = (
+      Number(proposal.systemPowerKwp || projectData.sizingPowerKwp || 0) * 2.1
+    ).toFixed(1);
     const roi = paybackYears > 0 ? (100 / paybackYears).toFixed(1) : undefined;
 
     const expirationDate = new Date(proposal.createdAt);
     expirationDate.setDate(expirationDate.getDate() + 10);
     const expirationStr = expirationDate.toLocaleDateString('pt-BR', {
-      day: '2-digit', month: 'long', year: 'numeric',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
     });
 
-    const createdAtStr = new Date(proposal.createdAt).toLocaleDateString('pt-BR', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    });
+    const createdAtStr = new Date(proposal.createdAt).toLocaleDateString(
+      'pt-BR',
+      {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      },
+    );
 
     const equipmentList: any[] = [];
     if (projectData.equipmentModules?.length) {
@@ -76,7 +100,13 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       moduleQty: proposal.moduleQty || projectData.sizingModuleQty,
       finalPrice: finalPrice,
       paybackYears: paybackYears,
-      company: { logoUrl: companyData.logoUrl, name: companyData.name, cashDiscount, cardTax, financeTax },
+      company: {
+        logoUrl: companyData.logoUrl,
+        name: companyData.name,
+        cashDiscount,
+        cardTax,
+        financeTax,
+      },
       equipment: equipmentList,
       cashPrice,
       cardInstallment,

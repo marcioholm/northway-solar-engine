@@ -9,5 +9,9 @@ export class ProposalTrackingStatsDto {
   whatsappClicks!: number;
   accepts!: number;
   changeRequests!: number;
-  sections!: Array<{ name: string; views: number; totalDurationSeconds: number }>;
+  sections!: Array<{
+    name: string;
+    views: number;
+    totalDurationSeconds: number;
+  }>;
 }

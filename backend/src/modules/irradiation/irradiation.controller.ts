@@ -8,10 +8,10 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 @UseGuards(AuthGuard('jwt'))
 @Controller('irradiation')
 export class IrradiationController {
-    constructor(private readonly irradiationService: IrradiationService) { }
+  constructor(private readonly irradiationService: IrradiationService) {}
 
-    @Get(':location')
-    findOne(@Param('location') location: string) {
-        return this.irradiationService.getIrradiation(location);
-    }
+  @Get(':location')
+  findOne(@Param('location') location: string) {
+    return this.irradiationService.getIrradiation(location);
+  }
 }

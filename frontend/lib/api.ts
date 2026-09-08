@@ -11,6 +11,11 @@ function headers() {
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${url}`, { ...options, headers: { ...headers(), ...options?.headers } });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
     const body = await res.text();
     throw new Error(`API ${res.status}: ${body.slice(0, 200)}`);
   }

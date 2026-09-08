@@ -8,15 +8,15 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 @UseGuards(AuthGuard('jwt'))
 @Controller('crm-dashboard')
 export class CrmDashboardController {
-    constructor(private readonly dashboardService: CrmDashboardService) { }
+  constructor(private readonly dashboardService: CrmDashboardService) {}
 
-    @Get()
-    getDashboard(@Request() req) {
-        return this.dashboardService.getDashboard(req.user.companyId);
-    }
+  @Get()
+  getDashboard(@Request() req) {
+    return this.dashboardService.getDashboard(req.user.companyId);
+  }
 
-    @Get('sources')
-    getSources(@Request() req) {
-        return this.dashboardService.getSources(req.user.companyId);
-    }
+  @Get('sources')
+  getSources(@Request() req) {
+    return this.dashboardService.getSources(req.user.companyId);
+  }
 }

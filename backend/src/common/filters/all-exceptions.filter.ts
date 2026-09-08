@@ -1,4 +1,11 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch()
@@ -25,9 +32,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
-      message: typeof message === 'string' ? message : message.message || message,
+      message:
+        typeof message === 'string' ? message : message.message || message,
       error: exception instanceof Error ? exception.message : 'Unknown error',
-      stack: exception instanceof Error ? exception.stack?.split('\n').slice(0, 6).join('\n') : undefined,
+      stack:
+        process.env.NODE_ENV !== 'production' && exception instanceof Error
+          ? exception.stack?.split('\n').slice(0, 6).join('\n')
+          : undefined,
       timestamp: new Date().toISOString(),
       path: request.url,
     });

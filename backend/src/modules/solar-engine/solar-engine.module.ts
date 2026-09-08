@@ -11,4 +11,4 @@ import { InventoryModule } from '../inventory/inventory.module';
   providers: [SolarEngineService],
   exports: [SolarEngineService],
 })
-export class SolarEngineModule { }
+export class SolarEngineModule {}

@@ -20,4 +20,4 @@ import { CompaniesModule } from '../companies/companies.module';
   providers: [ProposalsService],
   exports: [ProposalsService],
 })
-export class ProposalsModule { }
+export class ProposalsModule {}

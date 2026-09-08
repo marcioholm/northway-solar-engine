@@ -2,7 +2,9 @@ import { IsNumber, IsOptional, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PricingInputDto {
-  @ApiProperty({ description: 'Custo dos equipamentos (da cotação selecionada)' })
+  @ApiProperty({
+    description: 'Custo dos equipamentos (da cotação selecionada)',
+  })
   @IsNumber()
   @Min(0)
   equipmentCost!: number;

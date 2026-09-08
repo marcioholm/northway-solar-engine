@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
@@ -11,48 +22,52 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 @UseGuards(AuthGuard('jwt'))
 @Controller('leads')
 export class LeadsController {
-    constructor(private readonly leadsService: LeadsService) { }
+  constructor(private readonly leadsService: LeadsService) {}
 
-    @Post()
-    create(@Request() req, @Body() dto: CreateLeadDto) {
-        return this.leadsService.create(req.user.companyId, req.user.userId, dto);
-    }
+  @Post()
+  create(@Request() req, @Body() dto: CreateLeadDto) {
+    return this.leadsService.create(req.user.companyId, req.user.userId, dto);
+  }
 
-    @Get()
-    findAll(@Request() req, @Query('stage') stage?: LeadStage) {
-        if (stage) {
-            return this.leadsService.findByStage(req.user.companyId, stage);
-        }
-        return this.leadsService.findAll(req.user.companyId);
+  @Get()
+  findAll(@Request() req, @Query('stage') stage?: LeadStage) {
+    if (stage) {
+      return this.leadsService.findByStage(req.user.companyId, stage);
     }
+    return this.leadsService.findAll(req.user.companyId);
+  }
 
-    @Get('stats')
-    getStats(@Request() req) {
-        return this.leadsService.getStats(req.user.companyId);
-    }
+  @Get('stats')
+  getStats(@Request() req) {
+    return this.leadsService.getStats(req.user.companyId);
+  }
 
-    @Get('conversion')
-    getConversion(@Request() req) {
-        return this.leadsService.getConversionRate(req.user.companyId);
-    }
+  @Get('conversion')
+  getConversion(@Request() req) {
+    return this.leadsService.getConversionRate(req.user.companyId);
+  }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.leadsService.findOne(id);
-    }
+  @Get(':id')
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.leadsService.findOne(id, req.user.companyId);
+  }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() dto: UpdateLeadDto) {
-        return this.leadsService.update(id, dto);
-    }
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateLeadDto, @Request() req) {
+    return this.leadsService.update(id, req.user.companyId, dto);
+  }
 
-    @Patch(':id/stage')
-    updateStage(@Param('id') id: string, @Body() body: { stage: LeadStage }, @Request() req) {
-        return this.leadsService.updateStage(id, body.stage, req.user.userId);
-    }
+  @Patch(':id/stage')
+  updateStage(
+    @Param('id') id: string,
+    @Body() body: { stage: LeadStage },
+    @Request() req,
+  ) {
+    return this.leadsService.updateStage(id, req.user.companyId, body.stage, req.user.userId);
+  }
 
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.leadsService.remove(id);
-    }
+  @Delete(':id')
+  remove(@Param('id') id: string, @Request() req) {
+    return this.leadsService.remove(id, req.user.companyId);
+  }
 }

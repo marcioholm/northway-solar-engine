@@ -6,216 +6,344 @@ import { CreateSolarProjectDto } from './dto/create-solar-project.dto';
 import { UpdateSolarProjectDto } from './dto/update-solar-project.dto';
 import { paginate, PaginatedResult } from '../../common/dto/pagination.dto';
 
-const STATUS_FLOW = ['draft', 'client', 'site', 'consumption', 'sizing', 'quotes', 'costs', 'pricing', 'payment', 'review', 'proposal', 'closed_won', 'closed_lost'];
+const STATUS_FLOW = [
+  'draft',
+  'client',
+  'site',
+  'consumption',
+  'sizing',
+  'quotes',
+  'costs',
+  'pricing',
+  'payment',
+  'review',
+  'proposal',
+  'closed_won',
+  'closed_lost',
+];
 
 const MODULE_MAP: Record<string, string[]> = {
-    client: ['clientName', 'clientDocument', 'clientPhone', 'clientEmail', 'clientCity', 'clientState', 'clientZipcode', 'clientUtility', 'clientClass', 'clientTariffGroup', 'clientModality', 'consultantName'],
-    site: ['siteAddress', 'siteZipcode', 'siteLatitude', 'siteLongitude', 'siteRoofType', 'siteInclination', 'siteAzimuth', 'sitePhotos'],
-    consumption: ['consumptionMonthlyKwh', 'consumptionMonthlyBill', 'consumptionTariff', 'consumptionDemand', 'consumptionModality', 'consumptionGroup', 'consumptionInvoices'],
-    sizing: ['sizingPowerKwp', 'sizingGenerationKwh', 'sizingIrradiation', 'sizingLossFactor', 'sizingModuleQty', 'sizingInverterQty', 'sizingObservations'],
-    equipment: ['equipmentModules', 'equipmentInverters', 'equipmentStructures', 'equipmentCables'],
-    pricing: ['pricingEquipmentCost', 'pricingLaborCost', 'pricingProjectCost', 'pricingFreightCost', 'pricingTravelCost', 'pricingCommission', 'pricingTaxes', 'pricingAdminCost', 'pricingMarginPct', 'pricingMarginValue', 'pricingMinPrice', 'pricingFinalPrice', 'pricingDiscountPct', 'pricingArtCost', 'pricingInstallationCost', 'pricingHotelCost', 'pricingFoodCost', 'pricingTollCost', 'pricingCraneCost', 'pricingThirdPartiesCost', 'pricingOtherCost', 'pricingTotalCost', 'pricingProfit', 'pricingRecommendedPrice', 'pricingEffectiveMarginPct', 'pricingMinMarginPct', 'pricingRecommendedMarginPct'],
-    payment: ['paymentCashDiscount', 'paymentCardTax', 'paymentCardInstallments', 'paymentFinanceTax', 'paymentFinanceInstallments', 'paymentValidityDays'],
+  client: [
+    'clientName',
+    'clientDocument',
+    'clientPhone',
+    'clientEmail',
+    'clientCity',
+    'clientState',
+    'clientZipcode',
+    'clientUtility',
+    'clientClass',
+    'clientTariffGroup',
+    'clientModality',
+    'consultantName',
+  ],
+  site: [
+    'siteAddress',
+    'siteZipcode',
+    'siteLatitude',
+    'siteLongitude',
+    'siteRoofType',
+    'siteInclination',
+    'siteAzimuth',
+    'sitePhotos',
+  ],
+  consumption: [
+    'consumptionMonthlyKwh',
+    'consumptionMonthlyBill',
+    'consumptionTariff',
+    'consumptionDemand',
+    'consumptionModality',
+    'consumptionGroup',
+    'consumptionInvoices',
+  ],
+  sizing: [
+    'sizingPowerKwp',
+    'sizingGenerationKwh',
+    'sizingIrradiation',
+    'sizingLossFactor',
+    'sizingModuleQty',
+    'sizingInverterQty',
+    'sizingObservations',
+  ],
+  equipment: [
+    'equipmentModules',
+    'equipmentInverters',
+    'equipmentStructures',
+    'equipmentCables',
+  ],
+  pricing: [
+    'pricingEquipmentCost',
+    'pricingLaborCost',
+    'pricingProjectCost',
+    'pricingFreightCost',
+    'pricingTravelCost',
+    'pricingCommission',
+    'pricingTaxes',
+    'pricingAdminCost',
+    'pricingMarginPct',
+    'pricingMarginValue',
+    'pricingMinPrice',
+    'pricingFinalPrice',
+    'pricingDiscountPct',
+    'pricingArtCost',
+    'pricingInstallationCost',
+    'pricingHotelCost',
+    'pricingFoodCost',
+    'pricingTollCost',
+    'pricingCraneCost',
+    'pricingThirdPartiesCost',
+    'pricingOtherCost',
+    'pricingTotalCost',
+    'pricingProfit',
+    'pricingRecommendedPrice',
+    'pricingEffectiveMarginPct',
+    'pricingMinMarginPct',
+    'pricingRecommendedMarginPct',
+  ],
+  payment: [
+    'paymentCashDiscount',
+    'paymentCardTax',
+    'paymentCardInstallments',
+    'paymentFinanceTax',
+    'paymentFinanceInstallments',
+    'paymentValidityDays',
+  ],
 };
 
 const MODULE_KEYS = Object.keys(MODULE_MAP);
 
-function mapModuleToFields(module: string, data: Record<string, any>): Record<string, any> {
-    const fieldMap: Record<string, string> = {
-        name: 'clientName',
-        document: 'clientDocument',
-        phone: 'clientPhone',
-        email: 'clientEmail',
-        city: 'clientCity',
-        state: 'clientState',
-        zipcode: 'clientZipcode',
-        utility: 'clientUtility',
-        consumerClass: 'clientClass',
-        tariffGroup: 'clientTariffGroup',
-        modality: 'clientModality',
-        consultantName: 'consultantName',
-        address: 'siteAddress',
-        latitude: 'siteLatitude',
-        longitude: 'siteLongitude',
-        roofType: 'siteRoofType',
-        inclination: 'siteInclination',
-        azimuth: 'siteAzimuth',
-        photos: 'sitePhotos',
-        monthlyConsumption: 'consumptionMonthlyKwh',
-        monthlyBill: 'consumptionMonthlyBill',
-        tariff: 'consumptionTariff',
-        demand: 'consumptionDemand',
-        consumptionModality: 'consumptionModality',
-        group: 'consumptionGroup',
-        invoices: 'consumptionInvoices',
-        systemPowerKwp: 'sizingPowerKwp',
-        monthlyGenerationKwh: 'sizingGenerationKwh',
-        irradiation: 'sizingIrradiation',
-        lossFactor: 'sizingLossFactor',
-        moduleQty: 'sizingModuleQty',
-        inverterQty: 'sizingInverterQty',
-        observations: 'sizingObservations',
-        modules: 'equipmentModules',
-        inverters: 'equipmentInverters',
-        structures: 'equipmentStructures',
-        cables: 'equipmentCables',
-        equipmentCost: 'pricingEquipmentCost',
-        laborCost: 'pricingLaborCost',
-        projectCost: 'pricingProjectCost',
-        freightCost: 'pricingFreightCost',
-        travelCost: 'pricingTravelCost',
-        commission: 'pricingCommission',
-        taxes: 'pricingTaxes',
-        adminCost: 'pricingAdminCost',
-        marginPct: 'pricingMarginPct',
-        marginValue: 'pricingMarginValue',
-        minPrice: 'pricingMinPrice',
-        finalPrice: 'pricingFinalPrice',
-        discountPct: 'pricingDiscountPct',
-        artCost: 'pricingArtCost',
-        installationCost: 'pricingInstallationCost',
-        hotelCost: 'pricingHotelCost',
-        foodCost: 'pricingFoodCost',
-        tollCost: 'pricingTollCost',
-        craneCost: 'pricingCraneCost',
-        thirdPartiesCost: 'pricingThirdPartiesCost',
-        otherCost: 'pricingOtherCost',
-        totalCost: 'pricingTotalCost',
-        profit: 'pricingProfit',
-        recommendedPrice: 'pricingRecommendedPrice',
-        effectiveMarginPct: 'pricingEffectiveMarginPct',
-        minMarginPct: 'pricingMinMarginPct',
-        recommendedMarginPct: 'pricingRecommendedMarginPct',
-        cashDiscount: 'paymentCashDiscount',
-        cardTax: 'paymentCardTax',
-        cardInstallments: 'paymentCardInstallments',
-        financeTax: 'paymentFinanceTax',
-        financeInstallments: 'paymentFinanceInstallments',
-        validityDays: 'paymentValidityDays',
-    };
-    const result: Record<string, any> = {};
-    for (const [key, value] of Object.entries(data)) {
-        const field = fieldMap[key];
-        if (field) result[field] = value;
-    }
-    return result;
+function mapModuleToFields(
+  module: string,
+  data: Record<string, any>,
+): Record<string, any> {
+  const fieldMap: Record<string, string> = {
+    name: 'clientName',
+    document: 'clientDocument',
+    phone: 'clientPhone',
+    email: 'clientEmail',
+    city: 'clientCity',
+    state: 'clientState',
+    zipcode: 'clientZipcode',
+    utility: 'clientUtility',
+    consumerClass: 'clientClass',
+    tariffGroup: 'clientTariffGroup',
+    modality: 'clientModality',
+    consultantName: 'consultantName',
+    address: 'siteAddress',
+    latitude: 'siteLatitude',
+    longitude: 'siteLongitude',
+    roofType: 'siteRoofType',
+    inclination: 'siteInclination',
+    azimuth: 'siteAzimuth',
+    photos: 'sitePhotos',
+    monthlyConsumption: 'consumptionMonthlyKwh',
+    monthlyBill: 'consumptionMonthlyBill',
+    tariff: 'consumptionTariff',
+    demand: 'consumptionDemand',
+    consumptionModality: 'consumptionModality',
+    group: 'consumptionGroup',
+    invoices: 'consumptionInvoices',
+    systemPowerKwp: 'sizingPowerKwp',
+    monthlyGenerationKwh: 'sizingGenerationKwh',
+    irradiation: 'sizingIrradiation',
+    lossFactor: 'sizingLossFactor',
+    moduleQty: 'sizingModuleQty',
+    inverterQty: 'sizingInverterQty',
+    observations: 'sizingObservations',
+    modules: 'equipmentModules',
+    inverters: 'equipmentInverters',
+    structures: 'equipmentStructures',
+    cables: 'equipmentCables',
+    equipmentCost: 'pricingEquipmentCost',
+    laborCost: 'pricingLaborCost',
+    projectCost: 'pricingProjectCost',
+    freightCost: 'pricingFreightCost',
+    travelCost: 'pricingTravelCost',
+    commission: 'pricingCommission',
+    taxes: 'pricingTaxes',
+    adminCost: 'pricingAdminCost',
+    marginPct: 'pricingMarginPct',
+    marginValue: 'pricingMarginValue',
+    minPrice: 'pricingMinPrice',
+    finalPrice: 'pricingFinalPrice',
+    discountPct: 'pricingDiscountPct',
+    artCost: 'pricingArtCost',
+    installationCost: 'pricingInstallationCost',
+    hotelCost: 'pricingHotelCost',
+    foodCost: 'pricingFoodCost',
+    tollCost: 'pricingTollCost',
+    craneCost: 'pricingCraneCost',
+    thirdPartiesCost: 'pricingThirdPartiesCost',
+    otherCost: 'pricingOtherCost',
+    totalCost: 'pricingTotalCost',
+    profit: 'pricingProfit',
+    recommendedPrice: 'pricingRecommendedPrice',
+    effectiveMarginPct: 'pricingEffectiveMarginPct',
+    minMarginPct: 'pricingMinMarginPct',
+    recommendedMarginPct: 'pricingRecommendedMarginPct',
+    cashDiscount: 'paymentCashDiscount',
+    cardTax: 'paymentCardTax',
+    cardInstallments: 'paymentCardInstallments',
+    financeTax: 'paymentFinanceTax',
+    financeInstallments: 'paymentFinanceInstallments',
+    validityDays: 'paymentValidityDays',
+  };
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    const field = fieldMap[key];
+    if (field) result[field] = value;
+  }
+  return result;
 }
 
 @Injectable()
 export class SolarProjectService {
-    constructor(
-        @InjectRepository(SolarProject)
-        private repository: Repository<SolarProject>,
-    ) { }
+  constructor(
+    @InjectRepository(SolarProject)
+    private repository: Repository<SolarProject>,
+  ) {}
 
-    async create(companyId: string, userId: string, dto: CreateSolarProjectDto): Promise<SolarProject> {
-        const flatData: Partial<SolarProject> = { companyId, createdBy: userId, status: 'draft' };
+  async create(
+    companyId: string,
+    userId: string,
+    dto: CreateSolarProjectDto,
+  ): Promise<SolarProject> {
+    const flatData: Partial<SolarProject> = {
+      companyId,
+      createdBy: userId,
+      status: 'draft',
+    };
 
-        // Map flat fields from DTO
-        const allFields = Object.values(MODULE_MAP).flat();
-        for (const field of allFields) {
-            if ((dto as any)[field] !== undefined) {
-                (flatData as any)[field] = (dto as any)[field];
-            }
-        }
-
-        // Legacy: map module objects to typed fields + keep JSONB populated
-        for (const mod of MODULE_KEYS) {
-            const moduleData = (dto as any)[mod];
-            if (moduleData && typeof moduleData === 'object' && !Array.isArray(moduleData)) {
-                Object.assign(flatData as any, mapModuleToFields(mod, moduleData));
-                (flatData as any)[mod] = moduleData;
-            }
-        }
-
-        if (dto.leadId) flatData.leadId = dto.leadId;
-
-        const project = this.repository.create(flatData);
-        return this.repository.save(project);
+    // Map flat fields from DTO
+    const allFields = Object.values(MODULE_MAP).flat();
+    for (const field of allFields) {
+      if ((dto as any)[field] !== undefined) {
+        (flatData as any)[field] = (dto as any)[field];
+      }
     }
 
-    async findAll(companyId: string, filters?: { status?: string; query?: string; consultant?: string; page?: number; limit?: number }): Promise<PaginatedResult<SolarProject>> {
-        const where: any = { companyId };
-        if (filters?.status) where.status = filters.status;
-        if (filters?.consultant) where.consultantName = filters.consultant;
-        if (filters?.query) {
-            where.clientName = Like(`%${filters.query}%`);
-        }
-        const page = filters?.page || 1;
-        const limit = filters?.limit || 50;
-        const skip = (page - 1) * limit;
-        const [data, total] = await this.repository.findAndCount({
-            where,
-            order: { updatedAt: 'DESC' },
-            skip,
-            take: limit,
-        });
-        return paginate(data, total, page, limit);
+    // Legacy: map module objects to typed fields + keep JSONB populated
+    for (const mod of MODULE_KEYS) {
+      const moduleData = (dto as any)[mod];
+      if (
+        moduleData &&
+        typeof moduleData === 'object' &&
+        !Array.isArray(moduleData)
+      ) {
+        Object.assign(flatData as any, mapModuleToFields(mod, moduleData));
+        (flatData as any)[mod] = moduleData;
+      }
     }
 
-    async findOne(id: string): Promise<SolarProject> {
-        const project = await this.repository.findOne({
-            where: { id },
-            relations: ['quotes', 'quotes.items', 'proposals'],
-        });
-        if (!project) throw new NotFoundException('SolarProject not found');
-        return project;
+    if (dto.leadId) flatData.leadId = dto.leadId;
+
+    const project = this.repository.create(flatData);
+    return this.repository.save(project);
+  }
+
+  async findAll(
+    companyId: string,
+    filters?: {
+      status?: string;
+      query?: string;
+      consultant?: string;
+      page?: number;
+      limit?: number;
+    },
+  ): Promise<PaginatedResult<SolarProject>> {
+    const where: any = { companyId };
+    if (filters?.status) where.status = filters.status;
+    if (filters?.consultant) where.consultantName = filters.consultant;
+    if (filters?.query) {
+      where.clientName = Like(`%${filters.query}%`);
+    }
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 50;
+    const skip = (page - 1) * limit;
+    const [data, total] = await this.repository.findAndCount({
+      where,
+      order: { updatedAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+    return paginate(data, total, page, limit);
+  }
+
+  async findOne(id: string, companyId: string): Promise<SolarProject> {
+    const project = await this.repository.findOne({
+      where: { id, companyId },
+      relations: ['quotes', 'quotes.items', 'proposals'],
+    });
+    if (!project) throw new NotFoundException('SolarProject not found');
+    return project;
+  }
+
+  async update(id: string, companyId: string, dto: UpdateSolarProjectDto): Promise<SolarProject> {
+    const project = await this.findOne(id, companyId);
+
+    // Apply flat typed fields
+    const allFields = Object.values(MODULE_MAP).flat();
+    for (const field of allFields) {
+      if ((dto as any)[field] !== undefined) {
+        (project as any)[field] = (dto as any)[field];
+      }
+    }
+    if (dto.extra !== undefined) project.extra = dto.extra;
+
+    // Legacy: map module objects to typed fields + keep JSONB populated
+    for (const mod of MODULE_KEYS) {
+      const moduleData = (dto as any)[mod];
+      if (
+        moduleData &&
+        typeof moduleData === 'object' &&
+        !Array.isArray(moduleData)
+      ) {
+        Object.assign(project as any, mapModuleToFields(mod, moduleData));
+      }
     }
 
-    async update(id: string, dto: UpdateSolarProjectDto): Promise<SolarProject> {
-        const project = await this.findOne(id);
+    if (dto.status !== undefined) project.status = dto.status;
+    return this.repository.save(project);
+  }
 
-        // Apply flat typed fields
-        const allFields = Object.values(MODULE_MAP).flat();
-        for (const field of allFields) {
-            if ((dto as any)[field] !== undefined) {
-                (project as any)[field] = (dto as any)[field];
-            }
-        }
-        if (dto.extra !== undefined) project.extra = dto.extra;
-
-        // Legacy: map module objects to typed fields + keep JSONB populated
-        for (const mod of MODULE_KEYS) {
-            const moduleData = (dto as any)[mod];
-            if (moduleData && typeof moduleData === 'object' && !Array.isArray(moduleData)) {
-                Object.assign(project as any, mapModuleToFields(mod, moduleData));
-            }
-        }
-
-        if (dto.status !== undefined) project.status = dto.status;
-        return this.repository.save(project);
+  async updateModule(
+    id: string,
+    companyId: string,
+    module: string,
+    data: Record<string, any>,
+  ): Promise<SolarProject> {
+    if (!MODULE_KEYS.includes(module)) {
+      throw new NotFoundException(`Module '${module}' not found`);
     }
+    const dto = new UpdateSolarProjectDto();
+    (dto as any)[module] = data;
+    return this.update(id, companyId, dto);
+  }
 
-    async updateModule(id: string, module: string, data: Record<string, any>): Promise<SolarProject> {
-        if (!MODULE_KEYS.includes(module)) {
-            throw new NotFoundException(`Module '${module}' not found`);
-        }
-        const dto = new UpdateSolarProjectDto();
-        (dto as any)[module] = data;
-        return this.update(id, dto);
+  async advanceStatus(id: string, companyId: string): Promise<SolarProject> {
+    const project = await this.findOne(id, companyId);
+    const idx = STATUS_FLOW.indexOf(project.status);
+    if (idx < STATUS_FLOW.length - 1) {
+      project.status = STATUS_FLOW[idx + 1];
     }
+    return this.repository.save(project);
+  }
 
-    async advanceStatus(id: string): Promise<SolarProject> {
-        const project = await this.findOne(id);
-        const idx = STATUS_FLOW.indexOf(project.status);
-        if (idx < STATUS_FLOW.length - 1) {
-            project.status = STATUS_FLOW[idx + 1];
-        }
-        return this.repository.save(project);
-    }
+  async updateStatus(id: string, companyId: string, status: string): Promise<SolarProject> {
+    const project = await this.findOne(id, companyId);
+    project.status = status;
+    return this.repository.save(project);
+  }
 
-    async updateStatus(id: string, status: string): Promise<SolarProject> {
-        const project = await this.findOne(id);
-        project.status = status;
-        return this.repository.save(project);
-    }
+  getByLead(leadId: string, companyId: string): Promise<SolarProject[]> {
+    return this.repository.find({
+      where: { leadId, companyId },
+      order: { createdAt: 'DESC' },
+    });
+  }
 
-    getByLead(leadId: string): Promise<SolarProject[]> {
-        return this.repository.find({ where: { leadId }, order: { createdAt: 'DESC' } });
-    }
-
-    async remove(id: string): Promise<void> {
-        const project = await this.findOne(id);
-        await this.repository.remove(project);
-    }
+  async remove(id: string, companyId: string): Promise<void> {
+    const project = await this.findOne(id, companyId);
+    await this.repository.remove(project);
+  }
 }

@@ -7,73 +7,75 @@ import { UpdateLeadDto } from './dto/update-lead.dto';
 
 @Injectable()
 export class LeadsService {
-    constructor(
-        @InjectRepository(Lead)
-        private leadsRepository: Repository<Lead>,
-    ) { }
+  constructor(
+    @InjectRepository(Lead)
+    private leadsRepository: Repository<Lead>,
+  ) {}
 
-    create(companyId: string, userId: string, dto: CreateLeadDto) {
-        const lead = this.leadsRepository.create({
-            ...dto,
-            companyId,
-            createdBy: userId,
-        });
-        return this.leadsRepository.save(lead);
-    }
+  create(companyId: string, userId: string, dto: CreateLeadDto) {
+    const lead = this.leadsRepository.create({
+      ...dto,
+      companyId,
+      createdBy: userId,
+    });
+    return this.leadsRepository.save(lead);
+  }
 
-    findAll(companyId: string) {
-        return this.leadsRepository.find({
-            where: { companyId },
-            order: { createdAt: 'DESC' },
-        });
-    }
+  findAll(companyId: string) {
+    return this.leadsRepository.find({
+      where: { companyId },
+      order: { createdAt: 'DESC' },
+    });
+  }
 
-    findByStage(companyId: string, stage: LeadStage) {
-        return this.leadsRepository.find({
-            where: { companyId, stage },
-            order: { updatedAt: 'DESC' },
-        });
-    }
+  findByStage(companyId: string, stage: LeadStage) {
+    return this.leadsRepository.find({
+      where: { companyId, stage },
+      order: { updatedAt: 'DESC' },
+    });
+  }
 
-    findOne(id: string) {
-        return this.leadsRepository.findOneBy({ id });
-    }
+  async findOne(id: string, companyId: string) {
+    const lead = await this.leadsRepository.findOneBy({ id, companyId });
+    if (!lead) throw new NotFoundException('Lead not found');
+    return lead;
+  }
 
-    async update(id: string, dto: UpdateLeadDto) {
-        const lead = await this.leadsRepository.findOneBy({ id });
-        if (!lead) throw new NotFoundException('Lead not found');
-        Object.assign(lead, dto);
-        return this.leadsRepository.save(lead);
-    }
+  async update(id: string, companyId: string, dto: UpdateLeadDto) {
+    const lead = await this.leadsRepository.findOneBy({ id, companyId });
+    if (!lead) throw new NotFoundException('Lead not found');
+    Object.assign(lead, dto);
+    return this.leadsRepository.save(lead);
+  }
 
-    async updateStage(id: string, stage: LeadStage, userId: string) {
-        const lead = await this.leadsRepository.findOneBy({ id });
-        if (!lead) throw new NotFoundException('Lead not found');
-        lead.stage = stage;
-        return this.leadsRepository.save(lead);
-    }
+  async updateStage(id: string, companyId: string, stage: LeadStage, userId: string) {
+    const lead = await this.leadsRepository.findOneBy({ id, companyId });
+    if (!lead) throw new NotFoundException('Lead not found');
+    lead.stage = stage;
+    return this.leadsRepository.save(lead);
+  }
 
-    async remove(id: string) {
-        const result = await this.leadsRepository.delete(id);
-        if (!result.affected) throw new NotFoundException('Lead not found');
-    }
+  async remove(id: string, companyId: string) {
+    const result = await this.leadsRepository.delete({ id, companyId });
+    if (!result.affected) throw new NotFoundException('Lead not found');
+  }
 
-    getStats(companyId: string) {
-        return this.leadsRepository
-            .createQueryBuilder('lead')
-            .select('lead.stage', 'stage')
-            .addSelect('COUNT(*)', 'count')
-            .where('lead.company_id = :companyId', { companyId })
-            .groupBy('lead.stage')
-            .getRawMany();
-    }
+  getStats(companyId: string) {
+    return this.leadsRepository
+      .createQueryBuilder('lead')
+      .select('lead.stage', 'stage')
+      .addSelect('COUNT(*)', 'count')
+      .where('lead.company_id = :companyId', { companyId })
+      .groupBy('lead.stage')
+      .getRawMany();
+  }
 
-    getConversionRate(companyId: string) {
-        return this.leadsRepository
-            .createQueryBuilder('lead')
-            .select("COUNT(CASE WHEN lead.stage = 'closed_won' THEN 1 END)", 'won')
-            .addSelect('COUNT(*)', 'total')
-            .where('lead.company_id = :companyId', { companyId })
-            .getRawOne();
-    }
+  getConversionRate(companyId: string) {
+    return this.leadsRepository
+      .createQueryBuilder('lead')
+      .select("COUNT(CASE WHEN lead.stage = 'closed_won' THEN 1 END)", 'won')
+      .addSelect('COUNT(*)', 'total')
+      .where('lead.company_id = :companyId', { companyId })
+      .getRawOne();
+  }
 }

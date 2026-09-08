@@ -1,4 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UseInterceptors, UploadedFile, Request, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Request,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
@@ -19,13 +33,20 @@ export class CompaniesController {
   constructor(
     private readonly companiesService: CompaniesService,
     private readonly supabase: SupabaseService,
-  ) { }
+  ) {}
 
   @Post(':id/logo')
   @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(FileInterceptor('logo'))
   @ApiConsumes('multipart/form-data')
-  async uploadLogo(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  async uploadLogo(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    if (req.user.role !== UserRole.ADMIN && id !== req.user.companyId) {
+      throw new UnauthorizedException('You can only update your own company');
+    }
     if (!file) throw new Error('No file uploaded');
     const ext = file.originalname.split('.').pop() || 'png';
     const path = `logos/${id}/logo.${ext}`;
@@ -52,7 +73,10 @@ export class CompaniesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string, @Request() req) {
+    if (req.user.role !== UserRole.ADMIN && id !== req.user.companyId) {
+      throw new UnauthorizedException('You can only view your own company');
+    }
     return this.companiesService.findOne(id);
   }
 

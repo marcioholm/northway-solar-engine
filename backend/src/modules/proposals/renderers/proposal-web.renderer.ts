@@ -1,10 +1,21 @@
-import { ProposalRenderer, ProposalAssembledData, RenderOutput } from './proposal-renderer.interface';
+import {
+  ProposalRenderer,
+  ProposalAssembledData,
+  RenderOutput,
+} from './proposal-renderer.interface';
 
 export class ProposalWebRenderer implements ProposalRenderer {
   readonly name = 'web';
 
   render(data: ProposalAssembledData): RenderOutput {
-    const { proposal, project, quote, company, consultantName, consultantPhone } = data;
+    const {
+      proposal,
+      project,
+      quote,
+      company,
+      consultantName,
+      consultantPhone,
+    } = data;
 
     const projectData = project
       ? {
@@ -55,9 +66,13 @@ export class ProposalWebRenderer implements ProposalRenderer {
       : {};
 
     // Add fields that might come from legacy mapping
-    const pd = { ...projectData,
-      clientUtility: (projectData as any).clientUtility || (project as any)?.client?.utility,
-      consumptionTariff: (projectData as any).consumptionTariff ?? (project as any)?.consumption?.tariff,
+    const pd = {
+      ...projectData,
+      clientUtility:
+        (projectData as any).clientUtility || (project as any)?.client?.utility,
+      consumptionTariff:
+        (projectData as any).consumptionTariff ??
+        (project as any)?.consumption?.tariff,
     } as any;
 
     const quoteData = quote
@@ -71,7 +86,7 @@ export class ProposalWebRenderer implements ProposalRenderer {
           paymentCondition: quote.paymentCondition,
           shippingCost: quote.shippingCost,
           totalAmount: quote.totalAmount,
-          items: (quote.items || []).map(i => ({
+          items: (quote.items || []).map((i) => ({
             productType: i.productType,
             productName: i.productName,
             productBrand: i.productBrand,

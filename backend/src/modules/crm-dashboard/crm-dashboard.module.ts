@@ -7,8 +7,8 @@ import { Proposal } from '../proposals/entities/proposal.entity';
 import { Task } from '../tasks/entities/task.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Lead, Proposal, Task])],
-    controllers: [CrmDashboardController],
-    providers: [CrmDashboardService],
+  imports: [TypeOrmModule.forFeature([Lead, Proposal, Task])],
+  controllers: [CrmDashboardController],
+  providers: [CrmDashboardService],
 })
-export class CrmDashboardModule { }
+export class CrmDashboardModule {}

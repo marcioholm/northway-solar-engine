@@ -109,7 +109,9 @@ describe('SolarEngineService', () => {
 
     it('should throw NotFoundException if company not found', async () => {
       mockCompaniesService.findOne.mockResolvedValue(null);
-      await expect(service.calculate('bad-id', 100, 'City')).rejects.toThrow(NotFoundException);
+      await expect(service.calculate('bad-id', 100, 'City')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

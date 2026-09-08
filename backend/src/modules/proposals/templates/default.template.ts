@@ -1,24 +1,44 @@
 export function defaultTemplate(data: any): string {
   const {
-    clientName, clientCity, clientState, clientCep,
-    consultantName, consultantPhone,
-    createdAt, tariff, consumption, monthlyBill,
-    systemPowerKwp, moduleQty,
-    finalPrice: fp, paybackYears,
-    company, equipment,
-    cashPrice, cardInstallment, cardTotalPrice,
-    financeInstallment, financeTotalPrice,
-    expirationDate, trees, co2, roi, annualSavings,
+    clientName,
+    clientCity,
+    clientState,
+    clientCep,
+    consultantName,
+    consultantPhone,
+    createdAt,
+    tariff,
+    consumption,
+    monthlyBill,
+    systemPowerKwp,
+    moduleQty,
+    finalPrice: fp,
+    paybackYears,
+    company,
+    equipment,
+    cashPrice,
+    cardInstallment,
+    cardTotalPrice,
+    financeInstallment,
+    financeTotalPrice,
+    expirationDate,
+    trees,
+    co2,
+    roi,
+    annualSavings,
   } = data;
 
   const f = (v: any) => {
     if (v == null || v === '') return '';
     const n = Number(v);
     if (isNaN(n)) return String(v);
-    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return n.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
-  const fmtBRL = (v: any) => v && Number(v) ? `R$ ${f(v)}` : '—';
+  const fmtBRL = (v: any) => (v && Number(v) ? `R$ ${f(v)}` : '—');
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -76,7 +96,9 @@ export function defaultTemplate(data: any): string {
   </div>
 
   <!-- EQUIPMENT -->
-  ${equipment?.length ? `
+  ${
+    equipment?.length
+      ? `
   <h2 style="font-size:16px;font-weight:800;margin-top:32px;margin-bottom:12px;">Equipamentos</h2>
   <table style="width:100%;border-collapse:collapse;font-size:13px;">
     <tr style="background:#f1f5f9;text-align:left;">
@@ -86,14 +108,20 @@ export function defaultTemplate(data: any): string {
       <th style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">Qtd</th>
       <th style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">Potência</th>
     </tr>
-    ${equipment.map((e: any) => `<tr>
+    ${equipment
+      .map(
+        (e: any) => `<tr>
       <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-transform:capitalize;">${e.type}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">${e.brand || '—'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">${e.model || '—'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">${e.quantity || '—'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;">${e.power || '—'}</td>
-    </tr>`).join('')}
-  </table>` : ''}
+    </tr>`,
+      )
+      .join('')}
+  </table>`
+      : ''
+  }
 
   <!-- INVESTMENT -->
   <h2 style="font-size:16px;font-weight:800;margin-top:32px;margin-bottom:12px;">Investimento</h2>
@@ -130,13 +158,17 @@ export function defaultTemplate(data: any): string {
   </div>
 
   <!-- ENVIRONMENTAL -->
-  ${trees || co2 ? `
+  ${
+    trees || co2
+      ? `
   <hr>
   <div style="display:flex;gap:24px;justify-content:center;padding:16px;">
     ${trees ? `<div style="text-align:center;"><div style="font-size:32px;font-weight:900;color:#059669;">${trees}</div><div style="font-size:11px;color:#64748b;">Árvores Preservadas</div></div>` : ''}
     ${co2 ? `<div style="text-align:center;"><div style="font-size:32px;font-weight:900;color:#059669;">${co2}</div><div style="font-size:11px;color:#64748b;">Ton CO₂ Evitados</div></div>` : ''}
     <div style="text-align:center;"><div style="font-size:32px;font-weight:900;color:#059669;">${annualSavings ? fmtBRL(annualSavings) : '—'}</div><div style="font-size:11px;color:#64748b;">Economia Anual</div></div>
-  </div>` : ''}
+  </div>`
+      : ''
+  }
 
   <!-- VALIDITY -->
   <hr>

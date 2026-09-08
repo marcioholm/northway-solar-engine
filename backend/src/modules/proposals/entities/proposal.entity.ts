@@ -1,133 +1,143 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
 import { SolarProject } from '../../solar-project/entities/solar-project.entity';
 import { Quote } from '../../solar-project/entities/quote.entity';
 
 @Entity('proposals')
 export class Proposal {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    // ────────── Data source references ──────────
+  @Column({ name: 'public_token', unique: true, nullable: true })
+  publicToken: string;
 
-    @Column({ name: 'solar_project_id', nullable: true })
-    solarProjectId: string;
+  // ────────── Data source references ──────────
 
-    @ManyToOne(() => SolarProject)
-    @JoinColumn({ name: 'solar_project_id' })
-    solarProject: SolarProject;
+  @Column({ name: 'solar_project_id', nullable: true })
+  solarProjectId: string;
 
-    @Column({ name: 'quote_id', nullable: true })
-    quoteId: string;
+  @ManyToOne(() => SolarProject)
+  @JoinColumn({ name: 'solar_project_id' })
+  solarProject: SolarProject;
 
-    @ManyToOne(() => Quote)
-    @JoinColumn({ name: 'quote_id' })
-    quote: Quote;
+  @Column({ name: 'quote_id', nullable: true })
+  quoteId: string;
 
-    @Column({ name: 'template_name', default: 'default' })
-    templateName: string;
+  @ManyToOne(() => Quote)
+  @JoinColumn({ name: 'quote_id' })
+  quote: Quote;
 
-    @Column({ type: 'jsonb', default: {} })
-    settings: Record<string, any>;
+  @Column({ name: 'template_name', default: 'default' })
+  templateName: string;
 
-    // ────────── Company ──────────
+  @Column({ type: 'jsonb', default: {} })
+  settings: Record<string, any>;
 
-    @Column({ name: 'company_id', nullable: true })
-    companyId: string;
+  // ────────── Company ──────────
 
-    @ManyToOne(() => Company)
-    @JoinColumn({ name: 'company_id' })
-    company: Company;
+  @Column({ name: 'company_id', nullable: true })
+  companyId: string;
 
-    // ────────── Client snapshot (denormalized for render speed) ──────────
+  @ManyToOne(() => Company)
+  @JoinColumn({ name: 'company_id' })
+  company: Company;
 
-    @Column({ name: 'client_name' })
-    clientName: string;
+  // ────────── Client snapshot (denormalized for render speed) ──────────
 
-    @Column({ name: 'client_cep' })
-    clientCep: string;
+  @Column({ name: 'client_name' })
+  clientName: string;
 
-    @Column({ name: 'client_city' })
-    clientCity: string;
+  @Column({ name: 'client_cep' })
+  clientCep: string;
 
-    @Column({ name: 'utility', nullable: true })
-    utility: string;
+  @Column({ name: 'client_city' })
+  clientCity: string;
 
-    @Column({ name: 'tariff', type: 'float', nullable: true })
-    tariff: number;
+  @Column({ name: 'utility', nullable: true })
+  utility: string;
 
-    @Column({ name: 'profile', nullable: true })
-    profile: string;
+  @Column({ name: 'tariff', type: 'float', nullable: true })
+  tariff: number;
 
-    @Column({ name: 'consumption_kwh', type: 'float' })
-    consumptionKwh: number;
+  @Column({ name: 'profile', nullable: true })
+  profile: string;
 
-    // ────────── Legacy fields (kept for backward compatibility) ──────────
+  @Column({ name: 'consumption_kwh', type: 'float' })
+  consumptionKwh: number;
 
-    @Column({ name: 'system_power_kwp', type: 'float' })
-    systemPowerKwp: number;
+  // ────────── Legacy fields (kept for backward compatibility) ──────────
 
-    // Deprecated: kept for backward compatibility. Use catalog_product fields for new proposals.
-    @Column({ name: 'module_id', nullable: true })
-    moduleId: string;
+  @Column({ name: 'system_power_kwp', type: 'float' })
+  systemPowerKwp: number;
 
-    @Column({ name: 'inverter_id', nullable: true })
-    inverterId: string;
+  // Deprecated: kept for backward compatibility. Use catalog_product fields for new proposals.
+  @Column({ name: 'module_id', nullable: true })
+  moduleId: string;
 
-    // Future: Catalog Product references
-    @Column({ name: 'catalog_product_module_id', nullable: true })
-    catalogProductModuleId: string;
+  @Column({ name: 'inverter_id', nullable: true })
+  inverterId: string;
 
-    @Column({ name: 'catalog_product_inverter_id', nullable: true })
-    catalogProductInverterId: string;
+  // Future: Catalog Product references
+  @Column({ name: 'catalog_product_module_id', nullable: true })
+  catalogProductModuleId: string;
 
-    @Column({ name: 'module_qty', type: 'int' })
-    moduleQty: number;
+  @Column({ name: 'catalog_product_inverter_id', nullable: true })
+  catalogProductInverterId: string;
 
-    @Column({ name: 'cost_modules', type: 'decimal', precision: 10, scale: 2 })
-    costModules: number;
+  @Column({ name: 'module_qty', type: 'int' })
+  moduleQty: number;
 
-    @Column({ name: 'cost_inverter', type: 'decimal', precision: 10, scale: 2 })
-    costInverter: number;
+  @Column({ name: 'cost_modules', type: 'decimal', precision: 10, scale: 2 })
+  costModules: number;
 
-    @Column({ name: 'cost_labor', type: 'decimal', precision: 10, scale: 2 })
-    costLabor: number;
+  @Column({ name: 'cost_inverter', type: 'decimal', precision: 10, scale: 2 })
+  costInverter: number;
 
-    @Column({ name: 'cost_structure', type: 'decimal', precision: 10, scale: 2 })
-    costStructure: number;
+  @Column({ name: 'cost_labor', type: 'decimal', precision: 10, scale: 2 })
+  costLabor: number;
 
-    @Column({ name: 'cost_travel', type: 'decimal', precision: 10, scale: 2 })
-    costTravel: number;
+  @Column({ name: 'cost_structure', type: 'decimal', precision: 10, scale: 2 })
+  costStructure: number;
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
-    subtotal: number;
+  @Column({ name: 'cost_travel', type: 'decimal', precision: 10, scale: 2 })
+  costTravel: number;
 
-    @Column({ name: 'margin_pct', type: 'decimal', precision: 5, scale: 2 })
-    marginPct: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  subtotal: number;
 
-    @Column({ name: 'margin_value', type: 'decimal', precision: 10, scale: 2 })
-    marginValue: number;
+  @Column({ name: 'margin_pct', type: 'decimal', precision: 5, scale: 2 })
+  marginPct: number;
 
-    @Column({ name: 'final_price', type: 'decimal', precision: 10, scale: 2 })
-    finalPrice: number;
+  @Column({ name: 'margin_value', type: 'decimal', precision: 10, scale: 2 })
+  marginValue: number;
 
-    @Column({ name: 'payback_years', type: 'float' })
-    paybackYears: number;
+  @Column({ name: 'final_price', type: 'decimal', precision: 10, scale: 2 })
+  finalPrice: number;
 
-    // ────────── Metadata ──────────
+  @Column({ name: 'payback_years', type: 'float' })
+  paybackYears: number;
 
-    @Column({ name: 'pdf_path', nullable: true })
-    pdfPath: string;
+  // ────────── Metadata ──────────
 
-    @Column({ name: 'lead_id', nullable: true })
-    leadId: string;
+  @Column({ name: 'pdf_path', nullable: true })
+  pdfPath: string;
 
-    @Column({ name: 'stage', nullable: true })
-    stage: string;
+  @Column({ name: 'lead_id', nullable: true })
+  leadId: string;
 
-    @Column({ name: 'created_by' })
-    createdBy: string;
+  @Column({ name: 'stage', nullable: true })
+  stage: string;
 
-    @CreateDateColumn({ name: 'created_at' })
-    createdAt: Date;
+  @Column({ name: 'created_by' })
+  createdBy: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 }

@@ -8,9 +8,9 @@ import { SolarProjectService } from './solar-project.service';
 import { QuoteService } from './quote.service';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([SolarProject, Quote, QuoteItem])],
-    controllers: [SolarProjectController],
-    providers: [SolarProjectService, QuoteService],
-    exports: [SolarProjectService, QuoteService],
+  imports: [TypeOrmModule.forFeature([SolarProject, Quote, QuoteItem])],
+  controllers: [SolarProjectController],
+  providers: [SolarProjectService, QuoteService],
+  exports: [SolarProjectService, QuoteService],
 })
-export class SolarProjectModule { }
+export class SolarProjectModule {}

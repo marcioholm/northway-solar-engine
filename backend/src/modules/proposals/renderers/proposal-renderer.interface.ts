@@ -13,7 +13,7 @@ export interface ProposalAssembledData {
 }
 
 export interface RenderOutput {
-  content: string;       // HTML string / JSON string / PDF buffer as string
+  content: string | Buffer; // HTML string / JSON string / PDF buffer
   filename: string;
   mimeType: string;
 }
@@ -22,5 +22,5 @@ export interface ProposalRenderer {
   /** Unique identifier for this renderer */
   readonly name: string;
   /** Render the assembled data into the desired output format */
-  render(data: ProposalAssembledData): RenderOutput;
+  render(data: ProposalAssembledData): RenderOutput | Promise<RenderOutput>;
 }

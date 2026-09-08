@@ -3,7 +3,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import type { TrackEventType } from '../entities/proposal-tracking.entity';
 
 export class TrackEventDto {
-  @ApiProperty({ enum: ['view', 'download', 'whatsapp_click', 'accept', 'change_request', 'section_view'] })
+  @ApiProperty({
+    enum: [
+      'view',
+      'download',
+      'whatsapp_click',
+      'accept',
+      'change_request',
+      'section_view',
+    ],
+  })
   @IsString()
   eventType!: TrackEventType;
 

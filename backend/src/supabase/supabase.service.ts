@@ -25,7 +25,12 @@ export class SupabaseService {
     return this.client;
   }
 
-  async uploadFile(bucket: string, path: string, file: Buffer, contentType: string) {
+  async uploadFile(
+    bucket: string,
+    path: string,
+    file: Buffer,
+    contentType: string,
+  ) {
     if (!this.client) throw new Error('Supabase not configured');
     const { data, error } = await this.client.storage
       .from(bucket)

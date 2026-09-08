@@ -49,4 +49,4 @@ CREATE INDEX IF NOT EXISTS idx_solar_project_pricing_gin ON solar_project USING 
 CREATE INDEX IF NOT EXISTS idx_solar_project_consumption_gin ON solar_project USING GIN (consumption);
 CREATE INDEX IF NOT EXISTS idx_solar_project_equipment_gin ON solar_project USING GIN (equipment);
 
-RAISE NOTICE 'Migration 009 complete: performance indexes created';
+-- RAISE NOTICE 'Migration 009 complete: performance indexes created';
