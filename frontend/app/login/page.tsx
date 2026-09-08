@@ -25,7 +25,7 @@ export default function LoginPage() {
       localStorage.setItem('token', data.access_token);
       router.push('/crm');
     } catch {
-      setError('Credenciais inválidas');
+      setError('Credenciais inválidas. Verifique seu e-mail e senha.');
     } finally { setLoading(false); }
   };
 
@@ -33,53 +33,68 @@ export default function LoginPage() {
     <div style={{
       minHeight: '100vh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--bg)',
-      padding: '16px',
+      background: 'url(/images/solar_login_bg.jpg) center/cover no-repeat',
+      position: 'relative',
+      padding: '24px',
     }}>
+      {/* Dark gradient overlay for better contrast */}
       <div style={{
-        width: '100%', maxWidth: '400px',
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'linear-gradient(135deg, rgba(10, 15, 20, 0.8) 0%, rgba(10, 15, 20, 0.4) 100%)',
+        zIndex: 1,
+      }} />
+
+      <div style={{
+        width: '100%', maxWidth: '420px',
+        position: 'relative', zIndex: 2,
       }}>
-        {/* Brand */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        {/* Brand Header */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{
-            width: '56px', height: '56px', borderRadius: '16px',
-            background: 'var(--green-gradient)',
+            width: '64px', height: '64px', borderRadius: '20px',
+            background: 'linear-gradient(135deg, #FFB703 0%, #FB8500 100%)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontSize: '28px', fontWeight: 800,
-            marginBottom: '16px',
+            color: '#fff', fontSize: '32px', fontWeight: 800,
+            marginBottom: '20px',
+            boxShadow: '0 12px 24px rgba(251, 133, 0, 0.3)',
           }}>
             ☀
           </div>
           <h1 style={{
-            fontSize: '24px', fontWeight: 800, color: 'var(--text)',
-            margin: 0, letterSpacing: '-0.02em',
+            fontSize: '32px', fontWeight: 800, color: '#FFFFFF',
+            margin: 0, letterSpacing: '-0.03em',
+            textShadow: '0 2px 4px rgba(0,0,0,0.5)'
           }}>
             SolarOS
           </h1>
           <p style={{
-            fontSize: '14px', color: 'var(--text-secondary)',
-            margin: '4px 0 0',
+            fontSize: '15px', color: 'rgba(255, 255, 255, 0.8)',
+            margin: '8px 0 0', fontWeight: 500,
+            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
           }}>
-            Gestão inteligente para integradoras de energia solar
+            Motor de engenharia e gestão solar
           </p>
         </div>
 
-        {/* Login Card */}
+        {/* Glassmorphism Login Card */}
         <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '32px',
-          boxShadow: 'var(--shadow-lg)',
+          background: 'rgba(20, 25, 30, 0.65)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '24px',
+          padding: '40px 32px',
+          boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4)',
         }}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
               <label style={{
-                display: 'block', fontSize: '11px', fontWeight: 700,
-                color: 'var(--text-secondary-v2)', textTransform: 'uppercase',
-                letterSpacing: '0.06em', marginBottom: '6px',
+                display: 'block', fontSize: '12px', fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase',
+                letterSpacing: '0.08em', marginBottom: '8px',
               }} htmlFor="email">
-                Email
+                E-mail Profissional
               </label>
               <input
                 id="email"
@@ -90,27 +105,37 @@ export default function LoginPage() {
                 onChange={e => setEmail(e.target.value)}
                 style={{
                   display: 'block', width: '100%',
-                  padding: '12px 14px',
-                  background: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text)',
-                  fontSize: '14px',
+                  padding: '14px 16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  color: '#FFFFFF',
+                  fontSize: '15px',
                   outline: 'none',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  transition: 'all 0.2s ease',
                 }}
-                onFocus={e => { e.target.style.borderColor = 'var(--green)'; e.target.style.boxShadow = '0 0 0 3px rgba(143,214,58,0.15)'; }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+                onFocus={e => { 
+                  e.target.style.borderColor = '#FFB703'; 
+                  e.target.style.background = 'rgba(0, 0, 0, 0.4)';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(255, 183, 3, 0.15)'; 
+                }}
+                onBlur={e => { 
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'; 
+                  e.target.style.background = 'rgba(0, 0, 0, 0.2)';
+                  e.target.style.boxShadow = 'none'; 
+                }}
               />
             </div>
 
             <div>
               <label style={{
-                display: 'block', fontSize: '11px', fontWeight: 700,
-                color: 'var(--text-secondary-v2)', textTransform: 'uppercase',
-                letterSpacing: '0.06em', marginBottom: '6px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                fontSize: '12px', fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase',
+                letterSpacing: '0.08em', marginBottom: '8px',
               }} htmlFor="password">
-                Senha
+                <span>Senha</span>
+                <span style={{ textTransform: 'none', color: '#FFB703', cursor: 'pointer', letterSpacing: 'normal' }}>Esqueceu?</span>
               </label>
               <input
                 id="password"
@@ -121,24 +146,37 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 style={{
                   display: 'block', width: '100%',
-                  padding: '12px 14px',
-                  background: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  color: 'var(--text)',
-                  fontSize: '14px',
+                  padding: '14px 16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  color: '#FFFFFF',
+                  fontSize: '15px',
                   outline: 'none',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                  transition: 'all 0.2s ease',
                 }}
-                onFocus={e => { e.target.style.borderColor = 'var(--green)'; e.target.style.boxShadow = '0 0 0 3px rgba(143,214,58,0.15)'; }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+                onFocus={e => { 
+                  e.target.style.borderColor = '#FFB703'; 
+                  e.target.style.background = 'rgba(0, 0, 0, 0.4)';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(255, 183, 3, 0.15)'; 
+                }}
+                onBlur={e => { 
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'; 
+                  e.target.style.background = 'rgba(0, 0, 0, 0.2)';
+                  e.target.style.boxShadow = 'none'; 
+                }}
               />
             </div>
 
             {error && (
-              <p style={{ fontSize: '13px', color: 'var(--danger)', textAlign: 'center', margin: 0 }}>
-                {error}
-              </p>
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.1)', borderLeft: '3px solid #EF4444',
+                padding: '12px', borderRadius: '4px', marginTop: '-8px'
+              }}>
+                <p style={{ fontSize: '13px', color: '#FCA5A5', margin: 0, fontWeight: 500 }}>
+                  {error}
+                </p>
+              </div>
             )}
 
             <button
@@ -146,33 +184,50 @@ export default function LoginPage() {
               disabled={loading}
               style={{
                 width: '100%',
-                padding: '14px',
-                background: loading ? 'var(--text-muted)' : 'var(--green)',
-                color: '#fff',
+                padding: '16px',
+                background: loading ? 'rgba(255, 255, 255, 0.1)' : 'linear-gradient(135deg, #FFB703 0%, #FB8500 100%)',
+                color: loading ? 'rgba(255, 255, 255, 0.4)' : '#FFFFFF',
                 border: 'none',
-                borderRadius: 'var(--radius-lg)',
+                borderRadius: '12px',
                 fontWeight: 700,
-                fontSize: '14px',
+                fontSize: '16px',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 8px 18px rgba(143,214,58,0.22)',
-                transition: 'background 0.15s',
-                marginTop: '4px',
+                boxShadow: loading ? 'none' : '0 8px 20px rgba(251, 133, 0, 0.3)',
+                transition: 'all 0.2s ease',
+                marginTop: '8px',
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px'
               }}
-              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = 'var(--green-dark)'; }}
-              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = 'var(--green)'; }}
+              onMouseEnter={e => { 
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 12px 24px rgba(251, 133, 0, 0.4)';
+                }
+              }}
+              onMouseLeave={e => { 
+                if (!loading) {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(251, 133, 0, 0.3)';
+                }
+              }}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? (
+                <span style={{ display: 'inline-block', width: '20px', height: '20px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              ) : 'Acessar Plataforma'}
             </button>
           </form>
         </div>
 
         <p style={{
-          textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)',
-          marginTop: '24px',
+          textAlign: 'center', fontSize: '13px', color: 'rgba(255, 255, 255, 0.5)',
+          marginTop: '32px', fontWeight: 500,
         }}>
-          © 2026 NorthWay — Motor de engenharia solar
+          © 2026 NorthWay Integradoras
         </p>
       </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}} />
     </div>
   );
 }
