@@ -67,6 +67,65 @@ export class LeadsService {
           console.error(`Erro ao disparar evento de compra para o Meta: ${err.message}`);
         });
       }
+      
+      // Criação automática da Obra
+      try {
+        const { createClient } = require('@supabase/supabase-js');
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        
+        // 1. Pegar a última proposta enviada deste lead
+        const { data: proposals } = await supabase
+          .from('proposals')
+          .select('id, client_name, client_cep, client_city, client_phone, client_email, system_power_kwp, module_qty, module_id, inverter_id, final_price, cost_modules, cost_inverter, cost_labor, cost_travel')
+          .eq('lead_id', id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        const proposal = proposals?.[0];
+        
+        // 2. Inserir em projects
+        const { data: project, error: insertError } = await supabase
+          .from('projects')
+          .insert({
+            company_id: companyId,
+            lead_id: id,
+            proposal_id: proposal?.id,
+            client_name: proposal?.client_name || lead.name,
+            client_phone: proposal?.client_phone || lead.phone,
+            client_email: proposal?.client_email || lead.email,
+            city: proposal?.client_city || lead.city,
+            system_power_kwp: proposal?.system_power_kwp,
+            module_qty: proposal?.module_qty,
+            sale_price: proposal?.final_price,
+            sale_date: new Date().toISOString().split('T')[0],
+            status: 'waiting_material',
+          })
+          .select('id')
+          .single();
+          
+        if (insertError) {
+           console.error('Erro ao criar projeto:', insertError);
+        } else if (project) {
+           // 3. Copiar items do checklist_templates da empresa
+           const { data: templates } = await supabase
+             .from('checklist_templates')
+             .select('*')
+             .eq('company_id', companyId);
+             
+           if (templates && templates.length > 0) {
+             const checklistItems = templates.map(t => ({
+               project_id: project.id,
+               stage: t.stage,
+               item_label: t.item_label,
+               photo_required: t.photo_required,
+               sort_order: t.sort_order,
+             }));
+             await supabase.from('project_checklist').insert(checklistItems);
+           }
+        }
+      } catch (err) {
+        console.error('Falha ao instanciar obra:', err);
+      }
     }
     
     return saved;

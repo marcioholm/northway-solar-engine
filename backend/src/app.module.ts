@@ -23,6 +23,10 @@ import { PricingEngineModule } from './modules/pricing-engine/pricing-engine.mod
 import { ProposalTrackingModule } from './modules/proposal-tracking/proposal-tracking.module';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { MetaAdsModule } from './modules/meta-ads/meta-ads.module';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { IntelligenceModule } from './modules/intelligence/intelligence.module';
+import { FinanceModule } from './modules/finance/finance.module';
+import { TeamsModule } from './modules/teams/teams.module';
 
 @Module({
   imports: [
@@ -65,6 +69,10 @@ import { MetaAdsModule } from './modules/meta-ads/meta-ads.module';
     ProposalTrackingModule,
     WhatsappModule,
     MetaAdsModule,
+    ProjectsModule,
+    IntelligenceModule,
+    FinanceModule,
+    TeamsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

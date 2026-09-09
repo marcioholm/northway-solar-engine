@@ -5,17 +5,14 @@ import { cn } from '../../lib/cn';
 import { useSidebar } from '../../hooks/useSidebar';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', icon: '⌂', href: '/crm' },
+  { label: 'Dashboard', icon: '◱', href: '/dashboard' },
   { label: 'CRM', icon: '◎', href: '/crm/leads' },
-  { label: 'Projetos', icon: '◈', href: '/solar-project' },
-  { label: 'Propostas', icon: '▤', href: '/proposals' },
-  { label: 'Dimensio.', icon: '☀', href: '/dashboard' },
-  { label: 'Catálogo', icon: '▣', href: '/catalog' },
-  { label: 'Obras', icon: '◫', href: '/obras' },
-  { label: 'Equipes', icon: '♙', href: '/equipes' },
-  { label: 'Frota', icon: '◈', href: '/frota' },
-  { label: 'Financeiro', icon: '◉', href: '/financeiro' },
-  { label: 'Inteligência', icon: '⌁', href: '/inteligencia' },
+  { label: 'Propostas', icon: '📄', href: '/proposals' },
+  { label: 'Obras', icon: '🏗', href: '/obras' },
+  { label: 'Equipes', icon: '👥', href: '/dashboard/equipes' },
+  { label: 'Financeiro', icon: '💰', href: '/dashboard/financeiro' },
+  { label: 'Inteligência', icon: '🧠', href: '/dashboard/intelligence' },
+  { label: 'Catálogo', icon: '⬡', href: '/catalog' },
 ];
 
 export default function Sidebar() {
