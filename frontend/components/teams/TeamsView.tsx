@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Flex } from '@/components/ui/Flex';
-import { Text } from '@/components/ui/Text';
+import { Flex } from '@/components/primitives/Flex';
+import { Text } from '@/components/primitives/Text';
 
 export function TeamsView() {
   const [teams, setTeams] = useState<any[]>([]);
@@ -51,7 +51,7 @@ export function TeamsView() {
                 <tr key={team.id} style={{ borderBottom: '1px solid var(--line)' }}>
                   <td style={{ padding: '16px 12px' }}>
                     <Text variant="body-bold">{team.name}</Text>
-                    <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>{team.members?.length || 0} membros</Text>
+                    <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>{team.members?.length || 0} membros</Text>
                   </td>
                   <td colSpan={5} style={{ padding: '16px 12px' }}>
                     {team.projects?.length > 0 ? (
@@ -64,14 +64,14 @@ export function TeamsView() {
                             padding: '8px 12px',
                             borderRadius: '4px'
                           }}>
-                            <Text variant="caption-bold" style={{ display: 'block', color: team.color }}>{p.client_name}</Text>
-                            <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>{p.system_power_kwp} kWp - {p.status}</Text>
+                            <Text variant="body-bold" style={{ display: 'block', color: team.color }}>{p.client_name}</Text>
+                            <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>{p.system_power_kwp} kWp - {p.status}</Text>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div style={{ padding: '8px', background: 'var(--surface-muted)', borderRadius: '4px', textAlign: 'center' }}>
-                        <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>Livre</Text>
+                        <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>Livre</Text>
                       </div>
                     )}
                   </td>

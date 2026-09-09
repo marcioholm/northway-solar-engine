@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Flex } from '@/components/ui/Flex';
-import { Text } from '@/components/ui/Text';
+import { Flex } from '@/components/primitives/Flex';
+import { Text } from '@/components/primitives/Text';
 
 export function ProjectView({ projectId }: { projectId: string }) {
   const [project, setProject] = useState<any>(null);
@@ -45,7 +45,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
         </Flex>
 
         {/* TABS */}
-        <Flex gap="24px" style={{ marginTop: '24px' }}>
+        <Flex gap={6} style={{ marginTop: '24px' }}>
           {[
             { id: 'resumo', label: 'Resumo' },
             { id: 'checklist', label: 'Checklist' },
@@ -102,7 +102,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
             <Text variant="body-bold">Itens do Estágio Atual</Text>
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {project.checklists?.filter((c: any) => c.stage === project.status).map((item: any) => (
-                <Flex key={item.id} gap="12px" align="center">
+                <Flex key={item.id} gap={3} align="center">
                   <input type="checkbox" checked={item.completed} readOnly style={{ width: 18, height: 18 }} />
                   <Text style={{ textDecoration: item.completed ? 'line-through' : 'none' }}>{item.item_label}</Text>
                 </Flex>
@@ -130,7 +130,7 @@ export function ProjectView({ projectId }: { projectId: string }) {
                   <div style={{ width: 2, background: 'var(--line)' }} />
                   <div>
                     <Text variant="body-bold">Status alterado: {log.to_status}</Text>
-                    <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>{new Date(log.changed_at).toLocaleString('pt-BR')}</Text>
+                    <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>{new Date(log.changed_at).toLocaleString('pt-BR')}</Text>
                   </div>
                 </div>
               ))}
@@ -143,16 +143,16 @@ export function ProjectView({ projectId }: { projectId: string }) {
             <Text variant="body-bold">Resumo Financeiro da Obra</Text>
             <div style={{ display: 'flex', gap: '32px', marginTop: '16px' }}>
               <div>
-                <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>Receita (Venda)</Text>
-                <Text variant="title">R$ {Number(project.sale_price || 0).toLocaleString('pt-BR')}</Text>
+                <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>Receita (Venda)</Text>
+                <Text variant="h2">R$ {Number(project.sale_price || 0).toLocaleString('pt-BR')}</Text>
               </div>
               <div>
-                <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>Custos (Real)</Text>
-                <Text variant="title">R$ {Number(project.total_cost || 0).toLocaleString('pt-BR')}</Text>
+                <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>Custos (Real)</Text>
+                <Text variant="h2">R$ {Number(project.total_cost || 0).toLocaleString('pt-BR')}</Text>
               </div>
               <div>
-                <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>Margem Atual</Text>
-                <Text variant="title" style={{ color: project.margin_percent < 20 ? 'var(--red)' : 'var(--green)' }}>
+                <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>Margem Atual</Text>
+                <Text variant="h2" style={{ color: project.margin_percent < 20 ? 'var(--red)' : 'var(--green)' }}>
                   {Number(project.margin_percent || 0).toFixed(1)}%
                 </Text>
               </div>

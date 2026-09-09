@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Flex } from '@/components/ui/Flex';
-import { Text } from '@/components/ui/Text';
+import { Flex } from '@/components/primitives/Flex';
+import { Text } from '@/components/primitives/Text';
 
 export function IntelligenceView() {
   const [data, setData] = useState<any>(null);
@@ -40,8 +40,8 @@ export function IntelligenceView() {
             return (
               <div key={i}>
                 <Flex justify="between" style={{ marginBottom: '8px' }}>
-                  <Text variant="caption">{stage.name}</Text>
-                  <Text variant="caption-bold">{stage.count}</Text>
+                  <Text variant="sm">{stage.name}</Text>
+                  <Text variant="body-bold">{stage.count}</Text>
                 </Flex>
                 <div style={{ height: '8px', background: 'var(--surface-muted)', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, background: 'var(--green)' }} />
@@ -57,16 +57,16 @@ export function IntelligenceView() {
         <Text variant="body-bold">Previsão de Receita (Forecast)</Text>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '24px' }}>
           <div style={{ padding: '16px', background: 'var(--surface-muted)', borderRadius: '8px', textAlign: 'center' }}>
-            <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>Próximos 30 dias</Text>
-            <Text variant="title" style={{ marginTop: '8px' }}>R$ {(data.forecast?.next30 || 0).toLocaleString('pt-BR')}</Text>
+            <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>Próximos 30 dias</Text>
+            <Text variant="h2" style={{ marginTop: '8px' }}>R$ {(data.forecast?.next30 || 0).toLocaleString('pt-BR')}</Text>
           </div>
           <div style={{ padding: '16px', background: 'var(--surface-muted)', borderRadius: '8px', textAlign: 'center' }}>
-            <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>Próximos 60 dias</Text>
-            <Text variant="title" style={{ marginTop: '8px' }}>R$ {(data.forecast?.next60 || 0).toLocaleString('pt-BR')}</Text>
+            <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>Próximos 60 dias</Text>
+            <Text variant="h2" style={{ marginTop: '8px' }}>R$ {(data.forecast?.next60 || 0).toLocaleString('pt-BR')}</Text>
           </div>
           <div style={{ padding: '16px', background: 'var(--surface-muted)', borderRadius: '8px', textAlign: 'center' }}>
-            <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>Próximos 90 dias</Text>
-            <Text variant="title" style={{ marginTop: '8px' }}>R$ {(data.forecast?.next90 || 0).toLocaleString('pt-BR')}</Text>
+            <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>Próximos 90 dias</Text>
+            <Text variant="h2" style={{ marginTop: '8px' }}>R$ {(data.forecast?.next90 || 0).toLocaleString('pt-BR')}</Text>
           </div>
         </div>
       </div>

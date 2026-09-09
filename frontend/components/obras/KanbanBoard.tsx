@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Flex } from '@/components/ui/Flex';
-import { Text } from '@/components/ui/Text';
+import { Flex } from '@/components/primitives/Flex';
+import { Text } from '@/components/primitives/Text';
 
 type Project = {
   id: string;
@@ -129,7 +129,7 @@ export function KanbanBoard() {
                     {project.client_name}
                   </Text>
                   <Flex justify="between">
-                    <Text variant="caption" style={{ color: 'var(--text-secondary)' }}>
+                    <Text variant="sm" style={{ color: 'var(--text-secondary)' }}>
                       {project.system_power_kwp ? `${project.system_power_kwp} kWp` : '-- kWp'}
                     </Text>
                     {project.team && (
