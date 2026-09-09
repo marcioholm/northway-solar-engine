@@ -2,40 +2,26 @@
 import { ProposalData } from '../../lib/proposal-types';
 import { ProposalCover } from './ProposalCover';
 import { CurrentReality } from './CurrentReality';
-import { SavingsOverview } from './SavingsOverview';
-import { EquipmentList } from './EquipmentList';
-import { WhyThisSystem } from './WhyThisSystem';
-import { ExpectedResults } from './ExpectedResults';
-import { EnvironmentalImpact } from './EnvironmentalImpact';
-import { InvestmentHero } from './InvestmentHero';
-import { PaymentMethods } from './PaymentMethods';
+import { SavingsAndResults } from './SavingsAndResults';
+import { SystemDetails } from './SystemDetails';
+import { Investment } from './Investment';
 import { TimelineSteps } from './TimelineSteps';
-import { CompanyAuthority } from './CompanyAuthority';
 import { NextSteps } from './NextSteps';
-import { FAQ } from './FAQ';
-import { Testimonials } from './Testimonials';
-import { CostOfNotInvesting } from './CostOfNotInvesting';
-import { ComparisonPlans } from './ComparisonPlans';
+import { EnvironmentalFooter } from './EnvironmentalFooter';
+import { StickyPriceBanner } from './StickyPriceBanner';
 
 export function ProposalView({ data }: { data: ProposalData }) {
   return (
-    <article style={{ fontFamily: 'var(--font-body)' }}>
+    <article style={{ fontFamily: 'var(--font-body)', paddingBottom: 72 }}>
       <ProposalCover data={data} />
       <CurrentReality data={data} />
-      <SavingsOverview data={data} />
-      <EquipmentList data={data} />
-      <WhyThisSystem data={data} />
-      <ExpectedResults data={data} />
-      <EnvironmentalImpact data={data} />
-      <InvestmentHero data={data} />
-      <PaymentMethods data={data} />
+      <SavingsAndResults data={data} />
+      <SystemDetails data={data} />
+      <Investment data={data} />
       <TimelineSteps data={data} />
-      <CompanyAuthority data={data} />
-      <CostOfNotInvesting data={data} />
-      <ComparisonPlans data={data} />
-      <Testimonials data={data} />
-      <FAQ data={data} />
       <NextSteps data={data} />
+      <EnvironmentalFooter data={data} />
+      <StickyPriceBanner data={data} />
     </article>
   );
 }

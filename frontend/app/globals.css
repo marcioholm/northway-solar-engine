@@ -1,11 +1,92 @@
 @import "tailwindcss";
 
 @media print {
-  body { background: #fff !important; }
-  .proposal-page { page-break-after: always; min-height: auto !important; padding: 40px 24px !important; }
-  header, nav, .navbar, .sidebar, footer, .no-print { display: none !important; }
-  * { box-shadow: none !important; text-shadow: none !important; }
-  @page { margin: 20mm 15mm; }
+  /* === RESET GERAL === */
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* === ESCONDER ELEMENTOS DE UI === */
+  header, nav, .navbar, .sidebar, footer,
+  .no-print, .sticky-banner {
+    display: none !important;
+  }
+
+  /* === LAYOUT DE PÁGINA === */
+  @page {
+    size: A4;
+    margin: 15mm 12mm 20mm 12mm;
+  }
+
+  /* === CONTROLE DE QUEBRA DE PÁGINA === */
+  .proposal-page {
+    page-break-after: auto !important;    /* NÃO forçar quebra a cada seção */
+    page-break-inside: avoid;
+    min-height: auto !important;
+    padding: 24px 0 !important;           /* Reduzir padding pra print */
+  }
+
+  /* Forçar quebra APENAS antes de seções estratégicas */
+  .print-break-before {
+    page-break-before: always;
+  }
+
+  /* Nunca quebrar no meio de um card ou tabela */
+  .proposal-page div[style*="border-radius"],
+  .proposal-page table,
+  .proposal-page svg {
+    page-break-inside: avoid;
+  }
+
+  /* === TIPOGRAFIA PARA PRINT === */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Forçar tamanhos legíveis em papel */
+  h2 {
+    font-size: 22pt !important;
+    line-height: 1.2 !important;
+  }
+
+  p, li, td, th {
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* === CORES PARA IMPRESSÃO === */
+  /* Inverter blocos com fundo colorido — fundo branco + texto escuro + borda */
+  .print-invert {
+    background: #fff !important;
+    color: var(--text) !important;
+    border: 2px solid var(--green) !important;
+  }
+
+  .print-invert * {
+    color: var(--text) !important;
+  }
+
+  .print-invert .print-keep-green {
+    color: var(--green-dark) !important;
+  }
+
+  /* === OTIMIZAÇÃO DE TINTA === */
+  [style*="linear-gradient"] {
+    background: #fff !important;
+    border: 2px solid #8fd63a !important;
+  }
+
+  /* === RODAPÉ DE PÁGINA === */
+  @page {
+    @bottom-center {
+      content: "Proposta gerada por " attr(data-company-name) " · Página " counter(page) " de " counter(pages);
+      font-size: 8pt;
+      color: #999;
+    }
+  }
 }
 
 /* ===== LEGACY TAILWIND PAGES (text colors for light mode) ===== */
