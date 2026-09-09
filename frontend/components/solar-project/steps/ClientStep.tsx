@@ -31,7 +31,20 @@ export function ClientStep({ data, onChange }: { data: Partial<ClientData>; onCh
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <Input label="Nome Completo" value={data.clientName || ''} onChange={v => set('clientName', v)} required />
-        <Input label="CPF / CNPJ" value={data.clientDocument || ''} onChange={v => set('clientDocument', v)} />
+        <Input 
+          label="CPF / CNPJ" 
+          value={data.clientDocument || ''} 
+          onChange={v => {
+            const numbers = v.replace(/\D/g, '');
+            let formatted = numbers;
+            if (numbers.length <= 11) {
+              formatted = numbers.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+              formatted = numbers.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2').slice(0, 18);
+            }
+            set('clientDocument', formatted);
+          }} 
+        />
         <Input label="Telefone" value={data.clientPhone || ''} onChange={v => set('clientPhone', v)} />
         <Input label="E-mail" value={data.clientEmail || ''} onChange={v => set('clientEmail', v)} />
         <Input label="Cidade" value={data.clientCity || ''} onChange={v => set('clientCity', v)} />

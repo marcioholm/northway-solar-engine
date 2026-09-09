@@ -12,6 +12,7 @@ import { LineChart } from '../../../components/charts/LineChart';
 import { Text } from '../../../components/primitives/Text';
 import { Flex } from '../../../components/primitives/Flex';
 import { Button } from '../../../components/ui/Button';
+import Link from 'next/link';
 import { Card } from '../../../components/ui/Card';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import GoalRing from '../../../components/GoalRing';
@@ -136,7 +137,7 @@ export default function CrmDashboard() {
               Aqui está o resumo das suas vendas e operações de hoje.
             </Text>
           </div>
-          <Button variant="secondary" size="sm">Personalizar ☷</Button>
+          <Button variant="secondary" size="sm" onClick={() => alert('Em breve: Personalização de dashboard!')}>Personalizar ☷</Button>
         </Flex>
         <KPIGrid minWidth="180px">
           <MetricCard label="Novos leads" value="24" icon="◎" trend={{ value: '18%', direction: 'up', label: 'vs. ontem' }} />
@@ -159,13 +160,13 @@ export default function CrmDashboard() {
                 <Text variant="xs" color="muted" as="span">9 etapas</Text>
               </Text>
             </div>
-            <Flex gap={2} align="center">
-              <div style={{ display: 'flex', background: 'var(--surface-muted)', borderRadius: 'var(--radius-md)', padding: '2px' }}>
-                <Button variant="secondary" size="sm" style={{ background: 'white', boxShadow: 'var(--shadow-sm)' }}>Kanban</Button>
-                <Button variant="ghost" size="sm">Lista</Button>
-              </div>
-              <Button variant="primary" size="sm" icon={<span>+</span>}>Novo lead</Button>
-            </Flex>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="outline" size="sm">Kanban</Button>
+              <Button variant="outline" size="sm" style={{ opacity: 0.5 }}>Lista</Button>
+              <Link href="/crm/leads/new" style={{ textDecoration: 'none' }}>
+                <Button variant="primary" size="sm" icon={<span>+</span>}>Novo lead</Button>
+              </Link>
+            </div>
           </Flex>
 
           <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>

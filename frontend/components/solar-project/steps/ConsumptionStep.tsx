@@ -67,7 +67,16 @@ export function ConsumptionStep({ data, onChange }: { data: Partial<ConsumptionD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <Input label="Consumo Mensal (kWh)" variant="number" value={data.consumptionMonthlyKwh ?? ''} onChange={v => setNumber('consumptionMonthlyKwh', v)} />
         <Input label="Valor da Conta (R$)" variant="number" value={data.consumptionMonthlyBill ?? ''} onChange={v => setNumber('consumptionMonthlyBill', v)} />
-        <Input label="Tarifa (R$/kWh)" variant="number" placeholder="0,80" value={data.consumptionTariff ?? ''} onChange={v => setNumber('consumptionTariff', v)} />
+        <Input 
+          label={`Tarifa (R$/kWh) ${!data.consumptionTariff && data.consumptionMonthlyBill && avgConsumption > 0 ? `(Calculado: ${(data.consumptionMonthlyBill / avgConsumption).toFixed(4).replace('.', ',')})` : ''}`}
+          variant="text" 
+          placeholder={(!data.consumptionTariff && data.consumptionMonthlyBill && avgConsumption > 0) ? (data.consumptionMonthlyBill / avgConsumption).toFixed(4).replace('.', ',') : "0,80"} 
+          value={data.consumptionTariff ? data.consumptionTariff.toString().replace('.', ',') : ''} 
+          onChange={v => {
+            const clean = v.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+            setNumber('consumptionTariff', clean);
+          }} 
+        />
         <Input label="Demanda (kW)" variant="number" value={data.consumptionDemand ?? ''} onChange={v => setNumber('consumptionDemand', v)} />
         <Input label="Modalidade" value={data.consumptionModality || ''} onChange={v => onChange({ ...data, consumptionModality: v })} placeholder="AZUL / VERDE / BRANCA / CONVENCIONAL" />
         <Input label="Grupo (A/B)" value={data.consumptionGroup || ''} onChange={v => onChange({ ...data, consumptionGroup: v })} placeholder="A / B" />
