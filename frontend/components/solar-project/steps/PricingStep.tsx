@@ -46,6 +46,7 @@ export function PricingStep({ data, onChange }: { data: Record<string, any>; onC
     input.marginPct = data.pricingMarginPct || 0;
     input.minMarginPct = data.pricingMinMarginPct || 15;
     input.recommendedMarginPct = data.pricingRecommendedMarginPct || 25;
+    input.commissionPct = data.pricingCommissionPct || 0;
     return input;
   };
 

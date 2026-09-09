@@ -9,10 +9,12 @@ export function formatCurrencyCompact(value: number): string {
 }
 
 export function formatBRL(value: number): string {
+  if (value === undefined || value === null || Number.isNaN(value)) value = 0;
   return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatPercent(value: number): string {
+  if (value === undefined || value === null || Number.isNaN(value)) value = 0;
   return `${value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
