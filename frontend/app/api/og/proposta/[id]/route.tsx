@@ -26,14 +26,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             {companyName}
           </div>
           <div style={{ fontSize: 64, fontWeight: 900, marginTop: 24, textAlign: 'center' }}>
-            Proposta Solar {power}kWp
+            {`Proposta Solar ${power}kWp`}
           </div>
           <div style={{ fontSize: 40, marginTop: 24, opacity: 0.9 }}>
             {client}
           </div>
           {savings && (
             <div style={{ fontSize: 48, fontWeight: 800, marginTop: 40, background: 'rgba(0,0,0,0.1)', padding: '16px 32px', borderRadius: 16 }}>
-              Economia estimada: R$ {savings.toLocaleString('pt-BR')}/mês
+              {`Economia estimada: R$ ${savings.toLocaleString('pt-BR')}/mês`}
             </div>
           )}
         </div>
