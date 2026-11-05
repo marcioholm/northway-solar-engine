@@ -12,6 +12,7 @@ import { api } from '../../../lib/api';
 
 interface PricingResult {
   totalCost: number;
+  commission: number;
   minPrice: number;
   recommendedPrice: number;
   finalPrice: number;
@@ -64,6 +65,7 @@ export function PricingStep({ data, onChange }: { data: Record<string, any>; onC
         pricingFinalPrice: res.finalPrice,
         pricingProfit: res.profit,
         pricingEffectiveMarginPct: res.effectiveMarginPct,
+        pricingCommission: res.commission,
       });
     } catch {
       // silently fail — engine may not be available during input
@@ -139,12 +141,19 @@ export function PricingStep({ data, onChange }: { data: Record<string, any>; onC
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <Input
-          label="Margem Desejada (%)"
-          variant="number"
-          value={data.pricingMarginPct ?? ''}
-          onChange={v => setNumber('pricingMarginPct', v)}
-        />
+        <div>
+          <Input
+            label="Markup (%)"
+            variant="number"
+            value={data.pricingMarginPct ?? ''}
+            onChange={v => setNumber('pricingMarginPct', v)}
+          />
+          {result && (
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+              Margem real: <strong style={{ color: marginPct >= 20 ? 'var(--green-dark)' : 'var(--danger)' }}>{formatPercent(marginPct)}</strong>
+            </div>
+          )}
+        </div>
         <Input
           label="Margem Mínima (%)"
           variant="number"

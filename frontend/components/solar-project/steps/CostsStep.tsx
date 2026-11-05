@@ -26,24 +26,28 @@ const GROUP_OPERATIONAL = [
 export function CostsStep({ data, onChange }: { data: Record<string, any>; onChange: (d: Record<string, any>) => void }) {
   const setNumber = (key: string, val: string) => onChange({ ...data, [key]: val ? Number(val) : undefined });
 
-  // Travel calculation
-  const travelDist = data.pricingTravelDistance || 0;
-  const travelTrips = data.pricingTravelTrips || 1;
-  const fuelEff = data.pricingFuelEfficiency || 10;
-  const fuelPrice = data.pricingFuelPrice || 6.50;
-  
-  const calcTravelCost = () => {
-    if (travelDist > 0 && fuelEff > 0 && fuelPrice > 0) {
-      return ( (travelDist * 2 * travelTrips) / fuelEff ) * fuelPrice;
+  const handleTravelFieldChange = (key: string, val: string) => {
+    const numVal = val ? Number(val) : undefined;
+    const nextData = { ...data, [key]: numVal };
+
+    const dist = nextData.pricingTravelDistance || 0;
+    const trips = nextData.pricingTravelTrips !== undefined && nextData.pricingTravelTrips !== null ? nextData.pricingTravelTrips : 1;
+    const eff = nextData.pricingFuelEfficiency || 0;
+    const price = nextData.pricingFuelPrice || 0;
+
+    if (dist > 0 && trips > 0 && eff > 0 && price > 0) {
+      nextData.pricingTravelCost = Math.round(((dist * 2 * trips) / eff) * price * 100) / 100;
+    } else if (data.pricingTravelCost !== undefined) {
+      nextData.pricingTravelCost = data.pricingTravelCost;
     }
-    return data.pricingTravelCost || 0;
+
+    onChange(nextData);
   };
 
-  const calculatedTravelCost = calcTravelCost();
-
+  const travelCost = data.pricingTravelCost || 0;
   const equipmentCost = data.pricingEquipmentCost || 0;
   const operationalCosts = GROUP_OPERATIONAL.reduce((acc, { key }) => {
-    acc[key] = key === 'pricingTravelCost' ? calculatedTravelCost : (data[key] || 0);
+    acc[key] = data[key] || 0;
     return acc;
   }, {} as Record<string, number>);
   const operationalTotal = Object.values(operationalCosts).reduce((a, b) => a + b, 0);
@@ -78,7 +82,7 @@ export function CostsStep({ data, onChange }: { data: Record<string, any>; onCha
             <Flex key={key} justify="between">
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
               <span style={{ fontSize: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: isCalculated ? 'var(--text-muted)' : 'inherit' }}>
-                {key === 'pricingTravelCost' ? formatBRL(calculatedTravelCost) : (isCalculated ? 'Calculado via %' : formatBRL(data[key] || 0))}
+                {key === 'pricingTravelCost' ? formatBRL(travelCost) : (isCalculated ? 'Calculado via %' : formatBRL(data[key] || 0))}
               </span>
             </Flex>
           ))}
@@ -89,15 +93,15 @@ export function CostsStep({ data, onChange }: { data: Record<string, any>; onCha
       <div style={{ background: 'var(--surface-muted)', padding: '16px', borderRadius: 'var(--radius-lg)' }}>
         <Text variant="body-bold" style={{ marginBottom: '12px' }}>Cálculo Inteligente de Deslocamento</Text>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-          <Input label="Distância Obra (km)" variant="number" value={data.pricingTravelDistance || ''} onChange={v => setNumber('pricingTravelDistance', v)} placeholder="Ex: 50" />
-          <Input label="Idas e Voltas" variant="number" value={data.pricingTravelTrips || ''} onChange={v => setNumber('pricingTravelTrips', v)} placeholder="Ex: 2" />
-          <Input label="Consumo (km/L)" variant="number" value={data.pricingFuelEfficiency || ''} onChange={v => setNumber('pricingFuelEfficiency', v)} placeholder="Ex: 10" />
+          <Input label="Distância Obra (km)" variant="number" value={data.pricingTravelDistance ?? ''} onChange={v => handleTravelFieldChange('pricingTravelDistance', v)} placeholder="Ex: 50" />
+          <Input label="Idas e Voltas" variant="number" value={data.pricingTravelTrips ?? ''} onChange={v => handleTravelFieldChange('pricingTravelTrips', v)} placeholder="Ex: 2" />
+          <Input label="Consumo (km/L)" variant="number" value={data.pricingFuelEfficiency ?? ''} onChange={v => handleTravelFieldChange('pricingFuelEfficiency', v)} placeholder="Ex: 10" />
           <Input
             label="Preço Combust. (R$)"
             variant="number"
             placeholder="6,50"
             value={data.pricingFuelPrice ?? ''}
-            onChange={v => setNumber('pricingFuelPrice', v)}
+            onChange={v => handleTravelFieldChange('pricingFuelPrice', v)}
           />
         </div>
       </div>

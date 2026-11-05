@@ -378,7 +378,6 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       pricingFoodCost: 350,
       pricingTravelCost: 800,
       pricingTollCost: 120,
-      pricingCommission: 1000,
       pricingCraneCost: 700,
       pricingThirdPartiesCost: 450,
       pricingAdminCost: 300,
@@ -391,7 +390,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       pricingTravelTrips: 2,
       pricingFuelEfficiency: 10,
       pricingFuelPrice: 6.5,
-      pricingCommissionPct: 5.0,
+      pricingCommissionPct: 2.5,
       sizingObservations: 'Telhado sem sombreamento',
     };
 
@@ -415,7 +414,6 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     expect(getRes.body.pricingFoodCost).toBe(350);
     expect(getRes.body.pricingTravelCost).toBe(800);
     expect(getRes.body.pricingTollCost).toBe(120);
-    expect(getRes.body.pricingCommission).toBe(1000);
     expect(getRes.body.pricingCraneCost).toBe(700);
     expect(getRes.body.pricingThirdPartiesCost).toBe(450);
     expect(getRes.body.pricingAdminCost).toBe(300);
@@ -428,7 +426,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     expect(getRes.body.pricingTravelTrips).toBe(2);
     expect(getRes.body.pricingFuelEfficiency).toBe(10);
     expect(getRes.body.pricingFuelPrice).toBe(6.5);
-    expect(getRes.body.pricingCommissionPct).toBe(5.0);
+    expect(getRes.body.pricingCommissionPct).toBe(2.5);
     expect(getRes.body.sizingObservations).toBe('Telhado sem sombreamento');
 
     const genRes = await http()
@@ -440,13 +438,17 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     const pricingOutput = proposal.settings?.pricingOutput;
 
     expect(pricingOutput).toBeDefined();
-    // 1500 + 400 + 4000 + 500 + 600 + 350 + 800 + 120 + 1000 + 700 + 450 + 300 + 1200 + 280 = 12200
-    expect(pricingOutput.operationalCostTotal).toBe(12200);
-    // 20000 + 12200 = 32200
-    expect(pricingOutput.totalCost).toBe(32200);
-    // 32200 * 1.25 = 40250
-    expect(proposal.finalPrice).toBe(40250);
-    expect(pricingOutput.finalPrice).toBe(40250);
+    // Base operacional = 1500 + 400 + 4000 + 500 + 600 + 350 + 800 + 120 + 700 + 450 + 300 + 1200 + 280 = 11200
+    // Base total = 20000 + 11200 = 31200
+    // finalPrice = 31200 * 1.25 / (1 - 0.025 * 1.25) = 39000 / 0.96875 = 40258.06
+    // commission = 40258.06 * 0.025 = 1006.45
+    // totalCost = 31200 + 1006.45 = 32206.45
+    // operationalCostTotal = 11200 + 1006.45 = 12206.45
+    expect(pricingOutput.commission).toBe(1006.45);
+    expect(pricingOutput.operationalCostTotal).toBe(12206.45);
+    expect(pricingOutput.totalCost).toBe(32206.45);
+    expect(proposal.finalPrice).toBe(40258.06);
+    expect(pricingOutput.finalPrice).toBe(40258.06);
     expect(pricingOutput.appliedMarginPct).toBe(25);
   });
 });

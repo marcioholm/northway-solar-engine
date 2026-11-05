@@ -23,6 +23,9 @@ export class PricingResultDto {
   /** Custo total = equipmentCost + operationalCostTotal */
   totalCost!: number;
 
+  /** Valor da comissão (calculada ou informada) */
+  commission!: number;
+
   /** Preço mínimo = totalCost * (1 + minMarginPct / 100) */
   minPrice!: number;
 

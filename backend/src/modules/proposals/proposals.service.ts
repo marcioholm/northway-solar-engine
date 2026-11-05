@@ -170,6 +170,7 @@ export class ProposalsService {
     pricingInput.minMarginPct = project.pricingMinMarginPct || 15;
     pricingInput.recommendedMarginPct =
       project.pricingRecommendedMarginPct || 25;
+    pricingInput.commissionPct = project.pricingCommissionPct || 0;
 
     const pricingResult = this.pricingEngineService.calculate(pricingInput);
 

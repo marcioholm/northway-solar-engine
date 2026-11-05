@@ -109,4 +109,10 @@ export class PricingInputDto {
   @Min(0)
   @IsOptional()
   recommendedMarginPct: number = 25;
+
+  @ApiProperty({ description: 'Comissão percentual (%)' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  commissionPct: number = 0;
 }
