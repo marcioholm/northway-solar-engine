@@ -24,18 +24,6 @@ export class ProposalTrackingController {
     private readonly proposalsService: ProposalsService,
   ) {}
 
-  @Post(':id/tracking')
-  @ApiOperation({ summary: 'Registrar evento de rastreamento (id interno - legado)' })
-  async track(
-    @Param('id') id: string,
-    @Body() dto: TrackEventDto,
-    @Req() req: any,
-  ) {
-    const ip = req.ip || req.headers?.['x-forwarded-for'] || '';
-    const ua = req.headers?.['user-agent'] || '';
-    return this.service.track(id, dto, ip, ua);
-  }
-
   @Post('/public/:token/tracking')
   @ApiOperation({ summary: 'Registrar evento de rastreamento (token público)' })
   async trackPublic(

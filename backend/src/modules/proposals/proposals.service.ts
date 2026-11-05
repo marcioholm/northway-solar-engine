@@ -1,3 +1,7 @@
+import {
+  PublicProposalView,
+  toPublicProposalView,
+} from './renderers/public-proposal.view';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -55,6 +59,15 @@ export class ProposalsService {
       where: { proposalId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async getPublicView(proposal: Proposal): Promise<PublicProposalView> {
+    const { content } = await this.render(
+      proposal.id,
+      proposal.companyId,
+      'web',
+    );
+    return toPublicProposalView(JSON.parse(content as string), proposal);
   }
 
   // ────────── ASSEMBLER ──────────

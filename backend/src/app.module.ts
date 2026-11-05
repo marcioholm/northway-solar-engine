@@ -40,8 +40,12 @@ import { TeamsModule } from './modules/teams/teams.module';
         type: 'postgres',
         url: configService.get('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: configService.get('NODE_ENV') !== 'production',
-        ssl: { rejectUnauthorized: false },
+        // O esquema vem de backend/migrations. Só ligue em banco descartável.
+        synchronize: configService.get('DB_SYNCHRONIZE') === 'true',
+        ssl:
+          configService.get('DB_SSL') === 'false'
+            ? false
+            : { rejectUnauthorized: false },
       }),
       inject: [ConfigService],
     }),

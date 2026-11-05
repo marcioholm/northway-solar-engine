@@ -6,6 +6,9 @@ import {
 } from 'typeorm';
 
 export enum UserRole {
+  /** Operador da plataforma NorthWay: acessa todas as empresas. */
+  SUPERADMIN = 'superadmin',
+  /** Administrador de uma única empresa. */
   ADMIN = 'admin',
   SELLER = 'seller',
 }

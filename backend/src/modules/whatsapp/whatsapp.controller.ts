@@ -24,7 +24,7 @@ export class WhatsappController {
   @Get('instance/:id/qrcode')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
-  async getQrCode(@Param('id') id: string) {
-    return this.evolutionApi.getQrCode(id);
+  async getQrCode(@Param('id') id: string, @Request() req) {
+    return this.evolutionApi.getQrCode(id, req.user.companyId);
   }
 }

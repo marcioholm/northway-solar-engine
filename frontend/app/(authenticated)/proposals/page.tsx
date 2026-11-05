@@ -74,7 +74,7 @@ export default function ProposalsPage() {
       align: 'right' as const,
       render: (p: any) => (
         <Flex gap={1} justify="end">
-          <Button variant="ghost" size="sm" onClick={() => router.push(`/proposta/${p.id}`)}>
+          <Button variant="ghost" size="sm" onClick={() => router.push(`/proposta/${p.publicToken}`)}>
             Visualizar
           </Button>
           <Button variant="ghost" size="sm" onClick={() => handleDownload(p.id)}>

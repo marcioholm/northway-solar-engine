@@ -1,27 +1,18 @@
 import { ImageResponse } from 'next/og';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { data } = await supabase
-      .from('proposals')
-      .select('clientName, systemPowerKwp, finalPrice, monthlySavings, company:companies(name, logoUrl)')
-      .eq('id', id)
-      .single();
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/proposals/public/${encodeURIComponent(id)}`,
+    );
+    if (!res.ok) return new Response('Not found', { status: 404 });
 
-    if (!data) return new Response('Not found', { status: 404 });
-
-    // Fallback api in case supabase fails (just to be safe)
-    let companyData: any = data.company;
-    let companyName = Array.isArray(companyData) ? companyData[0]?.name : companyData?.name || 'SolarCRM';
-    let power = data.systemPowerKwp;
-    let client = data.clientName;
-    let savings = data.monthlySavings;
+    const data = await res.json();
+    const companyName = data.company?.name || 'SolarCRM';
+    const power = data.systemPowerKwp;
+    const client = data.clientName;
+    const savings = data.monthlySavings;
 
     return new ImageResponse(
       (

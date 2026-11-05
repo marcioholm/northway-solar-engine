@@ -34,7 +34,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode: status,
       message:
         typeof message === 'string' ? message : message.message || message,
-      error: exception instanceof Error ? exception.message : 'Unknown error',
+      // Detalhe interno de erro 500 não sai em produção.
+      error:
+        status >= 500 && process.env.NODE_ENV === 'production'
+          ? 'Internal server error'
+          : exception instanceof Error
+            ? exception.message
+            : 'Unknown error',
       stack:
         process.env.NODE_ENV !== 'production' && exception instanceof Error
           ? exception.stack?.split('\n').slice(0, 6).join('\n')

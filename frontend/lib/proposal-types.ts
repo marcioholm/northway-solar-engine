@@ -36,7 +36,7 @@ export interface FAQItem {
 }
 
 export interface ProposalData {
-  id: string;
+  publicToken: string;
   clientName?: string;
   clientCity?: string;
   clientState?: string;

@@ -6,6 +6,7 @@ import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { MetaAdsService } from '../meta-ads/meta-ads.service';
 import { Company } from '../companies/entities/company.entity';
+import { SupabaseService } from '../../supabase/supabase.service';
 
 @Injectable()
 export class LeadsService {
@@ -15,6 +16,7 @@ export class LeadsService {
     @InjectRepository(Company)
     private companyRepository: Repository<Company>,
     private metaAdsService: MetaAdsService,
+    private supabaseService: SupabaseService,
   ) {}
 
   create(companyId: string, userId: string, dto: CreateLeadDto) {
@@ -70,13 +72,12 @@ export class LeadsService {
       
       // Criação automática da Obra
       try {
-        const { createClient } = require('@supabase/supabase-js');
-        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-        
+        const supabase = this.supabaseService.getClient();
+
         // 1. Pegar a última proposta enviada deste lead
         const { data: proposals } = await supabase
           .from('proposals')
-          .select('id, client_name, client_cep, client_city, client_phone, client_email, system_power_kwp, module_qty, module_id, inverter_id, final_price, cost_modules, cost_inverter, cost_labor, cost_travel')
+          .select('id, client_name, client_city, system_power_kwp, module_qty, final_price, subtotal')
           .eq('lead_id', id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -91,12 +92,13 @@ export class LeadsService {
             lead_id: id,
             proposal_id: proposal?.id,
             client_name: proposal?.client_name || lead.name,
-            client_phone: proposal?.client_phone || lead.phone,
-            client_email: proposal?.client_email || lead.email,
+            client_phone: lead.phone,
+            client_email: lead.email,
             city: proposal?.client_city || lead.city,
             system_power_kwp: proposal?.system_power_kwp,
             module_qty: proposal?.module_qty,
             sale_price: proposal?.final_price,
+            total_cost: proposal?.subtotal,
             sale_date: new Date().toISOString().split('T')[0],
             status: 'waiting_material',
           })

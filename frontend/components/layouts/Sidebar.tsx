@@ -10,8 +10,6 @@ const NAV_ITEMS = [
   { label: 'Propostas', icon: '📄', href: '/proposals' },
   { label: 'Obras', icon: '🏗', href: '/obras' },
   { label: 'Equipes', icon: '👥', href: '/dashboard/equipes' },
-  { label: 'Financeiro', icon: '💰', href: '/dashboard/financeiro' },
-  { label: 'Inteligência', icon: '🧠', href: '/dashboard/intelligence' },
   { label: 'Catálogo', icon: '⬡', href: '/catalog' },
 ];
 

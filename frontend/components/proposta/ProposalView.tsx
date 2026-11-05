@@ -18,23 +18,17 @@ export function ProposalView({ data }: { data: ProposalData }) {
   const [changeMessage, setChangeMessage] = useState('');
   const viewedRef = useRef(false);
 
-  // Fallback to data.id or url params if available
-  const proposalId = data.id || ''; 
+  const publicToken = data.publicToken;
   const {
     trackView, trackDuration, trackDownload,
     trackWhatsApp, trackAccept, trackChangeRequest,
-  } = useProposalTracking(proposalId);
+  } = useProposalTracking(publicToken);
 
   useEffect(() => {
-    if (!proposalId) return;
-    
-    // Using beacon as recommended for non-blocking trackView
+    if (!publicToken) return;
+
     if (!viewedRef.current) {
-      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-        navigator.sendBeacon('/api/track-view', JSON.stringify({ proposalId }));
-      } else {
-        trackView();
-      }
+      trackView();
       viewedRef.current = true;
     }
 
@@ -47,7 +41,7 @@ export function ProposalView({ data }: { data: ProposalData }) {
       document.removeEventListener('visibilitychange', handleVisibility);
       trackDuration();
     };
-  }, [proposalId, trackDuration, trackView]);
+  }, [publicToken, trackDuration, trackView]);
 
   const isExpired = data.expirationDate ? new Date(data.expirationDate).getTime() < new Date().getTime() : false;
 
