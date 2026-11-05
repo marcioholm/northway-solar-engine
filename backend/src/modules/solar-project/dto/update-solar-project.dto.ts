@@ -75,6 +75,25 @@ export class UpdateSolarProjectDto {
   @IsOptional() @IsNumber() pricingMinPrice?: number;
   @IsOptional() @IsNumber() pricingFinalPrice?: number;
   @IsOptional() @IsNumber() pricingDiscountPct?: number;
+  @IsOptional() @IsNumber() pricingArtCost?: number;
+  @IsOptional() @IsNumber() pricingInstallationCost?: number;
+  @IsOptional() @IsNumber() pricingHotelCost?: number;
+  @IsOptional() @IsNumber() pricingFoodCost?: number;
+  @IsOptional() @IsNumber() pricingTollCost?: number;
+  @IsOptional() @IsNumber() pricingCraneCost?: number;
+  @IsOptional() @IsNumber() pricingThirdPartiesCost?: number;
+  @IsOptional() @IsNumber() pricingOtherCost?: number;
+  @IsOptional() @IsNumber() pricingTotalCost?: number;
+  @IsOptional() @IsNumber() pricingProfit?: number;
+  @IsOptional() @IsNumber() pricingRecommendedPrice?: number;
+  @IsOptional() @IsNumber() pricingEffectiveMarginPct?: number;
+  @IsOptional() @IsNumber() pricingMinMarginPct?: number;
+  @IsOptional() @IsNumber() pricingRecommendedMarginPct?: number;
+  @IsOptional() @IsNumber() pricingTravelDistance?: number;
+  @IsOptional() @IsNumber() pricingTravelTrips?: number;
+  @IsOptional() @IsNumber() pricingFuelEfficiency?: number;
+  @IsOptional() @IsNumber() pricingFuelPrice?: number;
+  @IsOptional() @IsNumber() pricingCommissionPct?: number;
 
   // ── Payment ──
   @IsOptional() @IsNumber() paymentCashDiscount?: number;

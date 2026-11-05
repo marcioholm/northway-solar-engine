@@ -99,6 +99,11 @@ const MODULE_MAP: Record<string, string[]> = {
     'pricingEffectiveMarginPct',
     'pricingMinMarginPct',
     'pricingRecommendedMarginPct',
+    'pricingTravelDistance',
+    'pricingTravelTrips',
+    'pricingFuelEfficiency',
+    'pricingFuelPrice',
+    'pricingCommissionPct',
   ],
   payment: [
     'paymentCashDiscount',

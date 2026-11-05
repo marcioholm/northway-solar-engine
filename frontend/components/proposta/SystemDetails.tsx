@@ -19,13 +19,20 @@ export function SystemDetails({ data }: { data: ProposalData }) {
       <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 24 }}>
         <div style={{ padding: '20px 24px', borderLeft: '3px solid var(--green)', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Módulo Solar</div>
-          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>{data.module?.brand} {data.module?.model} · {data.module?.powerWatt} W</div>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
+            {data.module?.brand} {data.module?.model}{data.module?.powerWatt ? ` · ${data.module.powerWatt} W` : ''}
+          </div>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: 2 }}>Qtd: {data.moduleQty} unidades</div>
         </div>
         
         <div style={{ padding: '20px 24px', borderLeft: '3px solid var(--green)', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Inversor</div>
-          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>{data.inverter?.brand} {data.inverter?.model} · {data.inverter?.powerKw} kW</div>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
+            {data.inverter?.brand} {data.inverter?.model}{data.inverter?.powerKw ? ` · ${data.inverter.powerKw} kW` : ''}
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: 2 }}>
+            Qtd: {data.inverter?.quantity || 1} {data.inverter?.quantity === 1 ? 'unidade' : 'unidades'}
+          </div>
         </div>
 
         <div style={{ padding: '20px 24px', borderLeft: '3px solid var(--green)' }}>

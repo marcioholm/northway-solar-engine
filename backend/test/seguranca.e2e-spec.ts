@@ -352,4 +352,101 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     );
     expect(JSON.stringify(response.body)).not.toContain('Marca Nao Usada');
   });
+
+  it('salva todos os custos por PATCH, confere por GET, gera proposta e valida totalCost e finalPrice', async () => {
+    const createRes = await http()
+      .post('/solar-project')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        clientName: 'Cliente Custos E2E',
+        consumptionMonthlyBill: 1000,
+        consumptionMonthlyKwh: 1200,
+        sizingPowerKwp: 10,
+        sizingModuleQty: 20,
+      })
+      .expect(201);
+
+    const projectId = createRes.body.id;
+
+    const allCostsPayload = {
+      pricingEquipmentCost: 20000,
+      pricingProjectCost: 1500,
+      pricingArtCost: 400,
+      pricingInstallationCost: 4000,
+      pricingHotelCost: 500,
+      pricingFreightCost: 600,
+      pricingFoodCost: 350,
+      pricingTravelCost: 800,
+      pricingTollCost: 120,
+      pricingCommission: 1000,
+      pricingCraneCost: 700,
+      pricingThirdPartiesCost: 450,
+      pricingAdminCost: 300,
+      pricingTaxes: 1200,
+      pricingOtherCost: 280,
+      pricingMarginPct: 25,
+      pricingMinMarginPct: 15,
+      pricingRecommendedMarginPct: 25,
+      pricingTravelDistance: 120,
+      pricingTravelTrips: 2,
+      pricingFuelEfficiency: 10,
+      pricingFuelPrice: 6.5,
+      pricingCommissionPct: 5.0,
+      sizingObservations: 'Telhado sem sombreamento',
+    };
+
+    await http()
+      .patch(`/solar-project/${projectId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .send(allCostsPayload)
+      .expect(200);
+
+    const getRes = await http()
+      .get(`/solar-project/${projectId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+
+    expect(getRes.body.pricingEquipmentCost).toBe(20000);
+    expect(getRes.body.pricingProjectCost).toBe(1500);
+    expect(getRes.body.pricingArtCost).toBe(400);
+    expect(getRes.body.pricingInstallationCost).toBe(4000);
+    expect(getRes.body.pricingHotelCost).toBe(500);
+    expect(getRes.body.pricingFreightCost).toBe(600);
+    expect(getRes.body.pricingFoodCost).toBe(350);
+    expect(getRes.body.pricingTravelCost).toBe(800);
+    expect(getRes.body.pricingTollCost).toBe(120);
+    expect(getRes.body.pricingCommission).toBe(1000);
+    expect(getRes.body.pricingCraneCost).toBe(700);
+    expect(getRes.body.pricingThirdPartiesCost).toBe(450);
+    expect(getRes.body.pricingAdminCost).toBe(300);
+    expect(getRes.body.pricingTaxes).toBe(1200);
+    expect(getRes.body.pricingOtherCost).toBe(280);
+    expect(getRes.body.pricingMarginPct).toBe(25);
+    expect(getRes.body.pricingMinMarginPct).toBe(15);
+    expect(getRes.body.pricingRecommendedMarginPct).toBe(25);
+    expect(getRes.body.pricingTravelDistance).toBe(120);
+    expect(getRes.body.pricingTravelTrips).toBe(2);
+    expect(getRes.body.pricingFuelEfficiency).toBe(10);
+    expect(getRes.body.pricingFuelPrice).toBe(6.5);
+    expect(getRes.body.pricingCommissionPct).toBe(5.0);
+    expect(getRes.body.sizingObservations).toBe('Telhado sem sombreamento');
+
+    const genRes = await http()
+      .post(`/proposals/generate/${projectId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(201);
+
+    const proposal = genRes.body;
+    const pricingOutput = proposal.settings?.pricingOutput;
+
+    expect(pricingOutput).toBeDefined();
+    // 1500 + 400 + 4000 + 500 + 600 + 350 + 800 + 120 + 1000 + 700 + 450 + 300 + 1200 + 280 = 12200
+    expect(pricingOutput.operationalCostTotal).toBe(12200);
+    // 20000 + 12200 = 32200
+    expect(pricingOutput.totalCost).toBe(32200);
+    // 32200 * 1.25 = 40250
+    expect(proposal.finalPrice).toBe(40250);
+    expect(pricingOutput.finalPrice).toBe(40250);
+    expect(pricingOutput.appliedMarginPct).toBe(25);
+  });
 });

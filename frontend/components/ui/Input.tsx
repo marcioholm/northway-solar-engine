@@ -21,11 +21,14 @@ interface InputProps {
   step?: string;
   min?: number;
   max?: number;
+  onFocus?: (e: React.FocusEvent<any>) => void;
+  onBlur?: (e: React.FocusEvent<any>) => void;
 }
 
 export function Input({
   variant = 'text', label, placeholder, value, onChange,
   error, disabled, required, className, style, id, options, step, min, max,
+  onFocus, onBlur,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
   const [localText, setLocalText] = useState<string | null>(null);
@@ -101,18 +104,20 @@ export function Input({
     }
   };
 
-  const handleFocus = () => {
+  const handleFocus = (e: React.FocusEvent<any>) => {
     setFocused(true);
     if (variant === 'number') {
       setLocalText(formatExternalValue(value));
     }
+    onFocus?.(e);
   };
 
-  const handleBlur = () => {
+  const handleBlur = (e: React.FocusEvent<any>) => {
     setFocused(false);
     if (variant === 'number') {
       setLocalText(null);
     }
+    onBlur?.(e);
   };
 
   return (

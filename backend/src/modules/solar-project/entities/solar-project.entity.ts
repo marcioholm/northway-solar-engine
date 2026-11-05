@@ -283,6 +283,21 @@ export class SolarProject {
   })
   pricingRecommendedMarginPct: number;
 
+  @Column({ name: 'pricing_travel_distance', type: 'float', nullable: true })
+  pricingTravelDistance: number;
+
+  @Column({ name: 'pricing_travel_trips', type: 'float', nullable: true })
+  pricingTravelTrips: number;
+
+  @Column({ name: 'pricing_fuel_efficiency', type: 'float', nullable: true })
+  pricingFuelEfficiency: number;
+
+  @Column({ name: 'pricing_fuel_price', type: 'float', nullable: true })
+  pricingFuelPrice: number;
+
+  @Column({ name: 'pricing_commission_pct', type: 'float', nullable: true })
+  pricingCommissionPct: number;
+
   // ───────────────────── PAYMENT ─────────────────────
 
   @Column({ name: 'payment_cash_discount', type: 'float', nullable: true })

@@ -55,6 +55,7 @@ export function toPublicProposalView(
       brand: inverter.brand,
       model: inverter.model,
       powerKw: powerValue(inverter.power),
+      quantity: inverter.quantity || 1,
     },
     equipment: equipment.map(({ type, brand, model, quantity, power }) => ({
       type,
