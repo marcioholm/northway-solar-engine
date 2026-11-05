@@ -86,8 +86,34 @@ export class ProposalsService {
         : undefined) ??
       undefined;
 
+    const project = proposal.solarProject;
+    const quote = proposal.quote;
+
+    if (project && quote?.items) {
+      if (!project.equipmentModules || project.equipmentModules.length === 0) {
+        project.equipmentModules = quote.items
+          .filter((item) => item.productType === 'module')
+          .map((item) => ({
+            brand: item.productBrand,
+            model: item.productModel,
+            qty: item.quantity,
+          })) as any;
+      }
+      if (!project.equipmentInverters || project.equipmentInverters.length === 0) {
+        project.equipmentInverters = quote.items
+          .filter((item) => item.productType === 'inverter')
+          .map((item) => ({
+            brand: item.productBrand,
+            model: item.productModel,
+            qty: item.quantity,
+          })) as any;
+      }
+    }
+
     return {
       proposal,
+      project,
+      quote,
       company,
       consultantName: undefined,
       consultantPhone: undefined,
