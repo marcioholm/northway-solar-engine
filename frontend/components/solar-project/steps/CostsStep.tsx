@@ -92,7 +92,13 @@ export function CostsStep({ data, onChange }: { data: Record<string, any>; onCha
           <Input label="Distância Obra (km)" variant="number" value={data.pricingTravelDistance || ''} onChange={v => setNumber('pricingTravelDistance', v)} placeholder="Ex: 50" />
           <Input label="Idas e Voltas" variant="number" value={data.pricingTravelTrips || ''} onChange={v => setNumber('pricingTravelTrips', v)} placeholder="Ex: 2" />
           <Input label="Consumo (km/L)" variant="number" value={data.pricingFuelEfficiency || ''} onChange={v => setNumber('pricingFuelEfficiency', v)} placeholder="Ex: 10" />
-          <Input label="Preço Combust. (R$)" variant="text" placeholder="6,50" value={data.pricingFuelPrice ? data.pricingFuelPrice.toString().replace('.', ',') : ''} onChange={v => { const clean = v.replace(/[^0-9.,]/g, '').replace(/,/g, '.'); setNumber('pricingFuelPrice', clean); }} />
+          <Input
+            label="Preço Combust. (R$)"
+            variant="number"
+            placeholder="6,50"
+            value={data.pricingFuelPrice ?? ''}
+            onChange={v => setNumber('pricingFuelPrice', v)}
+          />
         </div>
       </div>
 
@@ -109,10 +115,10 @@ export function CostsStep({ data, onChange }: { data: Record<string, any>; onCha
             <Input
               key={key}
               label={`Comissão (%)`}
-              variant="text"
+              variant="number"
               placeholder="Ex: 5,0"
-              value={data.pricingCommissionPct ? data.pricingCommissionPct.toString().replace('.', ',') : ''}
-              onChange={v => { const clean = v.replace(/[^0-9.,]/g, '').replace(/,/g, '.'); setNumber('pricingCommissionPct', clean); }}
+              value={data.pricingCommissionPct ?? ''}
+              onChange={v => setNumber('pricingCommissionPct', v)}
             />
           ) : (
             <Input
