@@ -36,6 +36,14 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     await app.init();
 
     const db = app.get(DataSource);
+    // Este teste apaga dados: só roda em banco cujo nome termina em _test.
+    const [{ current_database: database }] = await db.query(
+      'SELECT current_database()',
+    );
+    if (!String(database).endsWith('_test')) {
+      throw new Error(`E2E recusado no banco "${database}"`);
+    }
+
     const hash = await bcrypt.hash(PASSWORD, 4);
     await db.query('TRUNCATE companies, users, proposals, leads CASCADE');
     await db.query(
@@ -70,7 +78,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   it.each([
