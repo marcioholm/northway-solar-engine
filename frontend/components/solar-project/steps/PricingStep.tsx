@@ -23,13 +23,23 @@ interface PricingResult {
   breakdown: Record<string, number>;
 }
 
-const COST_FIELDS = [
-  'pricingEquipmentCost', 'pricingProjectCost', 'pricingArtCost',
-  'pricingInstallationCost', 'pricingHotelCost', 'pricingFreightCost',
-  'pricingFoodCost', 'pricingTravelCost', 'pricingTollCost',
-  'pricingCommission', 'pricingCraneCost', 'pricingThirdPartiesCost',
-  'pricingAdminCost', 'pricingTaxes', 'pricingOtherCost',
-];
+const COST_FIELD_MAP: Record<string, string> = {
+  pricingEquipmentCost: 'equipmentCost',
+  pricingProjectCost: 'costProject',
+  pricingArtCost: 'costArt',
+  pricingInstallationCost: 'costInstallation',
+  pricingHotelCost: 'costHotel',
+  pricingFreightCost: 'costFreight',
+  pricingFoodCost: 'costFood',
+  pricingTravelCost: 'costTravel',
+  pricingTollCost: 'costToll',
+  pricingCommission: 'costCommission',
+  pricingCraneCost: 'costCrane',
+  pricingThirdPartiesCost: 'costThirdParties',
+  pricingAdminCost: 'costAdmin',
+  pricingTaxes: 'costTaxes',
+  pricingOtherCost: 'costOther',
+};
 
 export function PricingStep({ data, onChange }: { data: Record<string, any>; onChange: (d: Record<string, any>) => void }) {
   const [result, setResult] = useState<PricingResult | null>(null);
@@ -40,9 +50,8 @@ export function PricingStep({ data, onChange }: { data: Record<string, any>; onC
 
   const buildInput = () => {
     const input: Record<string, number> = {};
-    for (const field of COST_FIELDS) {
-      const key = field.replace('pricing', '').replace(/^[A-Z]/, c => c.toLowerCase());
-      input[key === 'equipmentCost' ? 'equipmentCost' : `cost${field.replace('pricing', '')}`] = data[field] || 0;
+    for (const [projectField, dtoField] of Object.entries(COST_FIELD_MAP)) {
+      input[dtoField] = data[projectField] || 0;
     }
     input.marginPct = data.pricingMarginPct || 0;
     input.minMarginPct = data.pricingMinMarginPct || 15;
@@ -78,7 +87,7 @@ export function PricingStep({ data, onChange }: { data: Record<string, any>; onC
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(runCalculation, 600);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [data.pricingMarginPct, data.pricingEquipmentCost, ...COST_FIELDS.map(f => data[f])]);
+  }, [data.pricingMarginPct, data.pricingCommissionPct, ...Object.keys(COST_FIELD_MAP).map(f => data[f])]);
 
   const cost = result?.totalCost || 0;
   const finalPrice = result?.finalPrice || 0;

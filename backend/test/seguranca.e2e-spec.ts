@@ -451,4 +451,70 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     expect(pricingOutput.finalPrice).toBe(40258.06);
     expect(pricingOutput.appliedMarginPct).toBe(25);
   });
+
+  it('deve recusar campos desconhecidos em POST /pricing-engine/calculate com 400', async () => {
+    const res = await http()
+      .post('/pricing-engine/calculate')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        equipmentCost: 10000,
+        marginPct: 20,
+        costProjectCost: 1500, // campo desconhecido
+      })
+      .expect(400);
+
+    expect(res.body.message).toEqual(
+      expect.arrayContaining([expect.stringContaining('property costProjectCost should not exist')]),
+    );
+  });
+
+  it('deve calcular corretamente com todos os custos preenchidos conferindo o total', async () => {
+    const payload = {
+      equipmentCost: 20000,
+      costProject: 1500,
+      costArt: 400,
+      costInstallation: 4000,
+      costHotel: 500,
+      costFreight: 600,
+      costFood: 350,
+      costTravel: 800,
+      costToll: 120,
+      costCrane: 700,
+      costThirdParties: 450,
+      costAdmin: 300,
+      costTaxes: 1200,
+      costOther: 280,
+      commissionPct: 2.5,
+      marginPct: 25,
+      minMarginPct: 15,
+      recommendedMarginPct: 25,
+    };
+
+    const res = await http()
+      .post('/pricing-engine/calculate')
+      .auth(adminToken, { type: 'bearer' })
+      .send(payload)
+      .expect(201);
+
+    expect(res.body.commission).toBe(1006.45);
+    expect(res.body.operationalCostTotal).toBe(12206.45);
+    expect(res.body.totalCost).toBe(32206.45);
+    expect(res.body.finalPrice).toBe(40258.06);
+    expect(res.body.effectiveMarginPct).toBe(20);
+    expect(res.body.profit).toBe(8051.61);
+    expect(res.body.breakdown.costProject).toBe(1500);
+    expect(res.body.breakdown.costArt).toBe(400);
+    expect(res.body.breakdown.costInstallation).toBe(4000);
+    expect(res.body.breakdown.costHotel).toBe(500);
+    expect(res.body.breakdown.costFreight).toBe(600);
+    expect(res.body.breakdown.costFood).toBe(350);
+    expect(res.body.breakdown.costTravel).toBe(800);
+    expect(res.body.breakdown.costToll).toBe(120);
+    expect(res.body.breakdown.costCrane).toBe(700);
+    expect(res.body.breakdown.costThirdParties).toBe(450);
+    expect(res.body.breakdown.costAdmin).toBe(300);
+    expect(res.body.breakdown.costTaxes).toBe(1200);
+    expect(res.body.breakdown.costOther).toBe(280);
+    expect(res.body.breakdown.equipmentCost).toBe(20000);
+  });
 });
