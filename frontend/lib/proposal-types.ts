@@ -36,7 +36,7 @@ export interface FAQItem {
 }
 
 export interface ProposalData {
-  id: string;
+  publicToken: string;
   clientName?: string;
   clientCity?: string;
   clientState?: string;
@@ -61,8 +61,8 @@ export interface ProposalData {
   roi?: number;
   systemPowerKwp?: number;
   moduleQty?: number;
-  module?: { brand: string; model: string; powerWatt: number };
-  inverter?: { brand: string; model: string; powerKw: number };
+  module?: { brand: string; model: string; powerWatt?: number; quantity?: number };
+  inverter?: { brand: string; model: string; powerKw?: number; quantity?: number };
   equipment?: Equipment[];
   finalPrice?: number;
   discountPix?: number;

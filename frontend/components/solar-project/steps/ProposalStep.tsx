@@ -57,7 +57,7 @@ export function ProposalStep({ data, projectId }: { data: Record<string, any>; p
     setGenerating(true);
     try {
       const proposal = await api.post<any>(`/proposals/generate/${projectId}`);
-      router.push(`/proposta/${proposal.id}`);
+      router.push(`/proposta/${proposal.publicToken}`);
     } catch (err) {
       console.error('Error generating proposal:', err);
       alert('Erro ao gerar proposta. Verifique o console.');

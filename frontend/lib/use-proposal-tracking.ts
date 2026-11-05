@@ -1,7 +1,7 @@
-const track = (proposalId: string, eventType: string, data?: Record<string, any>) => {
+const track = (publicToken: string, eventType: string, data?: Record<string, any>) => {
   const api = process.env.NEXT_PUBLIC_API_URL;
   if (!api) return;
-  fetch(`${api}/proposals/${proposalId}/tracking`, {
+  fetch(`${api}/proposals/public/${publicToken}/tracking`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ eventType, ...data }),
@@ -9,44 +9,44 @@ const track = (proposalId: string, eventType: string, data?: Record<string, any>
   }).catch(() => {});
 };
 
-export function useProposalTracking(proposalId: string | undefined) {
+export function useProposalTracking(publicToken: string | undefined) {
   const startTime = Date.now();
 
   const trackView = () => {
-    if (!proposalId) return;
-    track(proposalId, 'view');
+    if (!publicToken) return;
+    track(publicToken, 'view');
   };
 
   const trackDuration = () => {
-    if (!proposalId) return;
+    if (!publicToken) return;
     const duration = Math.round((Date.now() - startTime) / 1000);
     if (duration < 5) return;
-    track(proposalId, 'view', { metadata: { durationSeconds: duration } });
+    track(publicToken, 'view', { metadata: { durationSeconds: duration } });
   };
 
   const trackSection = (section: string, duration?: number) => {
-    if (!proposalId) return;
-    track(proposalId, 'section_view', { section, duration });
+    if (!publicToken) return;
+    track(publicToken, 'section_view', { section, duration });
   };
 
   const trackDownload = () => {
-    if (!proposalId) return;
-    track(proposalId, 'download');
+    if (!publicToken) return;
+    track(publicToken, 'download');
   };
 
   const trackWhatsApp = () => {
-    if (!proposalId) return;
-    track(proposalId, 'whatsapp_click');
+    if (!publicToken) return;
+    track(publicToken, 'whatsapp_click');
   };
 
   const trackAccept = () => {
-    if (!proposalId) return;
-    track(proposalId, 'accept');
+    if (!publicToken) return;
+    track(publicToken, 'accept');
   };
 
   const trackChangeRequest = (message?: string) => {
-    if (!proposalId) return;
-    track(proposalId, 'change_request', { metadata: { message } });
+    if (!publicToken) return;
+    track(publicToken, 'change_request', { metadata: { message } });
   };
 
   return {

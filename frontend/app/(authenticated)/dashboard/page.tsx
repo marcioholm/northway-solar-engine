@@ -109,7 +109,7 @@ function DashboardContent() {
         });
       }
       if (openWeb) {
-        router.push(`/proposta/${proposal.id}`);
+        router.push(`/proposta/${proposal.publicToken}`);
       } else {
         const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${proposal.id}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
         if (!pdfRes.ok) throw new Error('Failed to fetch PDF');

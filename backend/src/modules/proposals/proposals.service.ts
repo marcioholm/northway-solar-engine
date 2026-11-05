@@ -1,3 +1,7 @@
+import {
+  PublicProposalView,
+  toPublicProposalView,
+} from './renderers/public-proposal.view';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -57,6 +61,15 @@ export class ProposalsService {
     });
   }
 
+  async getPublicView(proposal: Proposal): Promise<PublicProposalView> {
+    const { content } = await this.render(
+      proposal.id,
+      proposal.companyId,
+      'web',
+    );
+    return toPublicProposalView(JSON.parse(content as string), proposal);
+  }
+
   // ────────── ASSEMBLER ──────────
 
   async assemble(proposalId: string, companyId: string): Promise<ProposalAssembledData> {
@@ -73,8 +86,34 @@ export class ProposalsService {
         : undefined) ??
       undefined;
 
+    const project = proposal.solarProject;
+    const quote = proposal.quote;
+
+    if (project && quote?.items) {
+      if (!project.equipmentModules || project.equipmentModules.length === 0) {
+        project.equipmentModules = quote.items
+          .filter((item) => item.productType === 'module')
+          .map((item) => ({
+            brand: item.productBrand,
+            model: item.productModel,
+            qty: item.quantity,
+          })) as any;
+      }
+      if (!project.equipmentInverters || project.equipmentInverters.length === 0) {
+        project.equipmentInverters = quote.items
+          .filter((item) => item.productType === 'inverter')
+          .map((item) => ({
+            brand: item.productBrand,
+            model: item.productModel,
+            qty: item.quantity,
+          })) as any;
+      }
+    }
+
     return {
       proposal,
+      project,
+      quote,
       company,
       consultantName: undefined,
       consultantPhone: undefined,
@@ -131,6 +170,7 @@ export class ProposalsService {
     pricingInput.minMarginPct = project.pricingMinMarginPct || 15;
     pricingInput.recommendedMarginPct =
       project.pricingRecommendedMarginPct || 25;
+    pricingInput.commissionPct = project.pricingCommissionPct || 0;
 
     const pricingResult = this.pricingEngineService.calculate(pricingInput);
 

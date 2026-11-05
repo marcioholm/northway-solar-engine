@@ -69,13 +69,10 @@ export function ConsumptionStep({ data, onChange }: { data: Partial<ConsumptionD
         <Input label="Valor da Conta (R$)" variant="number" value={data.consumptionMonthlyBill ?? ''} onChange={v => setNumber('consumptionMonthlyBill', v)} />
         <Input 
           label={`Tarifa (R$/kWh) ${!data.consumptionTariff && data.consumptionMonthlyBill && avgConsumption > 0 ? `(Calculado: ${(data.consumptionMonthlyBill / avgConsumption).toFixed(4).replace('.', ',')})` : ''}`}
-          variant="text" 
+          variant="number" 
           placeholder={(!data.consumptionTariff && data.consumptionMonthlyBill && avgConsumption > 0) ? (data.consumptionMonthlyBill / avgConsumption).toFixed(4).replace('.', ',') : "0,80"} 
-          value={data.consumptionTariff ? data.consumptionTariff.toString().replace('.', ',') : ''} 
-          onChange={v => {
-            const clean = v.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
-            setNumber('consumptionTariff', clean);
-          }} 
+          value={data.consumptionTariff ?? ''} 
+          onChange={v => setNumber('consumptionTariff', v)} 
         />
         <Input label="Demanda (kW)" variant="number" value={data.consumptionDemand ?? ''} onChange={v => setNumber('consumptionDemand', v)} />
         <Input label="Modalidade" value={data.consumptionModality || ''} onChange={v => onChange({ ...data, consumptionModality: v })} placeholder="AZUL / VERDE / BRANCA / CONVENCIONAL" />

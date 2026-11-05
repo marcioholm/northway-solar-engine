@@ -11,7 +11,9 @@ import {
   UploadedFile,
   Request,
   Logger,
-  UnauthorizedException,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CompaniesService } from './companies.service';
@@ -23,6 +25,14 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { SupabaseService } from '../../supabase/supabase.service';
+import { Company } from './entities/company.entity';
+
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const LOGO_EXTENSIONS: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+};
 
 @ApiTags('companies')
 @ApiBearerAuth()
@@ -35,20 +45,33 @@ export class CompaniesController {
     private readonly supabase: SupabaseService,
   ) {}
 
+  private assertSameCompany(id: string, user: { role: UserRole; companyId: string }) {
+    if (user.role !== UserRole.SUPERADMIN && id !== user.companyId) {
+      throw new ForbiddenException('You can only access your own company');
+    }
+  }
+
+  /** O token do Meta só entra pela API; nunca volta em respostas. */
+  private toResponse(company: Company) {
+    const { metaAccessToken, ...safe } = company;
+    return { ...safe, hasMetaAccessToken: Boolean(metaAccessToken) };
+  }
+
   @Post(':id/logo')
-  @UseGuards(AuthGuard('jwt'))
-  @UseInterceptors(FileInterceptor('logo'))
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('logo', { limits: { fileSize: MAX_LOGO_BYTES } }),
+  )
   @ApiConsumes('multipart/form-data')
   async uploadLogo(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @Request() req,
   ) {
-    if (req.user.role !== UserRole.ADMIN && id !== req.user.companyId) {
-      throw new UnauthorizedException('You can only update your own company');
-    }
-    if (!file) throw new Error('No file uploaded');
-    const ext = file.originalname.split('.').pop() || 'png';
+    this.assertSameCompany(id, req.user);
+    if (!file) throw new BadRequestException('No file uploaded');
+    const ext = LOGO_EXTENSIONS[file.mimetype];
+    if (!ext) throw new BadRequestException('Logo must be PNG, JPEG or WebP');
     const path = `logos/${id}/logo.${ext}`;
     await this.supabase.uploadFile('logos', path, file.buffer, file.mimetype);
     const publicUrl = await this.supabase.getPublicUrl('logos', path);
@@ -61,33 +84,39 @@ export class CompaniesController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN)
-  create(@Body() createCompanyDto: CreateCompanyDto) {
-    return this.companiesService.create(createCompanyDto);
+  @Roles(UserRole.SUPERADMIN)
+  async create(@Body() createCompanyDto: CreateCompanyDto) {
+    return this.toResponse(await this.companiesService.create(createCompanyDto));
   }
 
   @Get()
-  @Roles(UserRole.ADMIN)
-  findAll() {
-    return this.companiesService.findAll();
+  @Roles(UserRole.SUPERADMIN)
+  async findAll() {
+    const companies = await this.companiesService.findAll();
+    return companies.map((company) => this.toResponse(company));
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Request() req) {
-    if (req.user.role !== UserRole.ADMIN && id !== req.user.companyId) {
-      throw new UnauthorizedException('You can only view your own company');
-    }
-    return this.companiesService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    this.assertSameCompany(id, req.user);
+    const company = await this.companiesService.findOne(id);
+    if (!company) throw new NotFoundException('Company not found');
+    return this.toResponse(company);
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
-  update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCompanyDto: UpdateCompanyDto,
+    @Request() req,
+  ) {
+    this.assertSameCompany(id, req.user);
     return this.companiesService.update(id, updateCompanyDto);
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.SUPERADMIN)
   remove(@Param('id') id: string) {
     return this.companiesService.remove(id);
   }

@@ -88,11 +88,8 @@ export class ProposalsController {
       const result = await this.proposalsService.render(proposal.id, proposal.companyId, 'html');
       return result.content;
     }
-    if (format === 'web') {
-      const result = await this.proposalsService.render(proposal.id, proposal.companyId, 'web');
-      return JSON.parse(result.content as string);
-    }
-    return proposal;
+    // Rota sem login: só devolve campos liberados ao cliente final.
+    return this.proposalsService.getPublicView(proposal);
   }
 
   @Get(':id/pdf')

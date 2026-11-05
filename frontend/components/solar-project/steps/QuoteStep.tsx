@@ -275,7 +275,14 @@ export function QuoteStep({ data, onChange, projectId }: { data: Record<string, 
                   <Input placeholder="Nome" value={item.productName} onChange={v => updateItem(idx, 'productName', v)} style={{ minWidth: '100px' }} />
                   <Input placeholder="Marca" value={item.productBrand} onChange={v => updateItem(idx, 'productBrand', v)} style={{ minWidth: '90px' }} />
                   <Input placeholder="Modelo" value={item.productModel} onChange={v => updateItem(idx, 'productModel', v)} style={{ minWidth: '90px' }} />
-                  <Input placeholder="Qtd" variant="number" value={item.quantity || ''} onChange={v => updateItem(idx, 'quantity', Number(v))} style={{ width: '55px' }} />
+                  <Input
+                    placeholder="Qtd"
+                    variant="number"
+                    value={item.quantity || ''}
+                    onChange={v => updateItem(idx, 'quantity', Number(v))}
+                    onFocus={e => e.target.select()}
+                    style={{ width: '55px' }}
+                  />
                   <Input placeholder="R$ Unit" variant="number" value={item.unitPrice || ''} onChange={v => updateItem(idx, 'unitPrice', Number(v))} style={{ width: '80px' }} />
                   {item.totalPrice > 0 && <span style={{ fontWeight: 700, fontSize: '12px', minWidth: '70px', textAlign: 'right' }}>{formatBRL(item.totalPrice)}</span>}
                   <button onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '6px' }}>

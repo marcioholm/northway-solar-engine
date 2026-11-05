@@ -21,13 +21,24 @@ interface InputProps {
   step?: string;
   min?: number;
   max?: number;
+  onFocus?: (e: React.FocusEvent<any>) => void;
+  onBlur?: (e: React.FocusEvent<any>) => void;
 }
 
 export function Input({
   variant = 'text', label, placeholder, value, onChange,
   error, disabled, required, className, style, id, options, step, min, max,
+  onFocus, onBlur,
 }: InputProps) {
   const [focused, setFocused] = useState(false);
+  const [localText, setLocalText] = useState<string | null>(null);
+
+  const formatExternalValue = (val: string | number | undefined) => {
+    if (val === undefined || val === null) return '';
+    if (typeof val === 'number' && Number.isNaN(val)) return '';
+    if (val === 'NaN') return '';
+    return String(val);
+  };
 
   const baseStyle: React.CSSProperties = {
     display: 'block',
@@ -46,6 +57,68 @@ export function Input({
   };
 
   const labelId = id || `input-${Math.random().toString(36).slice(2, 8)}`;
+
+  const displayValue = variant === 'number'
+    ? (focused && localText !== null ? localText : formatExternalValue(value))
+    : formatExternalValue(value);
+
+  const handleNumberChange = (raw: string) => {
+    // Permita '-' somente no início
+    const isNegative = raw.startsWith('-');
+    let withoutMinus = raw.replace(/-/g, '');
+    // Permita apenas dígitos, ponto e vírgula
+    withoutMinus = withoutMinus.replace(/[^0-9.,]/g, '');
+
+    // Permita apenas um separador decimal (. ou ,)
+    let seenSep = false;
+    let filteredChars = '';
+    for (const ch of withoutMinus) {
+      if (ch === '.' || ch === ',') {
+        if (!seenSep) {
+          filteredChars += ch;
+          seenSep = true;
+        }
+      } else {
+        filteredChars += ch;
+      }
+    }
+
+    const currentText = (isNegative ? '-' : '') + filteredChars;
+    setLocalText(currentText);
+
+    // Para "", "-", "." e "-.", chame onChange com "" e mantenha o texto na tela.
+    const isIntermediate =
+      currentText === '' ||
+      currentText === '-' ||
+      currentText === '.' ||
+      currentText === '-.' ||
+      currentText === ',' ||
+      currentText === '-,';
+
+    if (isIntermediate) {
+      onChange?.('');
+    } else {
+      // Para os demais casos, chame onChange com o número em texto, normalizando vírgula para ponto.
+      const normalized = currentText.replace(/,/g, '.');
+      onChange?.(normalized);
+    }
+  };
+
+  const handleFocus = (e: React.FocusEvent<any>) => {
+    setFocused(true);
+    if (variant === 'number') {
+      setLocalText(formatExternalValue(value));
+    }
+    onFocus?.(e);
+  };
+
+  const handleBlur = (e: React.FocusEvent<any>) => {
+    setFocused(false);
+    if (variant === 'number') {
+      setLocalText(null);
+    }
+    onBlur?.(e);
+  };
 
   return (
     <div className={cn(className)} style={style}>
@@ -69,12 +142,12 @@ export function Input({
       {variant === 'select' ? (
         <select
           id={labelId}
-          value={value as string}
+          value={displayValue}
           onChange={e => onChange?.(e.target.value)}
           disabled={disabled}
           required={required}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           style={{ ...baseStyle, appearance: 'none', paddingRight: '32px' }}
         >
           {options?.map(opt => (
@@ -85,12 +158,12 @@ export function Input({
         <textarea
           id={labelId}
           placeholder={placeholder}
-          value={value as string}
+          value={displayValue}
           onChange={e => onChange?.(e.target.value)}
           disabled={disabled}
           required={required}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           style={{ ...baseStyle, minHeight: '80px', resize: 'vertical' }}
         />
       ) : (
@@ -105,23 +178,21 @@ export function Input({
           )}
           <input
             id={labelId}
-            type={variant === 'search' ? 'text' : 'text'}
+            type="text"
             inputMode={variant === 'number' ? 'decimal' : undefined}
             placeholder={placeholder}
-            value={value}
+            value={displayValue}
             onChange={e => {
-              let v = e.target.value;
               if (variant === 'number') {
-                v = v.replace(/[^0-9.,\-]/g, '');
-                v = v.replace(/\.(?=.*\.|.*,)/g, '');
-                v = v.replace(/,/g, '.');
+                handleNumberChange(e.target.value);
+              } else {
+                onChange?.(e.target.value);
               }
-              onChange?.(v);
             }}
             disabled={disabled}
             required={required}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             step={step}
             min={min}
             max={max}

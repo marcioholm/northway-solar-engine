@@ -7,6 +7,10 @@ import { UserRole } from './modules/users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 
 async function bootstrap() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Seed de desenvolvimento não pode rodar em produção.');
+  }
+
   const app = await NestFactory.createApplicationContext(AppModule);
 
   const companiesService = app.get(CompaniesService);

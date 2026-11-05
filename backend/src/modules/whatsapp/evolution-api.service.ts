@@ -62,8 +62,8 @@ export class EvolutionApiService {
     return this.instanceRepository.save(instance);
   }
 
-  async getQrCode(instanceId: string) {
-    const instance = await this.instanceRepository.findOne({ where: { id: instanceId } });
+  async getQrCode(instanceId: string, companyId: string) {
+    const instance = await this.instanceRepository.findOne({ where: { id: instanceId, companyId } });
     if (!instance) {
       throw new Error('WhatsApp instance not found');
     }

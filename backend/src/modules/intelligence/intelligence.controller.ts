@@ -1,14 +1,14 @@
 import { Controller, Get, Request, UseGuards } from '@nestjs/common';
 import { IntelligenceService } from './intelligence.service';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('intelligence')
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(AuthGuard('jwt'))
 export class IntelligenceController {
   constructor(private readonly intelligenceService: IntelligenceService) {}
 
   @Get('dashboard')
   async getDashboard(@Request() req) {
-    return this.intelligenceService.getDashboardData(req.user.company_id);
+    return this.intelligenceService.getDashboardData(req.user.companyId);
   }
 }

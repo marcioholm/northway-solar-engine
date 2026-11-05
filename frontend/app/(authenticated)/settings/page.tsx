@@ -18,6 +18,7 @@ export default function SettingsPage() {
   // Meta Integration
   const [metaPixelId, setMetaPixelId] = useState('');
   const [metaAccessToken, setMetaAccessToken] = useState('');
+  const [hasMetaAccessToken, setHasMetaAccessToken] = useState(false);
   const [metaAdAccountId, setMetaAdAccountId] = useState('');
   const [metaDatasetId, setMetaDatasetId] = useState('');
 
@@ -48,7 +49,7 @@ export default function SettingsPage() {
         setCashDiscount(Number(c.cashDiscount) || 5);
         
         setMetaPixelId(c.metaPixelId || '');
-        setMetaAccessToken(c.metaAccessToken || '');
+        setHasMetaAccessToken(Boolean(c.hasMetaAccessToken));
         setMetaAdAccountId(c.metaAdAccountId || '');
         setMetaDatasetId(c.metaDatasetId || '');
       })
@@ -96,12 +97,17 @@ export default function SettingsPage() {
           financeTax,
           cashDiscount,
           metaPixelId,
-          metaAccessToken,
+          // Campo vazio mantém o token já salvo.
+          ...(metaAccessToken ? { metaAccessToken } : {}),
           metaAdAccountId,
           metaDatasetId,
         }),
       });
       if (!res.ok) throw new Error('Save failed');
+      if (metaAccessToken) {
+        setHasMetaAccessToken(true);
+        setMetaAccessToken('');
+      }
       setMessage('Configurações salvas!');
     } catch {
       setMessage('Erro ao salvar');
@@ -208,7 +214,7 @@ export default function SettingsPage() {
                 <input style={inputStyle} placeholder="Ex: 1234567890" value={metaPixelId} onChange={e => setMetaPixelId(e.target.value)} />
               </Field>
               <Field label="Access Token">
-                <input style={inputStyle} type="password" placeholder="EAAB..." value={metaAccessToken} onChange={e => setMetaAccessToken(e.target.value)} />
+                <input style={inputStyle} type="password" placeholder={hasMetaAccessToken ? 'Token salvo. Preencha só para trocar.' : 'EAAB...'} value={metaAccessToken} onChange={e => setMetaAccessToken(e.target.value)} />
               </Field>
               <Field label="Ad Account ID">
                 <input style={inputStyle} placeholder="act_123456" value={metaAdAccountId} onChange={e => setMetaAdAccountId(e.target.value)} />

@@ -1,5 +1,8 @@
+import { Allow } from 'class-validator';
 export class PaginationDto {
+  @Allow()
   page?: number = 1;
+  @Allow()
   limit?: number = 50;
 }
 

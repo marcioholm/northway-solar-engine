@@ -39,7 +39,7 @@ export function ProposalTrackingPanel({ proposalId }: { proposalId: string }) {
     const api = process.env.NEXT_PUBLIC_API_URL;
     if (!api || !token) return;
 
-    fetch(`${api}/proposals/${proposalId}/tracking`, {
+    fetch(`${api}/proposals/${proposalId}/tracking/stats`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.json())
