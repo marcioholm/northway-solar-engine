@@ -1,7 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import sharp from 'sharp';
 
-export type ProposalImageType = 'logo' | 'cover' | 'about' | 'partner' | 'brand';
+export type ProposalImageType =
+  | 'logo'
+  | 'cover'
+  | 'about'
+  | 'kit'
+  | 'partner'
+  | 'brand';
 
 export interface ImageSpec {
   maxWidth: number;
@@ -22,12 +28,20 @@ export const IMAGE_SPECS: Record<ProposalImageType, ImageSpec> = {
     idealFormat: 'PNG (com transparência) ou WebP',
   },
   cover: {
-    maxWidth: 1240,
-    maxHeight: 1754,
-    recommendedWidth: 1240,
-    recommendedHeight: 1754,
-    ratioLabel: '1:1.41 (A4 vertical)',
+    maxWidth: 2480,
+    maxHeight: 2100,
+    recommendedWidth: 2480,
+    recommendedHeight: 2100,
+    ratioLabel: '6:5',
     idealFormat: 'JPEG ou WebP',
+  },
+  kit: {
+    maxWidth: 1200,
+    maxHeight: 800,
+    recommendedWidth: 1200,
+    recommendedHeight: 800,
+    ratioLabel: '3:2',
+    idealFormat: 'PNG (com transparência) ou WebP',
   },
   about: {
     maxWidth: 1200,
@@ -69,7 +83,7 @@ export class ImageOptimizerService {
   normalizeType(type?: string): ProposalImageType {
     if (!type) {
       throw new BadRequestException(
-        'Tipo de imagem não informado. Tipos permitidos: logo, cover, about, partner, brand',
+        'Tipo de imagem não informado. Tipos permitidos: logo, cover, kit, about, partner, brand',
       );
     }
     const lower = String(type).trim().toLowerCase();
@@ -77,6 +91,9 @@ export class ImageOptimizerService {
       logo: 'logo',
       cover: 'cover',
       capa: 'cover',
+      kit: 'kit',
+      equipamento: 'kit',
+      equipamentos: 'kit',
       about: 'about',
       sobre: 'about',
       partner: 'partner',
@@ -89,7 +106,7 @@ export class ImageOptimizerService {
     const resolved = map[lower];
     if (!resolved) {
       throw new BadRequestException(
-        `Tipo de imagem inválido: "${type}". Tipos permitidos: logo, cover, about, partner, brand`,
+        `Tipo de imagem inválido: "${type}". Tipos permitidos: logo, cover, kit, about, partner, brand`,
       );
     }
     return resolved;
@@ -110,7 +127,7 @@ export class ImageOptimizerService {
     try {
       pipeline = sharp(buffer, { limitInputPixels: 40_000_000, failOn: 'error' });
       metadata = await pipeline.metadata();
-    } catch (err: any) {
+    } catch {
       throw new BadRequestException('Imagem inválida ou grande demais');
     }
 
@@ -127,14 +144,15 @@ export class ImageOptimizerService {
 
     // 3. Remover metadados (como localização): sharp por padrão descarta EXIF/GPS se .withMetadata() não for chamado.
 
-    // 4. Manter transparência em PNG e WebP / Converter fotos sem transparência para WebP (qualidade 82)
+    // 4. Manter transparência em PNG e WebP / Converter fotos sem transparência para WebP (qualidade 85 para cover, 82 para os demais)
+    const quality = type === 'cover' ? 85 : 82;
     const hasAlpha = Boolean(metadata.hasAlpha);
     let outputMimetype: string;
     let outputExtension: string;
 
     if (hasAlpha) {
       if (metadata.format === 'webp' || mimetype === 'image/webp') {
-        pipeline = pipeline.webp({ quality: 82, alphaQuality: 100 });
+        pipeline = pipeline.webp({ quality, alphaQuality: 100 });
         outputMimetype = 'image/webp';
         outputExtension = 'webp';
       } else {
@@ -144,8 +162,8 @@ export class ImageOptimizerService {
         outputExtension = 'png';
       }
     } else {
-      // Foto sem transparência: converter para WebP com qualidade 82
-      pipeline = pipeline.webp({ quality: 82 });
+      // Foto sem transparência: converter para WebP com a qualidade especificada
+      pipeline = pipeline.webp({ quality });
       outputMimetype = 'image/webp';
       outputExtension = 'webp';
     }
@@ -163,7 +181,7 @@ export class ImageOptimizerService {
         height: info.height,
         hasAlpha: Boolean(info.channels === 4 || hasAlpha),
       };
-    } catch (err: any) {
+    } catch {
       throw new BadRequestException('Imagem inválida ou grande demais');
     }
   }

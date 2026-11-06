@@ -40,17 +40,33 @@ export interface ProposalSettingsPublic {
   primaryColor: string;
   secondaryColor: string;
   coverImageUrl?: string;
+  coverFocus?: 'top' | 'center' | 'bottom';
   aboutText?: string;
   aboutImageUrl?: string;
   stats?: Array<{ value: string; label: string }>;
+  highlights?: Array<{ icon: 'team' | 'support' | 'gauge' | 'helmet'; title: string; text: string }>;
   partnerLogos?: string[];
   brandLogos?: string[];
+  serviceArea?: {
+    style?: 'brasil' | 'zoom' | 'estados';
+    states: string[];
+    cities: Array<{ ibge: string; name: string; uf: string; lat: number; lon: number }>;
+  };
   serviceAreaText?: string;
   includedItems?: string[];
+  kitImageUrl?: string;
+  servicesText?: string;
   warrantiesText?: string;
   exclusionsText?: string;
   notesText?: string;
   acceptanceText?: string;
+  qr?: {
+    enabled: boolean;
+    type: 'proposal' | 'consultant' | 'whatsapp' | 'site' | 'instagram' | 'custom';
+    value?: string;
+    message?: string;
+    label?: string;
+  };
   contact?: {
     address?: string;
     phone?: string;

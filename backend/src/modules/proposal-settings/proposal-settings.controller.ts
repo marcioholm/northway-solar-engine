@@ -24,7 +24,7 @@ import { ProposalSettingsService } from './proposal-settings.service';
 import { ImageOptimizerService } from './image-optimizer.service';
 import { UpdateProposalSettingsDto } from './dto/update-proposal-settings.dto';
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',

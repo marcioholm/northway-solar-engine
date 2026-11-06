@@ -1,0 +1,13 @@
+{
+  "name": "proposta-moderno-referencia",
+  "private": true,
+  "description": "Referência visual do modelo Moderno. NÃO é código de produção: portar para backend/src/modules/proposals/templates.",
+  "scripts": { "build": "node build.js" },
+  "dependencies": {
+    "@fontsource/barlow": "5.3.0",
+    "@fontsource/barlow-condensed": "5.3.0",
+    "@svg-maps/brazil": "2.0.0",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": { "playwright": "*" }
+}

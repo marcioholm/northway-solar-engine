@@ -14,7 +14,14 @@ export function useProposalTracking(publicToken: string | undefined) {
 
   const trackView = () => {
     if (!publicToken) return;
-    track(publicToken, 'view');
+    const isQr =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('src') === 'qr';
+    track(
+      publicToken,
+      'view',
+      isQr ? { metadata: { source: 'qr' } } : undefined,
+    );
   };
 
   const trackDuration = () => {

@@ -11,6 +11,7 @@ export class TrackEventDto {
       'accept',
       'change_request',
       'section_view',
+      'qr_scan',
     ],
   })
   @IsString()

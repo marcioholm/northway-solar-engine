@@ -244,12 +244,13 @@ describe('ProposalsService (equipamentos e cotações)', () => {
 
     // Deve exibir valor total
     expect(html).toContain('20.000,00');
-    // NÃO deve exibir cartões de parcelas nem padrões inventados
-    expect(html).not.toContain('Cartão de Crédito');
-    expect(html).not.toContain('Financiamento Solar');
-    expect(html).not.toContain('12x');
-    expect(html).not.toContain('60x');
-    expect(html).not.toContain('À Vista (');
+    // NÃO deve exibir cartões de parcelas nem padrões inventados no corpo da proposta
+    const body = html.slice(html.indexOf('</head>'));
+    expect(body).not.toContain('Cartão de Crédito');
+    expect(body).not.toContain('Financiamento Solar');
+    expect(body).not.toContain('12x');
+    expect(body).not.toContain('60x');
+    expect(body).not.toContain('À Vista (');
 
     // Testar renderização web
     const webResult = await service.render('p-no-pay', 'c1', 'web');

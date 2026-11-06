@@ -67,12 +67,19 @@ export class ProposalSettingsService {
       settings = this.repo.create({
         companyId,
         template: 'moderno',
-        primaryColor: '#FFB703',
-        secondaryColor: '#0F172A',
+        primaryColor: '#1F2937',
+        secondaryColor: '#F59E0B',
+        coverFocus: 'center',
         aboutText: DEFAULT_ABOUT_TEXT,
         stats: DEFAULT_STATS,
+        highlights: [],
         partnerLogos: [],
         brandLogos: [],
+        serviceArea: {
+          style: 'zoom',
+          states: [],
+          cities: [],
+        },
         serviceAreaText:
           'Atendimento especializado em todo o estado com suporte técnico de excelência e equipe própria.',
         includedItems: DEFAULT_INCLUDED_ITEMS,
@@ -80,6 +87,13 @@ export class ProposalSettingsService {
         exclusionsText: DEFAULT_EXCLUSIONS_TEXT,
         notesText: DEFAULT_NOTES_TEXT,
         acceptanceText: DEFAULT_ACCEPTANCE_TEXT,
+        qr: {
+          enabled: true,
+          type: 'proposal',
+          value: '',
+          message: '',
+          label: '',
+        },
         contact: {
           address: '',
           phone: '',
@@ -182,6 +196,14 @@ export class ProposalSettingsService {
       this.validateSupabaseImageUrl(dto.aboutImageUrl, companyId, 'aboutImageUrl');
     }
 
+    if (
+      dto.kitImageUrl !== undefined &&
+      dto.kitImageUrl !== null &&
+      dto.kitImageUrl.trim() !== ''
+    ) {
+      this.validateSupabaseImageUrl(dto.kitImageUrl, companyId, 'kitImageUrl');
+    }
+
     if (dto.partnerLogos !== undefined && Array.isArray(dto.partnerLogos)) {
       for (const logoUrl of dto.partnerLogos) {
         this.validateSupabaseImageUrl(logoUrl, companyId, 'partnerLogos');
@@ -201,16 +223,25 @@ export class ProposalSettingsService {
       settings.secondaryColor = dto.secondaryColor;
     if (dto.coverImageUrl !== undefined)
       settings.coverImageUrl = dto.coverImageUrl;
+    if (dto.coverFocus !== undefined)
+      settings.coverFocus = dto.coverFocus;
     if (dto.aboutText !== undefined) settings.aboutText = dto.aboutText;
     if (dto.aboutImageUrl !== undefined)
       settings.aboutImageUrl = dto.aboutImageUrl;
     if (dto.stats !== undefined) settings.stats = dto.stats;
+    if (dto.highlights !== undefined) settings.highlights = dto.highlights;
     if (dto.partnerLogos !== undefined) settings.partnerLogos = dto.partnerLogos;
     if (dto.brandLogos !== undefined) settings.brandLogos = dto.brandLogos;
+    if (dto.serviceArea !== undefined)
+      settings.serviceArea = dto.serviceArea as any;
     if (dto.serviceAreaText !== undefined)
       settings.serviceAreaText = dto.serviceAreaText;
     if (dto.includedItems !== undefined)
       settings.includedItems = dto.includedItems;
+    if (dto.kitImageUrl !== undefined)
+      settings.kitImageUrl = dto.kitImageUrl;
+    if (dto.servicesText !== undefined)
+      settings.servicesText = dto.servicesText;
     if (dto.warrantiesText !== undefined)
       settings.warrantiesText = dto.warrantiesText;
     if (dto.exclusionsText !== undefined)
@@ -218,6 +249,8 @@ export class ProposalSettingsService {
     if (dto.notesText !== undefined) settings.notesText = dto.notesText;
     if (dto.acceptanceText !== undefined)
       settings.acceptanceText = dto.acceptanceText;
+    if (dto.qr !== undefined)
+      settings.qr = dto.qr as any;
     if (dto.contact !== undefined) {
       settings.contact = {
         ...settings.contact,
