@@ -12,6 +12,7 @@ import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
 import { LeadsService } from '../leads/leads.service';
+import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
 import { LeadStage } from '../leads/entities/lead.entity';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { PricingInputDto } from '../pricing-engine/dto/pricing-input.dto';
@@ -39,6 +40,7 @@ export class ProposalsService {
     private pricingEngineService: PricingEngineService,
     private companiesService: CompaniesService,
     private leadsService: LeadsService,
+    private proposalSettingsService: ProposalSettingsService,
   ) {}
 
   // ────────── TRACKING ──────────
@@ -113,12 +115,17 @@ export class ProposalsService {
       }
     }
 
+    const proposalSettings = proposal.companyId
+      ? await this.proposalSettingsService.findByCompanyId(proposal.companyId)
+      : undefined;
+
     return {
       proposal,
       project,
       quote,
       company,
-      consultantName: undefined,
+      proposalSettings,
+      consultantName: project?.consultantName || undefined,
       consultantPhone: undefined,
     };
   }

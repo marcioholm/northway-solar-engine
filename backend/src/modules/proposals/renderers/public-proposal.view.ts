@@ -70,6 +70,32 @@ export function toPublicProposalView(
       name: web.company.name,
       logoUrl: web.company.logoUrl,
     },
+    settings: web.settings && {
+      template: web.settings.template,
+      primaryColor: web.settings.primaryColor,
+      secondaryColor: web.settings.secondaryColor,
+      coverImageUrl: web.settings.coverImageUrl,
+      aboutText: web.settings.aboutText,
+      aboutImageUrl: web.settings.aboutImageUrl,
+      stats: web.settings.stats,
+      partnerLogos: web.settings.partnerLogos,
+      brandLogos: web.settings.brandLogos,
+      serviceAreaText: web.settings.serviceAreaText,
+      includedItems: web.settings.includedItems,
+      warrantiesText: web.settings.warrantiesText,
+      exclusionsText: web.settings.exclusionsText,
+      notesText: web.settings.notesText,
+      acceptanceText: web.settings.acceptanceText,
+      contact: web.settings.contact,
+      sectionsEnabled: web.settings.sectionsEnabled,
+    },
+    payment: {
+      cashDiscount: toNumber(web.paymentCashDiscount ?? web.company?.cashDiscount ?? 5),
+      cardTax: toNumber(web.paymentCardTax ?? web.company?.cardTax ?? 15),
+      cardInstallments: toNumber(web.paymentCardInstallments ?? 12),
+      financeTax: toNumber(web.paymentFinanceTax ?? web.company?.financeTax ?? 20),
+      financeInstallments: toNumber(web.paymentFinanceInstallments ?? 60),
+    },
   };
 }
 

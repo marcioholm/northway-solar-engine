@@ -2,15 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ProposalData } from '../../lib/proposal-types';
 import { useProposalTracking } from '../../lib/use-proposal-tracking';
-import { ProposalCover } from './ProposalCover';
-import { CurrentReality } from './CurrentReality';
-import { SavingsAndResults } from './SavingsAndResults';
-import { SystemDetails } from './SystemDetails';
-import { Investment } from './Investment';
-import { TimelineSteps } from './TimelineSteps';
-import { NextSteps } from './NextSteps';
-import { EnvironmentalFooter } from './EnvironmentalFooter';
-import { StickyPriceBanner } from './StickyPriceBanner';
+import { CommercialProposalView } from './CommercialProposalView';
 
 export function ProposalView({ data }: { data: ProposalData }) {
   const [accepted, setAccepted] = useState(false);
@@ -113,16 +105,8 @@ export function ProposalView({ data }: { data: ProposalData }) {
         </div>
       )}
 
-      <article style={{ fontFamily: 'var(--font-body)', paddingBottom: 100, paddingTop: 54 }}>
-        <ProposalCover data={data} />
-        <CurrentReality data={data} />
-        <SavingsAndResults data={data} />
-        <SystemDetails data={data} />
-        <Investment data={data} />
-        <TimelineSteps data={data} />
-        <NextSteps data={data} />
-        <EnvironmentalFooter data={data} />
-        <StickyPriceBanner data={data} />
+      <article style={{ fontFamily: 'var(--font-body)', paddingBottom: 100, paddingTop: 64 }}>
+        <CommercialProposalView data={data} />
       </article>
     </div>
   );

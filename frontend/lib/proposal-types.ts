@@ -35,6 +35,51 @@ export interface FAQItem {
   answer: string;
 }
 
+export interface ProposalSettingsPublic {
+  template: 'classico' | 'moderno' | 'minimalista';
+  primaryColor: string;
+  secondaryColor: string;
+  coverImageUrl?: string;
+  aboutText?: string;
+  aboutImageUrl?: string;
+  stats?: Array<{ value: string; label: string }>;
+  partnerLogos?: string[];
+  brandLogos?: string[];
+  serviceAreaText?: string;
+  includedItems?: string[];
+  warrantiesText?: string;
+  exclusionsText?: string;
+  notesText?: string;
+  acceptanceText?: string;
+  contact?: {
+    address?: string;
+    phone?: string;
+    whatsapp?: string;
+    website?: string;
+    instagram?: string;
+  };
+  sectionsEnabled?: {
+    cover?: boolean;
+    about?: boolean;
+    stats?: boolean;
+    technical?: boolean;
+    equipment?: boolean;
+    financial?: boolean;
+    kit?: boolean;
+    warranties?: boolean;
+    partners?: boolean;
+    contact?: boolean;
+  };
+}
+
+export interface PaymentConditionsPublic {
+  cashDiscount?: number;
+  cardTax?: number;
+  cardInstallments?: number;
+  financeTax?: number;
+  financeInstallments?: number;
+}
+
 export interface ProposalData {
   publicToken: string;
   clientName?: string;
@@ -83,6 +128,8 @@ export interface ProposalData {
     googleRating?: number;
     totalWarranty?: number;
   };
+  settings?: ProposalSettingsPublic;
+  payment?: PaymentConditionsPublic;
   paymentMethods?: PaymentMethodConfig;
   timeline?: TimelineStep[];
   testimonials?: Testimonial[];

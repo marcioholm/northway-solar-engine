@@ -18,6 +18,7 @@ import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
 import { LeadsService } from '../leads/leads.service';
+import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
 
 describe('ProposalsService (equipamentos e cotações)', () => {
   let service: ProposalsService;
@@ -60,6 +61,33 @@ describe('ProposalsService (equipamentos e cotações)', () => {
         {
           provide: LeadsService,
           useValue: { findOne: jest.fn(), updateStage: jest.fn() },
+        },
+        {
+          provide: ProposalSettingsService,
+          useValue: {
+            findByCompanyId: jest.fn().mockResolvedValue({
+              template: 'moderno',
+              primaryColor: '#0f766e',
+              secondaryColor: '#f59e0b',
+              aboutText: 'Sobre nós',
+              stats: [],
+              partnerLogos: [],
+              brandLogos: [],
+              includedItems: [],
+              sectionsEnabled: {
+                cover: true,
+                about: true,
+                stats: true,
+                technical: true,
+                equipment: true,
+                financial: true,
+                kit: true,
+                warranties: true,
+                partners: true,
+                contact: true,
+              },
+            }),
+          },
         },
       ],
     }).compile();

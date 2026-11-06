@@ -3,7 +3,7 @@ import {
   ProposalAssembledData,
   RenderOutput,
 } from './proposal-renderer.interface';
-import { defaultTemplate } from '../templates/default.template';
+import { commercialTemplate } from '../templates/commercial.template';
 
 export class ProposalHtmlRenderer implements ProposalRenderer {
   readonly name = 'html';
@@ -12,8 +12,8 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
     const {
       proposal,
       project,
-      quote,
       company,
+      proposalSettings,
       consultantName,
       consultantPhone,
     } = data;
@@ -21,9 +21,15 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
     const projectData = (project || {}) as any;
     const companyData = (company || {}) as any;
 
-    const cashDiscount = Number(companyData.cashDiscount || 5);
-    const cardTax = Number(companyData.cardTax || 15);
-    const financeTax = Number(companyData.financeTax || 20);
+    const cashDiscount = Number(
+      projectData.paymentCashDiscount ?? companyData.cashDiscount ?? 5,
+    );
+    const cardTax = Number(
+      projectData.paymentCardTax ?? companyData.cardTax ?? 15,
+    );
+    const financeTax = Number(
+      projectData.paymentFinanceTax ?? companyData.financeTax ?? 20,
+    );
     const finalPrice = Number(
       proposal.finalPrice || projectData.pricingFinalPrice || 0,
     );
@@ -35,14 +41,6 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
     const cardInstallment = cardTotalPrice / 12;
     const financeTotalPrice = finalPrice * (1 + financeTax / 100);
     const financeInstallment = financeTotalPrice / 60;
-
-    const trees = Math.round(
-      Number(proposal.systemPowerKwp || projectData.sizingPowerKwp || 0) * 40,
-    );
-    const co2 = (
-      Number(proposal.systemPowerKwp || projectData.sizingPowerKwp || 0) * 2.1
-    ).toFixed(1);
-    const roi = paybackYears > 0 ? (100 / paybackYears).toFixed(1) : undefined;
 
     const expirationDate = new Date(proposal.createdAt);
     expirationDate.setDate(expirationDate.getDate() + 10);
@@ -85,40 +83,92 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       });
     }
 
-    const html = defaultTemplate({
+    const effectiveSettings = proposalSettings || {
+      template: 'moderno',
+      primaryColor: '#0f766e',
+      secondaryColor: '#f59e0b',
+      coverImageUrl: undefined,
+      aboutText:
+        'Somos especialistas em soluções completas de energia solar fotovoltaica.',
+      aboutImageUrl: undefined,
+      stats: [],
+      partnerLogos: [],
+      brandLogos: [],
+      serviceAreaText: 'Atendimento especializado com equipe própria.',
+      includedItems: [
+        'Módulos Fotovoltaicos de Alta Eficiência',
+        'Inversor com Monitoramento Wi-Fi',
+        'Estrutura de Fixação em Alumínio',
+        'Projeto Elétrico e Homologação na Concessionária',
+        'Instalação e Comissionamento Completo',
+      ],
+      warrantiesText:
+        '25 anos de eficiência nos módulos e 10 anos no inversor.',
+      exclusionsText:
+        'Não inclusos: obras civis pesadas e adequação de padrão de entrada.',
+      notesText: 'Proposta válida por 10 dias corridos.',
+      acceptanceText:
+        'Declaro concordar com o dimensionamento técnico, valores e condições comerciais apresentadas.',
+      contact: {
+        address: '',
+        phone: '',
+        whatsapp: '',
+        website: '',
+        instagram: '',
+      },
+      sectionsEnabled: {
+        cover: true,
+        about: true,
+        stats: true,
+        technical: true,
+        equipment: true,
+        financial: true,
+        kit: true,
+        warranties: true,
+        partners: true,
+        contact: true,
+      },
+    };
+
+    const html = commercialTemplate({
       clientName: proposal.clientName,
       clientCity: proposal.clientCity,
       clientState: projectData.clientState,
-      clientCep: proposal.clientCep,
       consultantName: consultantName || projectData.consultantName || '—',
       consultantPhone,
       createdAt: createdAtStr,
-      tariff: proposal.tariff,
-      consumption: proposal.consumptionKwh,
-      monthlyBill: projectData.consumptionMonthlyBill,
-      systemPowerKwp: proposal.systemPowerKwp || projectData.sizingPowerKwp,
-      moduleQty: proposal.moduleQty || projectData.sizingModuleQty,
+      expirationDate: expirationStr,
+      publicToken: proposal.publicToken,
+      consumptionKwh: Number(
+        proposal.consumptionKwh || projectData.consumptionMonthlyKwh || 0,
+      ),
+      systemPowerKwp: Number(
+        proposal.systemPowerKwp || projectData.sizingPowerKwp || 0,
+      ),
+      moduleQty: Number(proposal.moduleQty || projectData.sizingModuleQty || 0),
+      generationMonthlyKwh: Number(
+        projectData.sizingGenerationKwh ||
+          Math.round(Number(proposal.systemPowerKwp || 0) * 125),
+      ),
       finalPrice: finalPrice,
       paybackYears: paybackYears,
+      annualSavings: annualSavings,
+      equipment: equipmentList,
       company: {
-        logoUrl: companyData.logoUrl,
         name: companyData.name,
+        logoUrl: companyData.logoUrl,
         cashDiscount,
         cardTax,
         financeTax,
       },
-      equipment: equipmentList,
-      cashPrice,
-      cardInstallment,
-      cardTotalPrice,
-      financeInstallment,
-      financeTotalPrice,
-      expirationDate: expirationStr,
-      trees,
-      co2,
-      roi,
-      annualSavings,
-      publicToken: proposal.publicToken,
+      settings: effectiveSettings as any,
+      payment: {
+        cashPrice,
+        cardInstallment,
+        cardTotalPrice,
+        financeInstallment,
+        financeTotalPrice,
+      },
     });
 
     return {

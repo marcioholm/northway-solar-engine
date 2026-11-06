@@ -23,6 +23,9 @@ export default function LoginPage() {
       if (!res.ok) throw new Error('Login failed');
       const data = await res.json();
       localStorage.setItem('token', data.access_token);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
       router.push('/dashboard');
     } catch {
       setError('Credenciais inválidas. Verifique seu e-mail e senha.');
