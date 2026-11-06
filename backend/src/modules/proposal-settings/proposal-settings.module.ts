@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProposalSettings } from './entities/proposal-settings.entity';
 import { ProposalSettingsService } from './proposal-settings.service';
 import { ProposalSettingsController } from './proposal-settings.controller';
+import { ImageOptimizerService } from './image-optimizer.service';
 import { SupabaseModule } from '../../supabase/supabase.module';
 
 @Module({
@@ -11,7 +12,7 @@ import { SupabaseModule } from '../../supabase/supabase.module';
     SupabaseModule,
   ],
   controllers: [ProposalSettingsController],
-  providers: [ProposalSettingsService],
-  exports: [ProposalSettingsService],
+  providers: [ProposalSettingsService, ImageOptimizerService],
+  exports: [ProposalSettingsService, ImageOptimizerService],
 })
 export class ProposalSettingsModule {}

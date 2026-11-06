@@ -92,6 +92,110 @@ const DEFAULT_SETTINGS: ProposalSettingsData = {
   },
 };
 
+// Image specifications and dimension validation
+interface ImageValidationSpec {
+  recommendedWidth: number;
+  recommendedHeight: number;
+  ratio: number;
+  ratioLabel: string;
+  idealFormat: string;
+}
+
+const PROPOSAL_IMAGE_SPECS: Record<'cover' | 'about' | 'partner' | 'brand', ImageValidationSpec> = {
+  cover: {
+    recommendedWidth: 1240,
+    recommendedHeight: 1754,
+    ratio: 1240 / 1754,
+    ratioLabel: '1:1.41 (A4 vertical) ou banner horizontal',
+    idealFormat: 'JPEG ou WebP',
+  },
+  about: {
+    recommendedWidth: 1200,
+    recommendedHeight: 800,
+    ratio: 3 / 2,
+    ratioLabel: '3:2 (horizontal)',
+    idealFormat: 'JPEG ou WebP',
+  },
+  partner: {
+    recommendedWidth: 600,
+    recommendedHeight: 300,
+    ratio: 2 / 1,
+    ratioLabel: '2:1 (horizontal)',
+    idealFormat: 'PNG transparente ou WebP',
+  },
+  brand: {
+    recommendedWidth: 600,
+    recommendedHeight: 300,
+    ratio: 2 / 1,
+    ratioLabel: '2:1 (horizontal)',
+    idealFormat: 'PNG transparente ou WebP',
+  },
+};
+
+function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Falha ao ler dimensões da imagem'));
+    };
+    img.src = url;
+  });
+}
+
+async function validateProposalImage(
+  file: File,
+  target: 'cover' | 'about' | 'partner' | 'brand',
+): Promise<boolean> {
+  const spec = PROPOSAL_IMAGE_SPECS[target];
+  try {
+    const { width, height } = await getImageDimensions(file);
+    const warnings: string[] = [];
+
+    // Checagem de 50% das dimensões recomendadas
+    const minWidth = Math.round(spec.recommendedWidth * 0.5);
+    const minHeight = Math.round(spec.recommendedHeight * 0.5);
+    if (width < minWidth || height < minHeight) {
+      warnings.push(
+        `Dimensões baixas (${width}×${height} px). O recomendado é ao menos ${minWidth}×${minHeight} px (50% do ideal de ${spec.recommendedWidth}×${spec.recommendedHeight} px) para garantir nitidez na proposta e no PDF.`,
+      );
+    }
+
+    // Checagem de proporção muito diferente
+    const currentRatio = width / height;
+    if (target === 'cover') {
+      const isVertical = currentRatio >= 0.5 && currentRatio <= 1.0;
+      const isHorizontal = currentRatio >= 1.2 && currentRatio <= 3.2;
+      if (!isVertical && !isHorizontal) {
+        warnings.push(
+          `Proporção incomum (${width}×${height} px, proporção ${currentRatio.toFixed(2)}:1). Recomendado A4 vertical (1:1.41) ou banner panorâmico.`,
+        );
+      }
+    } else {
+      const diffRatio = Math.abs(currentRatio - spec.ratio) / spec.ratio;
+      if (diffRatio > 0.45) {
+        warnings.push(
+          `Proporção da imagem (${width}×${height} px, proporção ${currentRatio.toFixed(2)}:1) difere da recomendada (${spec.ratioLabel}). A imagem poderá conter cortes ou bordas.`,
+        );
+      }
+    }
+
+    if (warnings.length > 0) {
+      return window.confirm(
+        `Atenção às dimensões da imagem selecionada:\n\n• ${warnings.join('\n• ')}\n\nDeseja enviar mesmo assim?`,
+      );
+    }
+  } catch {
+    // Se não for possível ler dimensões no browser, permite seguir
+  }
+  return true;
+}
+
 export function ProposalSettingsTab() {
   const [data, setData] = useState<ProposalSettingsData>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -173,14 +277,18 @@ export function ProposalSettingsTab() {
       return;
     }
 
+    const shouldProceed = await validateProposalImage(file, target);
+    if (!shouldProceed) return;
+
     setUploadingTarget(target);
     setMessage(null);
 
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('type', target);
 
-      const res = await fetch(`${api}/proposal-settings/upload`, {
+      const res = await fetch(`${api}/proposal-settings/upload?type=${target}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -462,27 +570,43 @@ export function ProposalSettingsTab() {
 
             <div style={{ marginTop: 20 }}>
               <label style={labelStyle}>Imagem de Capa (Opcional - até 2 MB)</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: 10 }}>
+                Recomendado: 1240×1754 px (A4) • Proporção: 1:1.41 (vertical) ou banner horizontal • Formato ideal: JPEG ou WebP
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div
                   style={{
-                    width: 140,
-                    height: 80,
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px dashed var(--border)',
+                    width: '100%',
+                    maxWidth: 380,
+                    height: 180,
+                    borderRadius: 'var(--radius-lg)',
+                    border: '1px solid var(--border)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    background: data.coverImageUrl ? '#0f172a' : 'var(--bg)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    overflow: 'hidden',
-                    background: 'var(--bg)',
                   }}
+                  title="Pré-visualização no formato real da capa da proposta comercial"
                 >
                   {data.coverImageUrl ? (
-                    <img src={data.coverImageUrl} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <>
+                      <img src={data.coverImageUrl} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 6, background: data.secondaryColor || '#f59e0b' }} />
+                      <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: '10px', padding: '2px 8px', borderRadius: 4, backdropFilter: 'blur(4px)' }}>
+                        Formato real da proposta
+                      </div>
+                    </>
                   ) : (
-                    <PhotoIcon style={{ width: 28, height: 28, color: 'var(--text-muted)', opacity: 0.5 }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--text-muted)' }}>
+                      <PhotoIcon style={{ width: 32, height: 32, opacity: 0.5 }} />
+                      <span style={{ fontSize: '12px' }}>Nenhuma capa configurada</span>
+                    </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <label style={uploadButtonStyle}>
                     {uploadingTarget === 'cover' ? 'Enviando capa...' : 'Escolher imagem de capa'}
                     <input
@@ -492,6 +616,7 @@ export function ProposalSettingsTab() {
                       onChange={e => {
                         const file = e.target.files?.[0];
                         if (file) handleUploadImage(file, 'cover');
+                        e.target.value = '';
                       }}
                     />
                   </label>
@@ -499,7 +624,7 @@ export function ProposalSettingsTab() {
                     <button
                       type="button"
                       onClick={() => setData(prev => ({ ...prev, coverImageUrl: '' }))}
-                      style={{ color: 'var(--danger)', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+                      style={{ color: 'var(--danger)', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                     >
                       Remover imagem
                     </button>
@@ -524,27 +649,41 @@ export function ProposalSettingsTab() {
 
               <div>
                 <label style={labelStyle}>Foto Institucional / Equipe (Opcional - até 2 MB)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: 10 }}>
+                  Recomendado: 1200×800 px • Proporção: 3:2 • Formato ideal: JPEG ou WebP
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div
                     style={{
-                      width: 140,
-                      height: 80,
+                      width: 240,
+                      height: 160,
                       borderRadius: 'var(--radius-md)',
-                      border: '1px dashed var(--border)',
+                      border: '1px solid var(--border)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      background: 'var(--bg)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      overflow: 'hidden',
-                      background: 'var(--bg)',
                     }}
+                    title="Pré-visualização no formato real da seção Sobre Nós (3:2)"
                   >
                     {data.aboutImageUrl ? (
-                      <img src={data.aboutImageUrl} alt="Sobre nós" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <>
+                        <img src={data.aboutImageUrl} alt="Sobre nós" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: '9px', padding: '2px 6px', borderRadius: 4, backdropFilter: 'blur(4px)' }}>
+                          Proporção 3:2
+                        </div>
+                      </>
                     ) : (
-                      <PhotoIcon style={{ width: 28, height: 28, color: 'var(--text-muted)', opacity: 0.5 }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: 'var(--text-muted)' }}>
+                        <PhotoIcon style={{ width: 28, height: 28, opacity: 0.5 }} />
+                        <span style={{ fontSize: '11px' }}>Foto institucional (3:2)</span>
+                      </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <label style={uploadButtonStyle}>
                       {uploadingTarget === 'about' ? 'Enviando...' : 'Escolher foto institucional'}
                       <input
@@ -554,6 +693,7 @@ export function ProposalSettingsTab() {
                         onChange={e => {
                           const file = e.target.files?.[0];
                           if (file) handleUploadImage(file, 'about');
+                          e.target.value = '';
                         }}
                       />
                     </label>
@@ -561,7 +701,7 @@ export function ProposalSettingsTab() {
                       <button
                         type="button"
                         onClick={() => setData(prev => ({ ...prev, aboutImageUrl: '' }))}
-                        style={{ color: 'var(--danger)', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+                        style={{ color: 'var(--danger)', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                       >
                         Remover imagem
                       </button>
@@ -636,7 +776,7 @@ export function ProposalSettingsTab() {
           <SectionContainer icon={<PhotoIcon style={{ width: 20, height: 20 }} />} title="Logos de Parceiros e Fabricantes">
             {/* Parceiros */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <label style={labelStyle}>Parceiros / Financiadores (Até 12 logos)</label>
                 {(data.partnerLogos?.length || 0) < 12 && (
                   <label style={uploadButtonStyle}>
@@ -648,15 +788,19 @@ export function ProposalSettingsTab() {
                       onChange={e => {
                         const f = e.target.files?.[0];
                         if (f) handleUploadImage(f, 'partner');
+                        e.target.value = '';
                       }}
                     />
                   </label>
                 )}
               </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: 8 }}>
+                Recomendado: 600×300 px • Proporção: 2:1 • Formato ideal: PNG transparente ou WebP (pré-visualização no formato real: 78×42 px)
+              </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {(data.partnerLogos || []).map((logo, idx) => (
                   <div key={idx} style={logoCardStyle}>
-                    <img src={logo} alt="Parceiro" style={{ maxWidth: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                    <img src={logo} alt="Parceiro" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     <button
                       type="button"
                       onClick={() => handleRemoveLogo('partner', idx)}
@@ -675,7 +819,7 @@ export function ProposalSettingsTab() {
 
             {/* Fabricantes / Marcas */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <label style={labelStyle}>Marcas / Fabricantes de Equipamentos (Até 12 logos)</label>
                 {(data.brandLogos?.length || 0) < 12 && (
                   <label style={uploadButtonStyle}>
@@ -687,15 +831,19 @@ export function ProposalSettingsTab() {
                       onChange={e => {
                         const f = e.target.files?.[0];
                         if (f) handleUploadImage(f, 'brand');
+                        e.target.value = '';
                       }}
                     />
                   </label>
                 )}
               </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: 8 }}>
+                Recomendado: 600×300 px • Proporção: 2:1 • Formato ideal: PNG transparente ou WebP (pré-visualização no formato real: 78×42 px)
+              </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {(data.brandLogos || []).map((logo, idx) => (
                   <div key={idx} style={logoCardStyle}>
-                    <img src={logo} alt="Marca" style={{ maxWidth: '100%', maxHeight: 40, objectFit: 'contain' }} />
+                    <img src={logo} alt="Marca" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     <button
                       type="button"
                       onClick={() => handleRemoveLogo('brand', idx)}
@@ -1104,12 +1252,12 @@ const uploadButtonStyle: React.CSSProperties = {
 
 const logoCardStyle: React.CSSProperties = {
   position: 'relative',
-  width: 90,
-  height: 54,
-  padding: 6,
-  borderRadius: 'var(--radius-md)',
-  border: '1px solid var(--border)',
-  background: 'var(--bg)',
+  width: 78,
+  height: 42,
+  padding: 4,
+  borderRadius: 6,
+  border: '1px solid #e2e8f0',
+  background: '#ffffff',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
