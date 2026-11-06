@@ -8,7 +8,7 @@ import { commercialTemplate } from '../templates/commercial.template';
 export class ProposalHtmlRenderer implements ProposalRenderer {
   readonly name = 'html';
 
-  render(data: ProposalAssembledData): RenderOutput {
+  async render(data: ProposalAssembledData): Promise<RenderOutput> {
     const {
       proposal,
       project,
@@ -121,15 +121,22 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
 
     const effectiveSettings = proposalSettings || {
       template: 'moderno',
-      primaryColor: '#0f766e',
-      secondaryColor: '#f59e0b',
+      primaryColor: '#1F2937',
+      secondaryColor: '#F59E0B',
       coverImageUrl: undefined,
+      coverFocus: 'center',
       aboutText:
         'Somos especialistas em soluções completas de energia solar fotovoltaica.',
       aboutImageUrl: undefined,
       stats: [],
+      highlights: [],
       partnerLogos: [],
       brandLogos: [],
+      serviceArea: {
+        style: 'zoom',
+        states: [],
+        cities: [],
+      },
       serviceAreaText: 'Atendimento especializado com equipe própria.',
       includedItems: [
         'Módulos Fotovoltaicos de Alta Eficiência',
@@ -145,6 +152,13 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       notesText: 'Proposta válida por 10 dias corridos.',
       acceptanceText:
         'Declaro concordar com o dimensionamento técnico, valores e condições comerciais apresentadas.',
+      qr: {
+        enabled: true,
+        type: 'proposal',
+        value: '',
+        message: '',
+        label: '',
+      },
       contact: {
         address: '',
         phone: '',
@@ -166,7 +180,7 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       },
     };
 
-    const html = commercialTemplate({
+    const html = await commercialTemplate({
       clientName: proposal.clientName,
       clientCity: proposal.clientCity,
       clientState: projectData.clientState,

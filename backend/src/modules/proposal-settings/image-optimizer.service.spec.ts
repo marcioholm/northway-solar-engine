@@ -14,6 +14,8 @@ describe('ImageOptimizerService', () => {
       expect(service.normalizeType('logo')).toBe('logo');
       expect(service.normalizeType('cover')).toBe('cover');
       expect(service.normalizeType('capa')).toBe('cover');
+      expect(service.normalizeType('kit')).toBe('kit');
+      expect(service.normalizeType('equipamento')).toBe('kit');
       expect(service.normalizeType('about')).toBe('about');
       expect(service.normalizeType('sobre')).toBe('about');
       expect(service.normalizeType('partner')).toBe('partner');

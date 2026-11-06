@@ -28,6 +28,7 @@ import { IntelligenceModule } from './modules/intelligence/intelligence.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { TeamsModule } from './modules/teams/teams.module';
 import { ProposalSettingsModule } from './modules/proposal-settings/proposal-settings.module';
+import { GeoModule } from './modules/geo/geo.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { ProposalSettingsModule } from './modules/proposal-settings/proposal-set
     FinanceModule,
     TeamsModule,
     ProposalSettingsModule,
+    GeoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -15,7 +15,8 @@ export type TrackEventType =
   | 'whatsapp_click'
   | 'accept'
   | 'change_request'
-  | 'section_view';
+  | 'section_view'
+  | 'qr_scan';
 
 @Entity('proposal_tracking')
 @Index(['proposalId', 'eventType'])

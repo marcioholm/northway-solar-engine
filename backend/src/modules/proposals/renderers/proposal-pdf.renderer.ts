@@ -81,7 +81,7 @@ export class ProposalPdfRenderer implements ProposalRenderer {
   constructor(private htmlRenderer: ProposalHtmlRenderer) {}
 
   async render(data: ProposalAssembledData): Promise<RenderOutput> {
-    const htmlOutput = this.htmlRenderer.render(data);
+    const htmlOutput = await this.htmlRenderer.render(data);
 
     let browser: puppeteer.Browser | undefined;
     let pdfBuffer: Buffer;
