@@ -20,7 +20,33 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   if (!mounted) {
-    return null; // Don't render the layout until auth is verified
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          background: 'var(--bg)',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            border: '3px solid rgba(16, 185, 129, 0.2)',
+            borderTopColor: '#10b981',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+        <span style={{ fontSize: '13px', fontWeight: 500 }}>Carregando...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   return (
