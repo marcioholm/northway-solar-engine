@@ -230,6 +230,41 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(body).not.toContain(secret);
     }
     expect(response.body.id).toBeUndefined();
+
+    // Sem condições de pagamento no projeto: não mostra parcelas calculadas
+    expect(response.body.payment.cardInstallment).toBeUndefined();
+    expect(response.body.payment.financeInstallment).toBeUndefined();
+    expect(response.body.payment.cashPrice).toBeUndefined();
+    // Sem geração no projeto: omite a geração
+    expect(response.body.generationMonthlyKwh).toBeUndefined();
+  });
+
+  it('proposta sem condições de pagamento não mostra parcelas e sem geração omite gráfico', async () => {
+    // 1. Proposta pública
+    const response = await http()
+      .get(`/proposals/public/${PUBLIC_TOKEN}`)
+      .expect(200);
+
+    expect(response.body.payment.cardInstallments).toBeUndefined();
+    expect(response.body.payment.cardInstallment).toBeUndefined();
+    expect(response.body.payment.financeInstallments).toBeUndefined();
+    expect(response.body.payment.financeInstallment).toBeUndefined();
+    expect(response.body.payment.cashDiscount).toBeUndefined();
+    expect(response.body.payment.cashPrice).toBeUndefined();
+    expect(response.body.generationMonthlyKwh).toBeUndefined();
+
+    // 2. Renderização de PDF: gera sem quebrar e sem dados vazados
+    const pdfRes = await http()
+      .get(`/proposals/${PROPOSAL_ID}/pdf`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+    expect(pdfRes.header['content-type']).toContain('application/pdf');
+
+    // 3. Sigilo total de dados internos
+    const bodyStr = JSON.stringify(response.body);
+    for (const secret of ['marginPct', 'totalCost', 'pricingProfit', 'costModules', 'segredo']) {
+      expect(bodyStr).not.toContain(secret);
+    }
   });
 
   it('token desconhecido devolve 404', async () => {

@@ -117,6 +117,10 @@ export class ProposalWebRenderer implements ProposalRenderer {
       consumption: pd.consumptionMonthlyKwh ?? proposal.consumptionKwh,
       monthlyBill: pd.consumptionMonthlyBill,
       systemPowerKwp: pd.sizingPowerKwp ?? proposal.systemPowerKwp,
+      generationMonthlyKwh:
+        pd.sizingGenerationKwh != null && Number(pd.sizingGenerationKwh) > 0
+          ? Number(pd.sizingGenerationKwh)
+          : undefined,
       moduleQty: pd.sizingModuleQty ?? proposal.moduleQty,
       equipment: [
         ...((pd.equipmentModules || []) as any[]).map((m: any) => ({

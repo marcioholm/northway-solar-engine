@@ -42,8 +42,7 @@ function renderMonthlyChartSvg(
   secondaryColor: string,
 ) {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const factors = [1.08, 1.04, 1.00, 0.94, 0.88, 0.84, 0.88, 0.98, 1.04, 1.08, 1.10, 1.12];
-  const monthlyValues = factors.map(f => Math.round(avgGenerationKwh * f));
+  const monthlyValues = months.map(() => Math.round(avgGenerationKwh));
   const maxVal = Math.max(...monthlyValues, consumptionKwh || 0, 100) * 1.25;
 
   const width = 640;
@@ -143,17 +142,25 @@ export function CommercialProposalView({ data }: { data: ProposalData }) {
   const finalPrice = Number(data.finalPrice || 0);
   const paybackYears = Number(data.paybackYears || 0);
   const annualSavings = paybackYears > 0 ? finalPrice / paybackYears : 0;
-  const cashDiscount = Number(data.payment?.cashDiscount ?? 5);
-  const cashPrice = finalPrice * (1 - cashDiscount / 100);
-  const cardInstallment = (finalPrice * 1.15) / 12;
-  const cardTotalPrice = cardInstallment * 12;
-  const financeInstallment = (finalPrice * 1.2) / 60;
-  const financeTotalPrice = financeInstallment * 60;
+
+  const p = data.payment;
+  const hasCash = p?.cashPrice != null && p?.cashDiscount != null;
+  const hasCard =
+    p?.cardInstallment != null &&
+    p?.cardInstallments != null &&
+    p.cardInstallments > 0;
+  const hasFinance =
+    p?.financeInstallment != null &&
+    p?.financeInstallments != null &&
+    p.financeInstallments > 0;
 
   const systemPowerKwp = Number(data.systemPowerKwp || 0);
   const consumptionKwh = Number(data.consumption || 0);
   const moduleQty = Number(data.moduleQty || 0);
-  const generationMonthlyKwh = Math.round(systemPowerKwp * 125);
+  const generationMonthlyKwh =
+    data.generationMonthlyKwh != null && Number(data.generationMonthlyKwh) > 0
+      ? Number(data.generationMonthlyKwh)
+      : undefined;
 
   const contact = settings.contact || {};
   const contactParts: string[] = [];
@@ -498,33 +505,48 @@ export function CommercialProposalView({ data }: { data: ProposalData }) {
             </div>
 
             {/* Destaques Técnicos */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '16px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${1 + (moduleQty > 0 ? 1 : 0) + (generationMonthlyKwh && generationMonthlyKwh > 0 ? 1 : 0) + (consumptionKwh > 0 ? 1 : 0)}, minmax(0, 1fr))`,
+                gap: '10px',
+                marginBottom: '16px',
+              }}
+            >
               <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                 <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Potência do Sistema</div>
                 <div style={{ fontSize: '16pt', fontWeight: 900, color: primaryColor, marginTop: '2px' }}>{fmtNumber(systemPowerKwp, 2)} kWp</div>
               </div>
-              <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Módulos Solares</div>
-                <div style={{ fontSize: '16pt', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{moduleQty} un</div>
-              </div>
-              <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Geração Média</div>
-                <div style={{ fontSize: '16pt', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{fmtNumber(generationMonthlyKwh)} kWh/mês</div>
-              </div>
-              <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Consumo Atual</div>
-                <div style={{ fontSize: '16pt', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{consumptionKwh ? `${fmtNumber(consumptionKwh)} kWh` : '—'}</div>
-              </div>
+              {moduleQty > 0 && (
+                <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Módulos Solares</div>
+                  <div style={{ fontSize: '16pt', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{moduleQty} un</div>
+                </div>
+              )}
+              {generationMonthlyKwh && generationMonthlyKwh > 0 && (
+                <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Geração Média</div>
+                  <div style={{ fontSize: '16pt', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{fmtNumber(generationMonthlyKwh)} kWh/mês</div>
+                </div>
+              )}
+              {consumptionKwh > 0 && (
+                <div style={{ padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Consumo Atual</div>
+                  <div style={{ fontSize: '16pt', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{fmtNumber(consumptionKwh)} kWh</div>
+                </div>
+              )}
             </div>
 
             {/* Gráfico Mensal */}
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', background: '#ffffff', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <div style={{ fontSize: '8.5pt', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a' }}>Geração Mensal Estimada (kWh)</div>
-                <div style={{ fontSize: '7.5pt', color: '#64748b' }}>Estimativa histórica baseada em irradiação solar local</div>
+            {generationMonthlyKwh && generationMonthlyKwh > 0 && (
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', background: '#ffffff', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '8.5pt', fontWeight: 800, textTransform: 'uppercase', color: '#0f172a' }}>Geração Mensal Estimada (kWh)</div>
+                  <div style={{ fontSize: '7.5pt', color: '#64748b' }}>Média mensal estimada com base no projeto</div>
+                </div>
+                {renderMonthlyChartSvg(generationMonthlyKwh, consumptionKwh, primaryColor, secondaryColor)}
               </div>
-              {renderMonthlyChartSvg(generationMonthlyKwh, consumptionKwh, primaryColor, secondaryColor)}
-            </div>
+            )}
 
             {/* Equipamentos */}
             {sec.equipment !== false && equipment.length > 0 && (
@@ -603,27 +625,44 @@ export function CommercialProposalView({ data }: { data: ProposalData }) {
             </div>
 
             {/* Cards de Preço */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${1 + (hasCash ? 1 : 0) + (hasCard ? 1 : 0) + (hasFinance ? 1 : 0)}, minmax(0, 1fr))`,
+                gap: '8px',
+                marginBottom: '14px',
+              }}
+            >
               <div style={{ padding: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderTop: `3px solid ${primaryColor}`, borderRadius: '8px' }}>
                 <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Valor Total do Sistema</div>
                 <div style={{ fontSize: '16pt', fontWeight: 900, color: primaryColor, marginTop: '2px' }}>{fmtCurrency(finalPrice)}</div>
                 <div style={{ fontSize: '7pt', color: '#64748b', marginTop: '2px' }}>Equipamentos + Instalação Completa</div>
               </div>
-              <div style={{ padding: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>À Vista ({cashDiscount}% desc.)</div>
-                <div style={{ fontSize: '12.5pt', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{fmtCurrency(cashPrice)}</div>
-                <div style={{ fontSize: '7pt', color: '#16a34a', fontWeight: 600, marginTop: '2px' }}>Economia imediata</div>
-              </div>
-              <div style={{ padding: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Cartão de Crédito</div>
-                <div style={{ fontSize: '12.5pt', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>12x {fmtCurrency(cardInstallment)}</div>
-                <div style={{ fontSize: '7pt', color: '#64748b', marginTop: '2px' }}>Total: {fmtCurrency(cardTotalPrice)}</div>
-              </div>
-              <div style={{ padding: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Financiamento Solar</div>
-                <div style={{ fontSize: '12.5pt', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>60x {fmtCurrency(financeInstallment)}</div>
-                <div style={{ fontSize: '7pt', color: '#64748b', marginTop: '2px' }}>Total: {fmtCurrency(financeTotalPrice)}</div>
-              </div>
+              {hasCash && (
+                <div style={{ padding: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>À Vista ({p!.cashDiscount}% desc.)</div>
+                  <div style={{ fontSize: '12.5pt', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{fmtCurrency(p!.cashPrice)}</div>
+                  <div style={{ fontSize: '7pt', color: '#16a34a', fontWeight: 600, marginTop: '2px' }}>Economia imediata</div>
+                </div>
+              )}
+              {hasCard && (
+                <div style={{ padding: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Cartão de Crédito</div>
+                  <div style={{ fontSize: '12.5pt', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                    {p!.cardInstallments}x {fmtCurrency(p!.cardInstallment)}
+                  </div>
+                  <div style={{ fontSize: '7pt', color: '#64748b', marginTop: '2px' }}>Total: {fmtCurrency(p!.cardTotalPrice)}</div>
+                </div>
+              )}
+              {hasFinance && (
+                <div style={{ padding: '12px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '7.5pt', fontWeight: 700, textTransform: 'uppercase', color: '#64748b' }}>Financiamento Solar</div>
+                  <div style={{ fontSize: '12.5pt', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>
+                    {p!.financeInstallments}x {fmtCurrency(p!.financeInstallment)}
+                  </div>
+                  <div style={{ fontSize: '7pt', color: '#64748b', marginTop: '2px' }}>Total: {fmtCurrency(p!.financeTotalPrice)}</div>
+                </div>
+              )}
             </div>
 
             {/* Estimativa de Payback e Economia com Premissas */}
@@ -639,7 +678,7 @@ export function CommercialProposalView({ data }: { data: ProposalData }) {
                 </div>
               </div>
               <div style={{ fontSize: '7pt', color: '#64748b', lineHeight: 1.35, borderLeft: '1px solid #cbd5e1', paddingLeft: '10px' }}>
-                * <strong>Premissas da Estimativa:</strong> Calculada com base no consumo informado e irradiação solar média local. Não considera reajustes futuros da concessionária, custo de disponibilidade ou taxas de distribuição (Fio B).
+                * <strong>Premissas da Estimativa:</strong> Economia estimada calculada como 90% da conta média informada, sem considerar reajuste tarifário, degradação dos módulos, custo mínimo de disponibilidade ou regras de compensação (Fio B).
               </div>
             </div>
 
@@ -697,3 +736,4 @@ export function CommercialProposalView({ data }: { data: ProposalData }) {
     </div>
   );
 }
+

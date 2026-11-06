@@ -30,6 +30,50 @@ export function toPublicProposalView(
   const module = equipment.find((item) => item.type === 'module');
   const inverter = equipment.find((item) => item.type === 'inverter');
 
+  const finalPrice = toNumber(web.finalPrice) || 0;
+  const cashDiscount = toNumber(web.paymentCashDiscount);
+  const cardTax = toNumber(web.paymentCardTax);
+  const cardInstallments = toNumber(web.paymentCardInstallments);
+  const financeTax = toNumber(web.paymentFinanceTax);
+  const financeInstallments = toNumber(web.paymentFinanceInstallments);
+
+  const cashPrice =
+    cashDiscount !== undefined && finalPrice > 0
+      ? finalPrice * (1 - cashDiscount / 100)
+      : undefined;
+
+  const hasCard =
+    cardTax !== undefined &&
+    cardInstallments !== undefined &&
+    cardInstallments > 0 &&
+    finalPrice > 0;
+  const cardTotalPrice =
+    hasCard && cardTax !== undefined
+      ? finalPrice * (1 + cardTax / 100)
+      : undefined;
+  const cardInstallment =
+    hasCard && cardTotalPrice !== undefined && cardInstallments !== undefined
+      ? cardTotalPrice / cardInstallments
+      : undefined;
+
+  const hasFinance =
+    financeTax !== undefined &&
+    financeInstallments !== undefined &&
+    financeInstallments > 0 &&
+    finalPrice > 0;
+  const financeTotalPrice =
+    hasFinance && financeTax !== undefined
+      ? finalPrice * (1 + financeTax / 100)
+      : undefined;
+  const financeInstallment =
+    hasFinance &&
+    financeTotalPrice !== undefined &&
+    financeInstallments !== undefined
+      ? financeTotalPrice / financeInstallments
+      : undefined;
+
+  const genMonthly = toNumber(web.generationMonthlyKwh);
+
   return {
     publicToken: proposal.publicToken,
     clientName: web.clientName,
@@ -45,6 +89,8 @@ export function toPublicProposalView(
     consumption: toNumber(web.consumption),
     monthlyBill: toNumber(web.monthlyBill),
     systemPowerKwp: toNumber(web.systemPowerKwp),
+    generationMonthlyKwh:
+      genMonthly !== undefined && genMonthly > 0 ? genMonthly : undefined,
     moduleQty: toNumber(web.moduleQty),
     module: module && {
       brand: module.brand,
@@ -90,11 +136,22 @@ export function toPublicProposalView(
       sectionsEnabled: web.settings.sectionsEnabled,
     },
     payment: {
-      cashDiscount: toNumber(web.paymentCashDiscount ?? web.company?.cashDiscount ?? 5),
-      cardTax: toNumber(web.paymentCardTax ?? web.company?.cardTax ?? 15),
-      cardInstallments: toNumber(web.paymentCardInstallments ?? 12),
-      financeTax: toNumber(web.paymentFinanceTax ?? web.company?.financeTax ?? 20),
-      financeInstallments: toNumber(web.paymentFinanceInstallments ?? 60),
+      cashDiscount,
+      cardTax,
+      cardInstallments:
+        cardInstallments !== undefined && cardInstallments > 0
+          ? cardInstallments
+          : undefined,
+      financeTax,
+      financeInstallments:
+        financeInstallments !== undefined && financeInstallments > 0
+          ? financeInstallments
+          : undefined,
+      cashPrice,
+      cardInstallment,
+      cardTotalPrice,
+      financeInstallment,
+      financeTotalPrice,
     },
   };
 }

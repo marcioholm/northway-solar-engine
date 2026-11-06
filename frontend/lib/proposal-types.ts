@@ -74,10 +74,15 @@ export interface ProposalSettingsPublic {
 
 export interface PaymentConditionsPublic {
   cashDiscount?: number;
+  cashPrice?: number;
   cardTax?: number;
   cardInstallments?: number;
+  cardInstallment?: number;
+  cardTotalPrice?: number;
   financeTax?: number;
   financeInstallments?: number;
+  financeInstallment?: number;
+  financeTotalPrice?: number;
 }
 
 export interface ProposalData {
@@ -105,6 +110,7 @@ export interface ProposalData {
   paybackYears?: number;
   roi?: number;
   systemPowerKwp?: number;
+  generationMonthlyKwh?: number;
   moduleQty?: number;
   module?: { brand: string; model: string; powerWatt?: number; quantity?: number };
   inverter?: { brand: string; model: string; powerKw?: number; quantity?: number };

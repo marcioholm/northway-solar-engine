@@ -586,8 +586,12 @@ export class ProposalsService {
       pricingEffectiveMarginPct: project.pricingEffectiveMarginPct,
       paymentCashDiscount:
         project.paymentCashDiscount ?? project.payment?.cashDiscount,
+      paymentCardTax:
+        project.paymentCardTax ?? project.payment?.cardTax,
       paymentCardInstallments:
         project.paymentCardInstallments ?? project.payment?.cardInstallments,
+      paymentFinanceTax:
+        project.paymentFinanceTax ?? project.payment?.financeTax,
       paymentFinanceInstallments:
         project.paymentFinanceInstallments ??
         project.payment?.financeInstallments,

@@ -21,26 +21,62 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
     const projectData = (project || {}) as any;
     const companyData = (company || {}) as any;
 
-    const cashDiscount = Number(
-      projectData.paymentCashDiscount ?? companyData.cashDiscount ?? 5,
-    );
-    const cardTax = Number(
-      projectData.paymentCardTax ?? companyData.cardTax ?? 15,
-    );
-    const financeTax = Number(
-      projectData.paymentFinanceTax ?? companyData.financeTax ?? 20,
-    );
     const finalPrice = Number(
       proposal.finalPrice || projectData.pricingFinalPrice || 0,
     );
     const paybackYears = Number(proposal.paybackYears || 0);
     const annualSavings = paybackYears > 0 ? finalPrice / paybackYears : 0;
 
-    const cashPrice = finalPrice * (1 - cashDiscount / 100);
-    const cardTotalPrice = finalPrice * (1 + cardTax / 100);
-    const cardInstallment = cardTotalPrice / 12;
-    const financeTotalPrice = finalPrice * (1 + financeTax / 100);
-    const financeInstallment = financeTotalPrice / 60;
+    const cashDiscount =
+      projectData.paymentCashDiscount != null
+        ? Number(projectData.paymentCashDiscount)
+        : undefined;
+    const cashPrice =
+      cashDiscount != null && finalPrice > 0
+        ? finalPrice * (1 - cashDiscount / 100)
+        : undefined;
+
+    const cardTax =
+      projectData.paymentCardTax != null
+        ? Number(projectData.paymentCardTax)
+        : undefined;
+    const cardInstallments =
+      projectData.paymentCardInstallments != null &&
+      Number(projectData.paymentCardInstallments) > 0
+        ? Number(projectData.paymentCardInstallments)
+        : undefined;
+    const cardTotalPrice =
+      cardTax != null && cardInstallments != null && finalPrice > 0
+        ? finalPrice * (1 + cardTax / 100)
+        : undefined;
+    const cardInstallment =
+      cardTotalPrice != null && cardInstallments != null
+        ? cardTotalPrice / cardInstallments
+        : undefined;
+
+    const financeTax =
+      projectData.paymentFinanceTax != null
+        ? Number(projectData.paymentFinanceTax)
+        : undefined;
+    const financeInstallments =
+      projectData.paymentFinanceInstallments != null &&
+      Number(projectData.paymentFinanceInstallments) > 0
+        ? Number(projectData.paymentFinanceInstallments)
+        : undefined;
+    const financeTotalPrice =
+      financeTax != null && financeInstallments != null && finalPrice > 0
+        ? finalPrice * (1 + financeTax / 100)
+        : undefined;
+    const financeInstallment =
+      financeTotalPrice != null && financeInstallments != null
+        ? financeTotalPrice / financeInstallments
+        : undefined;
+
+    const generationMonthlyKwh =
+      projectData.sizingGenerationKwh != null &&
+      Number(projectData.sizingGenerationKwh) > 0
+        ? Number(projectData.sizingGenerationKwh)
+        : undefined;
 
     const expirationDate = new Date(proposal.createdAt);
     expirationDate.setDate(expirationDate.getDate() + 10);
@@ -146,10 +182,7 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
         proposal.systemPowerKwp || projectData.sizingPowerKwp || 0,
       ),
       moduleQty: Number(proposal.moduleQty || projectData.sizingModuleQty || 0),
-      generationMonthlyKwh: Number(
-        projectData.sizingGenerationKwh ||
-          Math.round(Number(proposal.systemPowerKwp || 0) * 125),
-      ),
+      generationMonthlyKwh,
       finalPrice: finalPrice,
       paybackYears: paybackYears,
       annualSavings: annualSavings,
@@ -157,15 +190,17 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       company: {
         name: companyData.name,
         logoUrl: companyData.logoUrl,
-        cashDiscount,
-        cardTax,
-        financeTax,
       },
       settings: effectiveSettings as any,
       payment: {
+        cashDiscount,
         cashPrice,
+        cardTax,
+        cardInstallments,
         cardInstallment,
         cardTotalPrice,
+        financeTax,
+        financeInstallments,
         financeInstallment,
         financeTotalPrice,
       },

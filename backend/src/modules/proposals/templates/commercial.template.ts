@@ -65,11 +65,16 @@ export interface CommercialTemplateData {
     };
   };
   payment?: {
-    cashPrice: number;
-    cardInstallment: number;
-    cardTotalPrice: number;
-    financeInstallment: number;
-    financeTotalPrice: number;
+    cashDiscount?: number;
+    cashPrice?: number;
+    cardTax?: number;
+    cardInstallments?: number;
+    cardInstallment?: number;
+    cardTotalPrice?: number;
+    financeTax?: number;
+    financeInstallments?: number;
+    financeInstallment?: number;
+    financeTotalPrice?: number;
   };
 }
 
@@ -122,8 +127,7 @@ function renderMonthlyChartSvg(
   secondaryColor: string,
 ): string {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const factors = [1.08, 1.04, 1.00, 0.94, 0.88, 0.84, 0.88, 0.98, 1.04, 1.08, 1.10, 1.12];
-  const monthlyValues = factors.map(f => Math.round(avgGenerationKwh * f));
+  const monthlyValues = months.map(() => Math.round(avgGenerationKwh));
   const maxVal = Math.max(...monthlyValues, consumptionKwh || 0, 100) * 1.25;
 
   const width = 640;
@@ -181,7 +185,7 @@ export function commercialTemplate(data: CommercialTemplateData): string {
     consumptionKwh = 0,
     systemPowerKwp = 0,
     moduleQty = 0,
-    generationMonthlyKwh = Math.round(systemPowerKwp * 125),
+    generationMonthlyKwh,
     finalPrice,
     paybackYears = 0,
     annualSavings = paybackYears > 0 ? finalPrice / paybackYears : 0,
@@ -210,14 +214,15 @@ export function commercialTemplate(data: CommercialTemplateData): string {
     contact: true,
   };
 
-  const cashDiscount = payment?.cashPrice
-    ? Math.round(100 - (payment.cashPrice / finalPrice) * 100)
-    : company.cashDiscount || 5;
-  const cashPrice = payment?.cashPrice || finalPrice * (1 - cashDiscount / 100);
-  const cardInstallment = payment?.cardInstallment || (finalPrice * 1.15) / 12;
-  const cardTotalPrice = payment?.cardTotalPrice || cardInstallment * 12;
-  const financeInstallment = payment?.financeInstallment || (finalPrice * 1.2) / 60;
-  const financeTotalPrice = payment?.financeTotalPrice || financeInstallment * 60;
+  const hasCash = payment?.cashPrice != null && payment?.cashDiscount != null;
+  const hasCard =
+    payment?.cardInstallment != null &&
+    payment?.cardInstallments != null &&
+    payment.cardInstallments > 0;
+  const hasFinance =
+    payment?.financeInstallment != null &&
+    payment?.financeInstallments != null &&
+    payment.financeInstallments > 0;
 
   // Separate modules and inverters
   const modules = equipment.filter(e => e.type === 'module');
@@ -699,33 +704,53 @@ export function commercialTemplate(data: CommercialTemplateData): string {
       </div>
 
       <!-- Destaques Técnicos -->
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(${1 + (moduleQty > 0 ? 1 : 0) + (generationMonthlyKwh && generationMonthlyKwh > 0 ? 1 : 0) + (consumptionKwh > 0 ? 1 : 0)}, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px;">
         <div class="theme-card">
           <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">Potência do Sistema</div>
           <div style="font-size: 16pt; font-weight: 900; color: ${primaryColor}; margin-top: 2px;">${fmtNumber(systemPowerKwp, 2)} kWp</div>
         </div>
+        ${
+          moduleQty > 0
+            ? `
         <div class="theme-card">
           <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">Módulos Solares</div>
           <div style="font-size: 16pt; font-weight: 900; color: #0f172a; margin-top: 2px;">${moduleQty} un</div>
-        </div>
+        </div>`
+            : ''
+        }
+        ${
+          generationMonthlyKwh && generationMonthlyKwh > 0
+            ? `
         <div class="theme-card">
           <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">Geração Média</div>
           <div style="font-size: 16pt; font-weight: 900; color: #0f172a; margin-top: 2px;">${fmtNumber(generationMonthlyKwh)} kWh/mês</div>
-        </div>
+        </div>`
+            : ''
+        }
+        ${
+          consumptionKwh > 0
+            ? `
         <div class="theme-card">
           <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">Consumo Atual</div>
-          <div style="font-size: 16pt; font-weight: 900; color: #0f172a; margin-top: 2px;">${consumptionKwh ? `${fmtNumber(consumptionKwh)} kWh` : '—'}</div>
-        </div>
+          <div style="font-size: 16pt; font-weight: 900; color: #0f172a; margin-top: 2px;">${fmtNumber(consumptionKwh)} kWh</div>
+        </div>`
+            : ''
+        }
       </div>
 
       <!-- Gráfico de Geração Mensal -->
+      ${
+        generationMonthlyKwh && generationMonthlyKwh > 0
+          ? `
       <div class="theme-card" style="margin-bottom: 16px; padding: 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <div style="font-size: 8.5pt; font-weight: 800; text-transform: uppercase; color: #0f172a;">Geração Mensal Estimada (kWh)</div>
-          <div style="font-size: 7.5pt; color: #64748b;">Estimativa histórica baseada em irradiação solar local</div>
+          <div style="font-size: 7.5pt; color: #64748b;">Média mensal estimada com base no projeto</div>
         </div>
         ${renderMonthlyChartSvg(generationMonthlyKwh, consumptionKwh, primaryColor, secondaryColor)}
-      </div>
+      </div>`
+          : ''
+      }
 
       <!-- Equipamentos do Sistema (Módulos e Inversores) -->
       ${
@@ -800,30 +825,45 @@ export function commercialTemplate(data: CommercialTemplateData): string {
       </div>
 
       <!-- Card Principal de Investimento -->
-      <div style="display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+      <div style="display: grid; grid-template-columns: repeat(${1 + (hasCash ? 1 : 0) + (hasCard ? 1 : 0) + (hasFinance ? 1 : 0)}, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px;">
         <div class="theme-card" style="border-top: 3px solid ${primaryColor};">
           <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">Valor Total do Sistema</div>
           <div style="font-size: 16pt; font-weight: 900; color: ${primaryColor}; margin-top: 2px;">${fmtCurrency(finalPrice)}</div>
           <div style="font-size: 7pt; color: #64748b; margin-top: 2px;">Equipamentos + Instalação Completa</div>
         </div>
 
+        ${
+          hasCash
+            ? `
         <div class="theme-card">
-          <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">À Vista (${cashDiscount}% desc.)</div>
-          <div style="font-size: 12.5pt; font-weight: 800; color: #0f172a; margin-top: 2px;">${fmtCurrency(cashPrice)}</div>
+          <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">À Vista (${payment!.cashDiscount}% desc.)</div>
+          <div style="font-size: 12.5pt; font-weight: 800; color: #0f172a; margin-top: 2px;">${fmtCurrency(payment!.cashPrice)}</div>
           <div style="font-size: 7pt; color: #16a34a; font-weight: 600; margin-top: 2px;">Economia imediata</div>
-        </div>
+        </div>`
+            : ''
+        }
 
+        ${
+          hasCard
+            ? `
         <div class="theme-card">
           <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">Cartão de Crédito</div>
-          <div style="font-size: 12.5pt; font-weight: 800; color: #0f172a; margin-top: 2px;">12x ${fmtCurrency(cardInstallment)}</div>
-          <div style="font-size: 7pt; color: #64748b; margin-top: 2px;">Total: ${fmtCurrency(cardTotalPrice)}</div>
-        </div>
+          <div style="font-size: 12.5pt; font-weight: 800; color: #0f172a; margin-top: 2px;">${payment!.cardInstallments}x ${fmtCurrency(payment!.cardInstallment)}</div>
+          <div style="font-size: 7pt; color: #64748b; margin-top: 2px;">Total: ${fmtCurrency(payment!.cardTotalPrice)}</div>
+        </div>`
+            : ''
+        }
 
+        ${
+          hasFinance
+            ? `
         <div class="theme-card">
           <div style="font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #64748b;">Financiamento Solar</div>
-          <div style="font-size: 12.5pt; font-weight: 800; color: #0f172a; margin-top: 2px;">60x ${fmtCurrency(financeInstallment)}</div>
-          <div style="font-size: 7pt; color: #64748b; margin-top: 2px;">Total: ${fmtCurrency(financeTotalPrice)}</div>
-        </div>
+          <div style="font-size: 12.5pt; font-weight: 800; color: #0f172a; margin-top: 2px;">${payment!.financeInstallments}x ${fmtCurrency(payment!.financeInstallment)}</div>
+          <div style="font-size: 7pt; color: #64748b; margin-top: 2px;">Total: ${fmtCurrency(payment!.financeTotalPrice)}</div>
+        </div>`
+            : ''
+        }
       </div>
 
       <!-- Estimativa de Retorno & Premissas -->
@@ -841,7 +881,7 @@ export function commercialTemplate(data: CommercialTemplateData): string {
           </div>
         </div>
         <div style="font-size: 7pt; color: #64748b; line-height: 1.35; border-left: 1px solid #cbd5e1; padding-left: 10px;">
-          * <strong>Premissas da Estimativa:</strong> Calculada com base no consumo informado e irradiação solar média local. Não considera reajustes tarifários futuros, custo de disponibilidade ou eventuais taxas de distribuição (Fio B).
+          * <strong>Premissas da Estimativa:</strong> Economia estimada calculada como 90% da conta média informada, sem considerar reajuste tarifário, degradação dos módulos, custo mínimo de disponibilidade ou regras de compensação (Fio B).
         </div>
       </div>
 
