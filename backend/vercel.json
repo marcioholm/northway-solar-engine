@@ -4,8 +4,9 @@
     "regions": ["gru1"],
     "functions": {
         "api/index.js": {
-            "memory": 512,
-            "maxDuration": 30
+            "includeFiles": "node_modules/@sparticuz/chromium/bin/**",
+            "memory": 1024,
+            "maxDuration": 60
         }
     },
     "rewrites": [

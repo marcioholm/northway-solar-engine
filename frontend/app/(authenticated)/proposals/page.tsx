@@ -18,6 +18,7 @@ export default function ProposalsPage() {
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [trackingId, setTrackingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -39,8 +40,30 @@ export default function ProposalsPage() {
 
   useEffect(() => { fetchProposals(); }, [page]);
 
-  const handleDownload = (id: string) => {
-    window.open(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${id}/pdf`, '_blank');
+  const handleDownload = async (id: string) => {
+    setDownloadingId(id);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/proposals/${id}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        }
+        if (res.status === 404) {
+          throw new Error('Proposta não encontrada.');
+        }
+        throw new Error(`Falha ao gerar o PDF da proposta (código ${res.status}).`);
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível gerar o PDF da proposta.');
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const columns = [
@@ -77,8 +100,13 @@ export default function ProposalsPage() {
           <Button variant="ghost" size="sm" onClick={() => router.push(`/proposta/${p.publicToken}`)}>
             Visualizar
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleDownload(p.id)}>
-            PDF
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={downloadingId === p.id}
+            onClick={() => handleDownload(p.id)}
+          >
+            {downloadingId === p.id ? 'Baixando...' : 'PDF'}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setTrackingId(p.id)}>
             Tracking

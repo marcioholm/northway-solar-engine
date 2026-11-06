@@ -694,4 +694,46 @@ describe('Isolamento e rotas públicas (e2e)', () => {
 
     expect(proposalsLeadBRes.body).toHaveLength(0);
   });
+
+  it('download de PDF de proposta: exige autenticação, bloqueia outra empresa e devolve application/pdf para a própria empresa', async () => {
+    // 1. Criar projeto e proposta na Empresa A
+    const projRes = await http()
+      .post('/solar-project')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        clientName: 'Cliente Teste PDF Empresa A',
+        consumptionMonthlyBill: 800,
+        consumptionMonthlyKwh: 900,
+        sizingPowerKwp: 6,
+      })
+      .expect(201);
+
+    const propRes = await http()
+      .post(`/proposals/generate/${projRes.body.id}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(201);
+
+    const proposalAId = propRes.body.id;
+
+    // 2. Sem token -> 401
+    await http()
+      .get(`/proposals/${proposalAId}/pdf`)
+      .expect(401);
+
+    // 3. Com token da Empresa B -> 404 (isolamento de tenant)
+    await http()
+      .get(`/proposals/${proposalAId}/pdf`)
+      .auth(adminBToken, { type: 'bearer' })
+      .expect(404);
+
+    // 4. Com token da própria Empresa A -> 200 com application/pdf
+    const pdfRes = await http()
+      .get(`/proposals/${proposalAId}/pdf`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+
+    expect(pdfRes.headers['content-type']).toMatch(/application\/pdf/);
+    expect(pdfRes.headers['content-disposition']).toMatch(/attachment; filename=/);
+    expect(pdfRes.body.toString('utf8')).toContain('%PDF-1.4');
+  });
 });

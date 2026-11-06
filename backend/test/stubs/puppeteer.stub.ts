@@ -1,4 +1,9 @@
-// O PDF não é exercitado aqui, e o pacote real é só ESM.
-export const launch = () => {
-  throw new Error('Puppeteer indisponível nos testes e2e');
-};
+export const launch = jest.fn().mockImplementation(async () => {
+  return {
+    newPage: jest.fn().mockResolvedValue({
+      setContent: jest.fn().mockResolvedValue(undefined),
+      pdf: jest.fn().mockResolvedValue(Buffer.from('%PDF-1.4 mock pdf data')),
+    }),
+    close: jest.fn().mockResolvedValue(undefined),
+  };
+});

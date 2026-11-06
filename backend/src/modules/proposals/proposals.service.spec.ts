@@ -1,4 +1,4 @@
-jest.mock('puppeteer', () => ({
+jest.mock('puppeteer-core', () => ({
   launch: jest.fn().mockResolvedValue({
     newPage: jest.fn().mockResolvedValue({
       setContent: jest.fn().mockResolvedValue(undefined),

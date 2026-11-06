@@ -12,6 +12,7 @@
   },
   "moduleNameMapper": {
     "^@nestjs/schedule$": "<rootDir>/stubs/schedule.stub.ts",
-    "^puppeteer$": "<rootDir>/stubs/puppeteer.stub.ts"
+    "^puppeteer$": "<rootDir>/stubs/puppeteer.stub.ts",
+    "^puppeteer-core$": "<rootDir>/stubs/puppeteer.stub.ts"
   }
 }
