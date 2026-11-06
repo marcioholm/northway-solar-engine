@@ -61,6 +61,32 @@ describe('qr-target', () => {
       );
       expect(dest).toBeNull();
     });
+
+    it('uses company whatsapp when consultant phone is missing', () => {
+      const dest = resolveDestination(
+        {
+          publicToken: 'tok-abc',
+          client: { name: 'João Silva' },
+          consultant: { name: 'Consultor Sem Tel', phone: undefined },
+          companyWhatsapp: '11 91111-2222',
+        },
+        { type: 'consultant' },
+      );
+      expect(dest).toContain('https://wa.me/5511911112222');
+    });
+
+    it('uses consultant phone when present', () => {
+      const dest = resolveDestination(
+        {
+          publicToken: 'tok-abc',
+          client: { name: 'João Silva' },
+          consultant: { name: 'Consultor Com Tel', phone: '11 99999-8888' },
+          companyWhatsapp: '11 91111-2222',
+        },
+        { type: 'consultant' },
+      );
+      expect(dest).toContain('https://wa.me/5511999998888');
+    });
   });
 
   describe('qrTarget', () => {
@@ -98,6 +124,31 @@ describe('qr-target', () => {
         { trackBase: 'https://app.test/q' },
       );
       expect(res?.label).toBe(DEFAULT_LABEL.proposal);
+    });
+
+    it('uses API_PUBLIC_URL environment variable when present', () => {
+      const oldEnv = process.env.API_PUBLIC_URL;
+      try {
+        process.env.API_PUBLIC_URL = 'https://api.custom-domain.com';
+        const res = qrTarget({
+          publicToken: 'tok-env',
+          settings: { qr: { enabled: true, type: 'proposal' } },
+        });
+        expect(res?.url).toBe('https://api.custom-domain.com/q/tok-env');
+      } finally {
+        process.env.API_PUBLIC_URL = oldEnv;
+      }
+    });
+
+    it('generates QR target for consultant without phone when company has whatsapp', () => {
+      const res = qrTarget({
+        publicToken: 'tok-c',
+        consultant: { name: 'Consultor', phone: undefined },
+        companyWhatsapp: '11 97777-6666',
+        settings: { qr: { enabled: true, type: 'consultant' } },
+      });
+      expect(res).not.toBeNull();
+      expect(res?.destination).toContain('https://wa.me/5511977776666');
     });
   });
 });

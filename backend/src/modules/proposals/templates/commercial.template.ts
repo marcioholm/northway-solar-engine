@@ -53,12 +53,8 @@ export interface CommercialTemplateData {
 }
 
 export const getCss = (s: any) => {
-  const p1 = s.primaryColor || '#1F2937';
-  const p2 = s.secondaryColor || '#F59E0B';
-  // Casos legados onde p1 foi salvo com a cor de destaque (ex: #FFB703) e p2 com a cor escura (#0F172A)
-  const isLegacyInverted = onColor(p1) === '#111' && onColor(p2) === '#fff';
-  const principal = isLegacyInverted ? p2 : p1;
-  const destaque = isLegacyInverted ? p1 : p2;
+  const principal = s.primaryColor || '#1F2937';
+  const destaque = s.secondaryColor || '#F59E0B';
 
   return `
 :root{--sec:${principal};--on-sec:${onColor(principal)};--pri:${destaque};--on-pri:${onColor(destaque)};--ink:#151a18;--mut:#5d6662;--line:#dfe3e1;--soft:#f2f4f3}
@@ -141,7 +137,7 @@ table.spec td:last-child{font-weight:600}
 .note{font-size:6.8pt;color:var(--mut);line-height:1.35}
 /* investimento */
 .cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm;margin-top:2mm}
-.cmp.single{grid-template-columns:1fr;max-width:115mm;margin:4mm auto 0}
+.cmp.single{grid-template-columns:1fr;width:66.7%;max-width:125mm;margin:4mm auto 0}
 .opt{border:.3mm solid var(--line);border-radius:2mm;overflow:hidden;display:flex;flex-direction:column}
 .opt.rec{border:.6mm solid var(--sec);box-shadow:0 0 0 .1mm var(--sec)}
 .opt .top{padding:4mm 4mm 3.4mm;background:var(--soft)}

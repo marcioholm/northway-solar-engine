@@ -48,13 +48,17 @@ export function resolveDestination(
     publicToken?: string;
     client?: { name: string };
     consultant?: { name?: string; phone?: string };
+    companyWhatsapp?: string;
+    settings?: { contact?: { whatsapp?: string; phone?: string } };
   },
   q: {
     type: 'proposal' | 'consultant' | 'whatsapp' | 'site' | 'instagram' | 'custom';
     value?: string;
     message?: string;
   },
-  publicPageBase = 'https://northway-solar-engine.vercel.app/proposta/',
+  publicPageBase = process.env.FRONTEND_URL
+    ? `${process.env.FRONTEND_URL.replace(/\/?$/, '')}/proposta/`
+    : 'https://northway-solar-engine.vercel.app/proposta/',
 ): string | null {
   if (!q || !q.type) return null;
   const clientName = d.client?.name || '';
@@ -65,8 +69,15 @@ export function resolveDestination(
       return d.publicToken
         ? `${publicPageBase.replace(/\/?$/, '/')}${encodeURIComponent(d.publicToken)}?src=qr`
         : null;
-    case 'consultant':
-      return wa(d.consultant?.phone, msg);
+    case 'consultant': {
+      // Usa telefone do consultor quando houver; se não houver, usa o WhatsApp da empresa
+      const phone =
+        d.consultant?.phone ||
+        d.companyWhatsapp ||
+        d.settings?.contact?.whatsapp ||
+        d.settings?.contact?.phone;
+      return wa(phone, msg);
+    }
     case 'whatsapp':
       return wa(q.value, msg);
     case 'instagram': {
@@ -93,11 +104,16 @@ export function qrTarget(
     publicToken?: string;
     client?: { name: string };
     consultant?: { name?: string; phone?: string };
-    settings?: { qr?: any };
+    settings?: { qr?: any; contact?: any };
+    companyWhatsapp?: string;
   },
   {
-    trackBase = 'https://northway-solar-engine-api-ten.vercel.app/q/',
-    publicPageBase = 'https://northway-solar-engine.vercel.app/proposta/',
+    trackBase = process.env.API_PUBLIC_URL
+      ? `${process.env.API_PUBLIC_URL.replace(/\/?$/, '')}/q/`
+      : 'https://northway-solar-engine-api-ten.vercel.app/q/',
+    publicPageBase = process.env.FRONTEND_URL
+      ? `${process.env.FRONTEND_URL.replace(/\/?$/, '')}/proposta/`
+      : 'https://northway-solar-engine.vercel.app/proposta/',
   } = {},
 ): { url: string; destination: string; label: string } | null {
   const q = d.settings?.qr;

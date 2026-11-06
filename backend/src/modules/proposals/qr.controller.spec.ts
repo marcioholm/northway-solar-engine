@@ -90,4 +90,31 @@ describe('QrController', () => {
       expect.stringContaining('/proposta/tok-123?src=qr'),
     );
   });
+
+  it('consultor sem telefone + empresa com WhatsApp redireciona para o WhatsApp da empresa', async () => {
+    const mockProposal: any = {
+      id: 'p-2',
+      companyId: 'c-2',
+      publicToken: 'tok-consultant',
+      clientName: 'Cliente Beta',
+      solarProject: {},
+    };
+    proposalsService.findByToken.mockResolvedValue(mockProposal);
+    proposalSettingsService.findByCompanyId.mockResolvedValue({
+      qr: { enabled: true, type: 'consultant' },
+      contact: { whatsapp: '11 98888-7777' },
+    } as any);
+
+    const mockReq = {
+      headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+    } as any;
+    const mockRes = { redirect: jest.fn() } as any;
+
+    await controller.handleQrRedirect('tok-consultant', mockReq, mockRes);
+
+    expect(mockRes.redirect).toHaveBeenCalledWith(
+      302,
+      expect.stringContaining('https://wa.me/5511988887777'),
+    );
+  });
 });

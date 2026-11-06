@@ -1268,12 +1268,19 @@ export function ProposalSettingsTab() {
                       style={inputStyle}
                     >
                       <option value="proposal">Página online da proposta (Recomendado)</option>
-                      <option value="consultant">WhatsApp do consultor da proposta</option>
+                      <option value="consultant">
+                        WhatsApp do consultor da proposta — Usa o WhatsApp da empresa até o consultor ter telefone cadastrado.
+                      </option>
                       <option value="whatsapp">WhatsApp institucional fixo da empresa</option>
                       <option value="site">Website da empresa (HTTPS)</option>
                       <option value="instagram">Perfil no Instagram (@perfil)</option>
                       <option value="custom">URL personalizada (HTTPS)</option>
                     </select>
+                    {data.qr?.type === 'consultant' && (
+                      <p style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '6px' }}>
+                        Usa o WhatsApp da empresa até o consultor ter telefone cadastrado.
+                      </p>
+                    )}
                   </div>
 
                   <div>

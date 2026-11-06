@@ -52,12 +52,17 @@ export class QrController {
       process.env.FRONTEND_URL?.replace(/\/?$/, '/proposta/') ||
       'https://northway-solar-engine.vercel.app/proposta/';
 
+    const companyWhatsapp =
+      settings.contact?.whatsapp || settings.contact?.phone || '';
+
     const destination =
       resolveDestination(
         {
           publicToken: proposal.publicToken,
           client: { name: clientName },
           consultant: { name: consultantName, phone: consultantPhone },
+          companyWhatsapp,
+          settings,
         },
         settings.qr || { type: 'proposal', enabled: true },
         publicBase,

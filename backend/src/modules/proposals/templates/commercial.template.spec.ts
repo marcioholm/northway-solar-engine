@@ -153,4 +153,45 @@ describe('commercialTemplate', () => {
     expect(html).not.toContain('Quem somos');
     expect(html).not.toContain('Marcas que trabalhamos');
   });
+
+  it('uma cor principal clara escolhida de propósito NÃO é trocada (sem heurística)', async () => {
+    const html = await commercialTemplate({
+      ...baseProposal,
+      settings: {
+        primaryColor: '#FBBF24', // Amarelo claro
+        secondaryColor: '#1E3A8A', // Azul escuro
+      },
+    });
+
+    // --sec deve permanecer com a primaryColor (#FBBF24) e --pri com secondaryColor (#1E3A8A)
+    expect(html).toContain('--sec:#FBBF24');
+    expect(html).toContain('--pri:#1E3A8A');
+  });
+
+  it('investimento com 1 kit: css aplica largura cerca de 2/3 da página e centralização', async () => {
+    const html = await commercialTemplate({
+      ...baseProposal,
+      options: [baseProposal.options[0]],
+    });
+
+    expect(html).toContain(
+      '.cmp.single{grid-template-columns:1fr;width:66.7%;max-width:125mm;margin:4mm auto 0}',
+    );
+    expect(html).toContain('class="cmp single"');
+  });
+
+  it('consultor sem telefone + empresa com WhatsApp: QR code é gerado e exibido na capa', async () => {
+    const html = await commercialTemplate({
+      ...baseProposal,
+      publicToken: 'tok-cons-test',
+      consultant: { name: 'Carlos Consultor', phone: undefined },
+      settings: {
+        qr: { enabled: true, type: 'consultant' },
+        contact: { whatsapp: '11988887777' },
+      },
+    });
+
+    expect(html).toContain('class="qrb"');
+    expect(html).toContain('Fale com seu consultor');
+  });
 });
