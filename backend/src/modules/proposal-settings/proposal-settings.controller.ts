@@ -4,6 +4,7 @@ import {
   Patch,
   Post,
   Body,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -20,6 +21,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { ProposalSettingsService } from './proposal-settings.service';
+import { ImageOptimizerService } from './image-optimizer.service';
 import { UpdateProposalSettingsDto } from './dto/update-proposal-settings.dto';
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -39,6 +41,7 @@ export class ProposalSettingsController {
   constructor(
     private readonly service: ProposalSettingsService,
     private readonly supabase: SupabaseService,
+    private readonly imageOptimizer: ImageOptimizerService,
   ) {}
 
   @Get()
@@ -66,6 +69,8 @@ export class ProposalSettingsController {
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
     @Request() req,
+    @Body('type') bodyType?: string,
+    @Query('type') queryType?: string,
   ) {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo enviado');
@@ -77,17 +82,41 @@ export class ProposalSettingsController {
       );
     }
 
+    const rawType = bodyType || queryType;
+    const imageType = this.imageOptimizer.normalizeType(rawType);
+
+    const processed = await this.imageOptimizer.processImage(
+      file.buffer,
+      file.mimetype,
+      imageType,
+    );
+
     const companyId = req.user.companyId;
-    const filename = `${crypto.randomUUID()}.${ext}`;
+    const filename = `${crypto.randomUUID()}.${processed.extension}`;
     const filePath = `proposals/${companyId}/${filename}`;
 
     try {
-      await this.supabase.uploadFile('logos', filePath, file.buffer, file.mimetype);
+      await this.supabase.uploadFile(
+        'logos',
+        filePath,
+        processed.buffer,
+        processed.mimetype,
+      );
       const publicUrl = await this.supabase.getPublicUrl('logos', filePath);
-      return { url: publicUrl || `/storage/logos/${filePath}` };
+      return {
+        url: publicUrl || `/storage/logos/${filePath}`,
+        width: processed.width,
+        height: processed.height,
+        format: processed.extension,
+      };
     } catch (err: any) {
       this.logger.warn(`Fallback de upload para storage local: ${err.message}`);
-      return { url: `/storage/logos/${filePath}` };
+      return {
+        url: `/storage/logos/${filePath}`,
+        width: processed.width,
+        height: processed.height,
+        format: processed.extension,
+      };
     }
   }
 }

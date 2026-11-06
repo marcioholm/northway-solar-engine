@@ -4,7 +4,7 @@
     "regions": ["gru1"],
     "functions": {
         "api/index.js": {
-            "includeFiles": "node_modules/@sparticuz/chromium/bin/**",
+            "includeFiles": "node_modules/{@sparticuz/chromium/bin,sharp,@img}/**",
             "memory": 1024,
             "maxDuration": 60
         }

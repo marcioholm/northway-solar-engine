@@ -61,6 +61,66 @@ export default function SettingsPage() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !companyId) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage('O arquivo deve ter no máximo 2 MB.');
+      return;
+    }
+
+    const validMimes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!validMimes.includes(file.type)) {
+      setMessage('Formato inválido. Use PNG, JPEG ou WebP.');
+      return;
+    }
+
+    // Leitura e validação de dimensões no navegador
+    try {
+      const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Falha ao ler imagem'));
+        };
+        img.src = url;
+      });
+
+      const warnings: string[] = [];
+      const recommendedWidth = 1000;
+      const recommendedHeight = 300;
+      const recommendedRatio = 10 / 3;
+
+      if (dimensions.width < recommendedWidth * 0.5 || dimensions.height < recommendedHeight * 0.5) {
+        warnings.push(
+          `Dimensões baixas (${dimensions.width}×${dimensions.height} px). O recomendado é ao menos 500×150 px (50% do ideal de 1000×300 px) para garantir nitidez na proposta e no PDF.`,
+        );
+      }
+
+      const ratio = dimensions.width / dimensions.height;
+      const diffRatio = Math.abs(ratio - recommendedRatio) / recommendedRatio;
+      if (diffRatio > 0.45) {
+        warnings.push(
+          `Proporção da imagem (${dimensions.width}×${dimensions.height} px, proporção ${ratio.toFixed(2)}:1) difere bastante da recomendada (10:3, horizontal). O logo poderá sofrer redução ou espaço excedente no cabeçalho.`,
+        );
+      }
+
+      if (warnings.length > 0) {
+        const proceed = window.confirm(
+          `Atenção às dimensões do logotipo selecionado:\n\n• ${warnings.join('\n• ')}\n\nDeseja enviar mesmo assim?`,
+        );
+        if (!proceed) {
+          e.target.value = '';
+          return;
+        }
+      }
+    } catch {
+      // continua se o browser não conseguir decodificar
+    }
+
     setUploading(true);
     setMessage('');
     try {
@@ -79,6 +139,7 @@ export default function SettingsPage() {
       setMessage('Erro ao fazer upload');
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -188,9 +249,26 @@ export default function SettingsPage() {
                 <Field label="Cidade Base">
                   <input value={baseCity} onChange={e => setBaseCity(e.target.value)} style={inputStyle} placeholder="Ex: São Paulo - SP" />
                 </Field>
-                <Field label="Logo">
+                <Field label="Logo da Empresa">
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: 8 }}>
+                    Recomendado: 1000×300 px • Proporção: 10:3 • Formato ideal: PNG transparente ou WebP (máx. 2 MB)
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ width: 80, height: 80, borderRadius: 'var(--radius-md)', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg)' }}>
+                    <div
+                      style={{
+                        width: 200,
+                        height: 60,
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        background: '#ffffff',
+                        padding: 6,
+                      }}
+                      title="Pré-visualização no formato do cabeçalho da proposta comercial (200×60 px)"
+                    >
                       {logoUrl ? (
                         <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                       ) : (
@@ -198,8 +276,8 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <label style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
-                      {uploading ? 'Enviando...' : 'Escolher imagem'}
-                      <input type="file" accept="image/png,image/jpeg" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                      {uploading ? 'Enviando...' : 'Escolher logotipo'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLogoUpload} style={{ display: 'none' }} />
                     </label>
                   </div>
                 </Field>

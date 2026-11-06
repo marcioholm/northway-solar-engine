@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
+import sharp from 'sharp';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 
@@ -794,7 +795,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .expect(403);
     });
 
-    it('upload com tipo inválido é recusado (400)', async () => {
+    it('upload com formato inválido é recusado (400)', async () => {
       const res = await http()
         .post('/proposal-settings/upload')
         .auth(adminToken, { type: 'bearer' })
@@ -802,6 +803,106 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .expect(400);
 
       expect(res.body.message).toMatch(/PNG, JPEG/i);
+    });
+
+    it('upload com tipo de imagem ausente ou inválido é recusado (400)', async () => {
+      const pngBuffer = await sharp({
+        create: {
+          width: 100,
+          height: 100,
+          channels: 3,
+          background: { r: 255, g: 0, b: 0 },
+        },
+      })
+        .png()
+        .toBuffer();
+
+      const resMissing = await http()
+        .post('/proposal-settings/upload')
+        .auth(adminToken, { type: 'bearer' })
+        .attach('file', pngBuffer, { filename: 'test.png', contentType: 'image/png' })
+        .expect(400);
+
+      expect(resMissing.body.message).toMatch(/Tipo de imagem/i);
+
+      const resInvalid = await http()
+        .post('/proposal-settings/upload')
+        .auth(adminToken, { type: 'bearer' })
+        .field('type', 'tipo_invalido')
+        .attach('file', pngBuffer, { filename: 'test.png', contentType: 'image/png' })
+        .expect(400);
+
+      expect(resInvalid.body.message).toMatch(/Tipo de imagem inválido/i);
+    });
+
+    it('upload de imagem grande é reduzida mantendo a proporção (sharp)', async () => {
+      const largeBuffer = await sharp({
+        create: {
+          width: 2000,
+          height: 1000,
+          channels: 3,
+          background: { r: 200, g: 50, b: 50 },
+        },
+      })
+        .jpeg()
+        .toBuffer();
+
+      const res = await http()
+        .post('/proposal-settings/upload')
+        .auth(adminToken, { type: 'bearer' })
+        .field('type', 'about')
+        .attach('file', largeBuffer, { filename: 'sobre.jpg', contentType: 'image/jpeg' })
+        .expect(201);
+
+      expect(res.body.width).toBeLessThanOrEqual(1200);
+      expect(res.body.height).toBeLessThanOrEqual(800);
+      expect(res.body.width).toBe(1200);
+      expect(res.body.height).toBe(600);
+    });
+
+    it('upload de imagem pequena não é ampliada (sharp)', async () => {
+      const smallBuffer = await sharp({
+        create: {
+          width: 300,
+          height: 150,
+          channels: 3,
+          background: { r: 50, g: 200, b: 50 },
+        },
+      })
+        .jpeg()
+        .toBuffer();
+
+      const res = await http()
+        .post('/proposal-settings/upload')
+        .auth(adminToken, { type: 'bearer' })
+        .field('type', 'logo')
+        .attach('file', smallBuffer, { filename: 'logo.jpg', contentType: 'image/jpeg' })
+        .expect(201);
+
+      expect(res.body.width).toBe(300);
+      expect(res.body.height).toBe(150);
+    });
+
+    it('upload de PNG transparente continua transparente (sharp)', async () => {
+      const alphaBuffer = await sharp({
+        create: {
+          width: 400,
+          height: 200,
+          channels: 4,
+          background: { r: 0, g: 0, b: 255, alpha: 0.5 },
+        },
+      })
+        .png()
+        .toBuffer();
+
+      const res = await http()
+        .post('/proposal-settings/upload')
+        .auth(adminToken, { type: 'bearer' })
+        .field('type', 'partner')
+        .attach('file', alphaBuffer, { filename: 'partner.png', contentType: 'image/png' })
+        .expect(201);
+
+      expect(res.body.format).toBe('png');
     });
 
     it('isolamento entre empresas: empresa A não altera configurações da empresa B', async () => {

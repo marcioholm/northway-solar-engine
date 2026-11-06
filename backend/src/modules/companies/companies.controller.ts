@@ -26,6 +26,7 @@ import { UserRole } from '../users/entities/user.entity';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { Company } from './entities/company.entity';
+import { ImageOptimizerService } from '../proposal-settings/image-optimizer.service';
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 const LOGO_EXTENSIONS: Record<string, string> = {
@@ -43,6 +44,7 @@ export class CompaniesController {
   constructor(
     private readonly companiesService: CompaniesService,
     private readonly supabase: SupabaseService,
+    private readonly imageOptimizer: ImageOptimizerService,
   ) {}
 
   private assertSameCompany(id: string, user: { role: UserRole; companyId: string }) {
@@ -72,8 +74,15 @@ export class CompaniesController {
     if (!file) throw new BadRequestException('No file uploaded');
     const ext = LOGO_EXTENSIONS[file.mimetype];
     if (!ext) throw new BadRequestException('Logo must be PNG, JPEG or WebP');
-    const path = `logos/${id}/logo.${ext}`;
-    await this.supabase.uploadFile('logos', path, file.buffer, file.mimetype);
+
+    const optimized = await this.imageOptimizer.processImage(
+      file.buffer,
+      file.mimetype,
+      'logo',
+    );
+
+    const path = `logos/${id}/logo.${optimized.extension}`;
+    await this.supabase.uploadFile('logos', path, optimized.buffer, optimized.mimetype);
     const publicUrl = await this.supabase.getPublicUrl('logos', path);
     if (publicUrl) {
       await this.companiesService.update(id, { logoUrl: publicUrl });
