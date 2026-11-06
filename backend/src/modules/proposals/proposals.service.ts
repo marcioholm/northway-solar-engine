@@ -11,6 +11,8 @@ import { SolarEngineService } from '../solar-engine/solar-engine.service';
 import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
+import { LeadsService } from '../leads/leads.service';
+import { LeadStage } from '../leads/entities/lead.entity';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { PricingInputDto } from '../pricing-engine/dto/pricing-input.dto';
 import { paginate, PaginatedResult } from '../../common/dto/pagination.dto';
@@ -36,6 +38,7 @@ export class ProposalsService {
     private solarProjectService: SolarProjectService,
     private pricingEngineService: PricingEngineService,
     private companiesService: CompaniesService,
+    private leadsService: LeadsService,
   ) {}
 
   // ────────── TRACKING ──────────
@@ -184,6 +187,34 @@ export class ProposalsService {
     const company =
       (await this.companiesService.findOne(companyId)) ?? undefined;
 
+    // 5.5 Advance and link lead if project has leadId within company
+    let validLeadId: string | undefined = undefined;
+    if (project.leadId) {
+      try {
+        const lead = await this.leadsService.findOne(project.leadId, companyId);
+        if (lead) {
+          validLeadId = lead.id;
+          const advanceableStages: LeadStage[] = [
+            LeadStage.NEW,
+            LeadStage.CONTACTED,
+            LeadStage.QUALIFIED,
+            LeadStage.BILL_RECEIVED,
+            LeadStage.SIZED,
+          ];
+          if (advanceableStages.includes(lead.stage as LeadStage)) {
+            await this.leadsService.updateStage(
+              lead.id,
+              companyId,
+              LeadStage.PROPOSAL_SENT,
+              userId,
+            );
+          }
+        }
+      } catch {
+        // If lead does not exist in this company, we do not link it and do not alter any other company's lead
+      }
+    }
+
     // 6. Create proposal (store snapshot + reference to sources)
     const proposal = this.proposalsRepository.create({
       companyId,
@@ -191,6 +222,7 @@ export class ProposalsService {
       publicToken: crypto.randomBytes(16).toString('hex'),
       solarProjectId: projectId,
       quoteId: selectedQuote?.id,
+      leadId: validLeadId,
       templateName: 'default',
       settings: {
         pricingInput,
@@ -308,6 +340,32 @@ export class ProposalsService {
       pricingFinalPrice: calculation.final_price,
     });
 
+    const targetLeadId = dto.leadId ?? solarProject?.leadId;
+    let validLeadId: string | undefined = undefined;
+    if (targetLeadId) {
+      try {
+        const lead = await this.leadsService.findOne(targetLeadId, companyId);
+        if (lead) {
+          validLeadId = lead.id;
+          const advanceableStages: LeadStage[] = [
+            LeadStage.NEW,
+            LeadStage.CONTACTED,
+            LeadStage.QUALIFIED,
+            LeadStage.BILL_RECEIVED,
+            LeadStage.SIZED,
+          ];
+          if (advanceableStages.includes(lead.stage as LeadStage)) {
+            await this.leadsService.updateStage(
+              lead.id,
+              companyId,
+              LeadStage.PROPOSAL_SENT,
+              userId,
+            );
+          }
+        }
+      } catch {}
+    }
+
     const proposal = this.proposalsRepository.create({
       companyId,
       createdBy: userId,
@@ -320,7 +378,7 @@ export class ProposalsService {
       utility: dto.utility,
       tariff: dto.tariff,
       profile: dto.profile,
-      leadId: dto.leadId,
+      leadId: validLeadId,
       stage: 'proposal_sent',
       expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
 

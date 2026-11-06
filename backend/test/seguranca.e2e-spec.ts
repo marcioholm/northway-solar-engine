@@ -17,6 +17,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
   let adminToken: string;
   let sellerToken: string;
   let superadminToken: string;
+  let adminBToken: string;
 
   const http = () => request(app.getHttpServer());
   const login = async (email: string) => {
@@ -56,8 +57,9 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       `INSERT INTO users (company_id, name, email, password_hash, role) VALUES
        ($1, 'Admin', 'admin@a.test', $2, 'admin'),
        ($1, 'Vendedor', 'vendedor@a.test', $2, 'seller'),
-       ($1, 'Plataforma', 'root@a.test', $2, 'superadmin')`,
-      [COMPANY_A, hash],
+       ($1, 'Plataforma', 'root@a.test', $2, 'superadmin'),
+       ($3, 'Admin B', 'admin@b.test', $2, 'admin')`,
+      [COMPANY_A, hash, COMPANY_B],
     );
     await db.query(
       `INSERT INTO proposals (
@@ -75,6 +77,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     adminToken = await login('admin@a.test');
     sellerToken = await login('vendedor@a.test');
     superadminToken = await login('root@a.test');
+    adminBToken = await login('admin@b.test');
   });
 
   afterAll(async () => {
@@ -516,5 +519,179 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     expect(res.body.breakdown.costTaxes).toBe(1200);
     expect(res.body.breakdown.costOther).toBe(280);
     expect(res.body.breakdown.equipmentCost).toBe(20000);
+  });
+
+  it('vincula proposta ao lead, avança lead para proposal_sent e lista na aba de propostas do lead', async () => {
+    // 1. Criar lead na Empresa A (estágio inicial: new)
+    const leadRes = await http()
+      .post('/leads')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        name: 'Lead Com Proposta E2E',
+        phone: '43999990001',
+        email: 'lead.prop@a.test',
+        city: 'Arapoti',
+        state: 'PR',
+      })
+      .expect(201);
+
+    const leadId = leadRes.body.id;
+    expect(leadRes.body.stage).toBe('new');
+
+    // 2. Criar projeto solar vinculado a este lead
+    const projectRes = await http()
+      .post('/solar-project')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        clientName: 'Lead Com Proposta E2E',
+        leadId,
+        consumptionMonthlyBill: 800,
+        consumptionMonthlyKwh: 900,
+        sizingPowerKwp: 7.5,
+      })
+      .expect(201);
+
+    const projectId = projectRes.body.id;
+    expect(projectRes.body.leadId).toBe(leadId);
+
+    // 3. Gerar proposta a partir do projeto
+    const genRes = await http()
+      .post(`/proposals/generate/${projectId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(201);
+
+    expect(genRes.body.leadId).toBe(leadId);
+    expect(genRes.body.stage).toBe('proposal_sent');
+
+    // 4. Conferir que o lead avançou para proposal_sent
+    const leadAfter = await http()
+      .get(`/leads/${leadId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+
+    expect(leadAfter.body.stage).toBe('proposal_sent');
+
+    // 5. Conferir que a proposta aparece na consulta por lead (/proposals/lead/:leadId)
+    const proposalsLeadRes = await http()
+      .get(`/proposals/lead/${leadId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+
+    expect(Array.isArray(proposalsLeadRes.body)).toBe(true);
+    expect(proposalsLeadRes.body.some((p: any) => p.id === genRes.body.id)).toBe(true);
+  });
+
+  it('não recua lead que já esteja em etapa mais avançada ao gerar proposta', async () => {
+    // 1. Criar lead na Empresa A
+    const leadRes = await http()
+      .post('/leads')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        name: 'Lead em Negociação E2E',
+        phone: '43999990002',
+        email: 'lead.neg@a.test',
+        city: 'Arapoti',
+        state: 'PR',
+      })
+      .expect(201);
+
+    const leadId = leadRes.body.id;
+
+    // 2. Mover o lead para 'negotiation'
+    await http()
+      .patch(`/leads/${leadId}/stage`)
+      .auth(adminToken, { type: 'bearer' })
+      .send({ stage: 'negotiation' })
+      .expect(200);
+
+    // 3. Criar projeto solar vinculado a este lead
+    const projectRes = await http()
+      .post('/solar-project')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        clientName: 'Lead em Negociação E2E',
+        leadId,
+        consumptionMonthlyBill: 1200,
+        consumptionMonthlyKwh: 1500,
+        sizingPowerKwp: 12,
+      })
+      .expect(201);
+
+    const projectId = projectRes.body.id;
+
+    // 4. Gerar proposta para o projeto
+    const genRes = await http()
+      .post(`/proposals/generate/${projectId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(201);
+
+    expect(genRes.body.leadId).toBe(leadId);
+
+    // 5. Conferir que o lead PERMANECE em negotiation (não recuou)
+    const leadAfter = await http()
+      .get(`/leads/${leadId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(200);
+
+    expect(leadAfter.body.stage).toBe('negotiation');
+  });
+
+  it('não altera lead de outra empresa ao gerar proposta com leadId externo', async () => {
+    // 1. Criar lead na Empresa B
+    const leadBRes = await http()
+      .post('/leads')
+      .auth(adminBToken, { type: 'bearer' })
+      .send({
+        name: 'Lead Empresa B E2E',
+        phone: '41999990003',
+        email: 'lead.b@b.test',
+        city: 'Curitiba',
+        state: 'PR',
+      })
+      .expect(201);
+
+    const leadBId = leadBRes.body.id;
+    expect(leadBRes.body.companyId).toBe(COMPANY_B);
+    expect(leadBRes.body.stage).toBe('new');
+
+    // 2. Na Empresa A, tentar criar projeto com leadId da Empresa B
+    const projectARes = await http()
+      .post('/solar-project')
+      .auth(adminToken, { type: 'bearer' })
+      .send({
+        clientName: 'Projeto Empresa A Tentando Lead B',
+        leadId: leadBId,
+        consumptionMonthlyBill: 600,
+        consumptionMonthlyKwh: 700,
+        sizingPowerKwp: 5,
+      })
+      .expect(201);
+
+    const projectAId = projectARes.body.id;
+
+    // 3. Na Empresa A, gerar proposta
+    const genRes = await http()
+      .post(`/proposals/generate/${projectAId}`)
+      .auth(adminToken, { type: 'bearer' })
+      .expect(201);
+
+    // A proposta da Empresa A não vincula o leadId da Empresa B
+    expect(genRes.body.leadId).toBeFalsy();
+
+    // 4. Conferir que o lead da Empresa B PERMANECE 'new' e inalterado
+    const leadBAfter = await http()
+      .get(`/leads/${leadBId}`)
+      .auth(adminBToken, { type: 'bearer' })
+      .expect(200);
+
+    expect(leadBAfter.body.stage).toBe('new');
+
+    // 5. Na Empresa B, nenhuma proposta foi criada para seu lead
+    const proposalsLeadBRes = await http()
+      .get(`/proposals/lead/${leadBId}`)
+      .auth(adminBToken, { type: 'bearer' })
+      .expect(200);
+
+    expect(proposalsLeadBRes.body).toHaveLength(0);
   });
 });

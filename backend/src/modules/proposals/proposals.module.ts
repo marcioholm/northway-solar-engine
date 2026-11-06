@@ -8,6 +8,7 @@ import { SolarEngineModule } from '../solar-engine/solar-engine.module';
 import { SolarProjectModule } from '../solar-project/solar-project.module';
 import { PricingEngineModule } from '../pricing-engine/pricing-engine.module';
 import { CompaniesModule } from '../companies/companies.module';
+import { LeadsModule } from '../leads/leads.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CompaniesModule } from '../companies/companies.module';
     SolarProjectModule,
     PricingEngineModule,
     CompaniesModule,
+    LeadsModule,
   ],
   controllers: [ProposalsController],
   providers: [ProposalsService],

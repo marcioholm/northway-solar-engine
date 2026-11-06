@@ -17,6 +17,7 @@ import { SolarEngineService } from '../solar-engine/solar-engine.service';
 import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
+import { LeadsService } from '../leads/leads.service';
 
 describe('ProposalsService (equipamentos e cotações)', () => {
   let service: ProposalsService;
@@ -55,6 +56,10 @@ describe('ProposalsService (equipamentos e cotações)', () => {
         {
           provide: CompaniesService,
           useValue: { findOne: jest.fn().mockResolvedValue({ id: 'c1', name: 'Empresa Teste' }) },
+        },
+        {
+          provide: LeadsService,
+          useValue: { findOne: jest.fn(), updateStage: jest.fn() },
         },
       ],
     }).compile();
