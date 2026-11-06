@@ -529,7 +529,9 @@ function invest(d: any, n = 4, total = 5, step = 3) {
         o.moduleQty ? ` · ${o.moduleQty} módulos` : ''
       }</div></div>
       <div style="padding:0 4mm">${
-        s.kitImageUrl ? `<img src="${s.kitImageUrl}">` : kitArt()
+        o.imageUrl || s.kitImageUrl
+          ? `<img src="${o.imageUrl || s.kitImageUrl}">`
+          : kitArt()
       }</div>
       <div class="rows">
         ${o.inverter ? `<div class="row"><span>Inversor</span><span>${esc(o.inverter)}</span></div>` : ''}

@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Put,
   Body,
   Get,
   Param,
@@ -14,6 +15,10 @@ import {
 import type { Response } from 'express';
 import { ProposalsService } from './proposals.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
+import {
+  GenerateProposalDto,
+  ProposalOptionDto,
+} from './dto/proposal-option.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags, ApiQuery } from '@nestjs/swagger';
 
@@ -36,12 +41,35 @@ export class ProposalsController {
   @Post('generate/:projectId')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
-  generate(@Request() req, @Param('projectId') projectId: string) {
+  generate(
+    @Request() req,
+    @Param('projectId') projectId: string,
+    @Body() dto?: GenerateProposalDto,
+  ) {
     return this.proposalsService.generate(
       projectId,
       req.user.companyId,
       req.user.userId,
+      dto,
     );
+  }
+
+  @Get(':id/options')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  getOptions(@Param('id') id: string, @Request() req) {
+    return this.proposalsService.getOptions(id, req.user.companyId);
+  }
+
+  @Put(':id/options')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  updateOptions(
+    @Param('id') id: string,
+    @Request() req,
+    @Body() options: ProposalOptionDto[],
+  ) {
+    return this.proposalsService.updateOptions(id, req.user.companyId, options);
   }
 
   @Get()

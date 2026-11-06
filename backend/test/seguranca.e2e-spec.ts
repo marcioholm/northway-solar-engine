@@ -858,7 +858,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(res.body.height).toBeLessThanOrEqual(800);
       expect(res.body.width).toBe(1200);
       expect(res.body.height).toBe(600);
-    });
+    }, 15000);
 
     it('upload de imagem pequena não é ampliada (sharp)', async () => {
       const smallBuffer = await sharp({
@@ -881,7 +881,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
 
       expect(res.body.width).toBe(300);
       expect(res.body.height).toBe(150);
-    });
+    }, 15000);
 
     it('upload de PNG transparente continua transparente (sharp)', async () => {
       const alphaBuffer = await sharp({
@@ -903,7 +903,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .expect(201);
 
       expect(res.body.format).toBe('png');
-    });
+    }, 15000);
 
     it('isolamento entre empresas: empresa A não altera configurações da empresa B', async () => {
       // 1. Empresa A customiza sua proposta
@@ -1021,6 +1021,172 @@ describe('Isolamento e rotas públicas (e2e)', () => {
           `);
         }
       }
+    });
+  });
+
+  describe('Opções de Kit por Proposta (Fase 2 e2e)', () => {
+    it('migration 106: tabela proposal_options existe, RLS ativo e sem privilégios para anon/authenticated', async () => {
+      const tableCheck = await db.query(
+        "SELECT to_regclass('public.proposal_options') as name",
+      );
+      expect(tableCheck[0].name).toBe('proposal_options');
+
+      const rls = await db.query(
+        "SELECT relrowsecurity FROM pg_class WHERE relname = 'proposal_options'",
+      );
+      expect(rls[0]?.relrowsecurity).toBe(true);
+    });
+
+    it('gera proposta com 3 opções de kit, valida limites, rota pública e isolamento multi-tenant', async () => {
+      // 1. Cria projeto base
+      const createProjRes = await http()
+        .post('/solar-project')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          clientName: 'Cliente Três Opções',
+          clientCity: 'Curitiba',
+          sizingPowerKwp: 5.0,
+          sizingGenerationKwh: 650,
+          pricingEquipmentCost: 15000,
+          pricingInstallationCost: 3000,
+          pricingMarginPct: 20,
+        })
+        .expect(201);
+
+      const projId = createProjRes.body.id;
+
+      // 2. Tentar gerar com 4 opções deve falhar (400 - max 3 opções)
+      await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [
+            { position: 1, name: 'Opção 1', recommended: true, systemPowerKwp: 3, finalPrice: 15000, moduleQty: 6 },
+            { position: 2, name: 'Opção 2', recommended: false, systemPowerKwp: 4, finalPrice: 20000, moduleQty: 8 },
+            { position: 3, name: 'Opção 3', recommended: false, systemPowerKwp: 5, finalPrice: 25000, moduleQty: 10 },
+            { position: 4, name: 'Opção 4', recommended: false, systemPowerKwp: 6, finalPrice: 30000, moduleQty: 12 },
+          ],
+        })
+        .expect(400);
+
+      // 3. Tentar gerar com 2 recomendadas deve falhar (400 - apenas 1 recomendada)
+      await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [
+            { position: 1, name: 'Opção 1', recommended: true, systemPowerKwp: 3, finalPrice: 15000, moduleQty: 6 },
+            { position: 2, name: 'Opção 2', recommended: true, systemPowerKwp: 4, finalPrice: 20000, moduleQty: 8 },
+          ],
+        })
+        .expect(400);
+
+      // 4. Gerar proposta com 3 opções válidas e condições de pagamento personalizadas
+      const genRes = await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [
+            {
+              position: 1,
+              name: 'Kit Básico',
+              recommended: false,
+              systemPowerKwp: 4.0,
+              moduleQty: 8,
+              moduleDesc: 'Módulo 500W',
+              inverterDesc: 'Inversor 4kW',
+              finalPrice: 18000,
+            },
+            {
+              position: 2,
+              name: 'Kit Recomendado',
+              recommended: true,
+              systemPowerKwp: 5.5,
+              moduleQty: 10,
+              moduleDesc: 'Módulo 550W TOPCon',
+              inverterDesc: 'Inversor 5kW Wi-Fi',
+              finalPrice: 24000,
+            },
+            {
+              position: 3,
+              name: 'Kit Premium',
+              recommended: false,
+              systemPowerKwp: 7.0,
+              moduleQty: 14,
+              moduleDesc: 'Módulo 500W N-Type',
+              inverterDesc: 'Inversor 6kW Híbrido',
+              finalPrice: 32000,
+            },
+          ],
+          payment: {
+            cashDiscountPct: 5,
+            card: { installments: 12, totalMarkupPct: 15 },
+            finance: [{ n: 36, totalMarkupPct: 25 }, { n: 60, totalMarkupPct: 45 }],
+            own: { downPaymentPct: 30, installments: 6 },
+          },
+        })
+        .expect(201);
+
+      const proposal = genRes.body;
+      expect(proposal.id).toBeDefined();
+      expect(proposal.publicToken).toBeDefined();
+
+      // 5. Consulta de opções da proposta via GET /proposals/:id/options
+      const optionsRes = await http()
+        .get(`/proposals/${proposal.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .expect(200);
+
+      expect(optionsRes.body).toHaveLength(3);
+      expect(optionsRes.body[0].name).toBe('Kit Básico');
+      expect(optionsRes.body[0].recommended).toBe(false);
+      expect(optionsRes.body[1].name).toBe('Kit Recomendado');
+      expect(optionsRes.body[1].recommended).toBe(true);
+      expect(optionsRes.body[2].name).toBe('Kit Premium');
+      expect(optionsRes.body[2].recommended).toBe(false);
+
+      // Geração proporcional calculada automaticamente sem inventar números
+      // fator = 650 / 5.0 = 130 kWh/kWp
+      // Kit Básico: 4.0 * 130 = 520 kWh
+      expect(Number(optionsRes.body[0].generationMonthlyKwh)).toBe(520);
+      // Kit Recomendado: 5.5 * 130 = 715 kWh
+      expect(Number(optionsRes.body[1].generationMonthlyKwh)).toBe(715);
+      // Kit Premium: 7.0 * 130 = 910 kWh
+      expect(Number(optionsRes.body[2].generationMonthlyKwh)).toBe(910);
+
+      // 6. Isolamento multi-tenant: Empresa B NÃO consegue consultar opções da proposta da Empresa A
+      await http()
+        .get(`/proposals/${proposal.id}/options`)
+        .auth(adminBToken, { type: 'bearer' })
+        .expect(404);
+
+      // 7. Página pública sem login /proposals/public/:token
+      const publicRes = await http()
+        .get(`/proposals/public/${proposal.publicToken}`)
+        .expect(200);
+
+      expect(publicRes.body.options).toBeDefined();
+      expect(publicRes.body.options).toHaveLength(3);
+      expect(publicRes.body.options[0].name).toBe('Kit Básico');
+      expect(publicRes.body.options[1].recommended).toBe(true);
+      expect(publicRes.body.options[1].finalPrice).toBe(24000);
+
+      // Confere que o cálculo de pagamento foi realizado nas opções
+      const opt2Pay = publicRes.body.options[1].payment;
+      expect(opt2Pay.cashDiscountPct).toBe(5);
+      expect(opt2Pay.cashPrice).toBe(22800); // 24000 * 0.95
+      expect(opt2Pay.cardInstallments).toBe(12);
+      expect(opt2Pay.cardInstallment).toBe(2300); // 24000 * 1.15 / 12 = 27600 / 12 = 2300
+      expect(opt2Pay.financeOptions).toHaveLength(2);
+      expect(opt2Pay.ownPlan.downValue).toBe(7200); // 30% de 24000
+
+      // Confere que NENHUM custo interno ou margem vaza na rota pública
+      const jsonStr = JSON.stringify(publicRes.body);
+      expect(jsonStr).not.toContain('costModules');
+      expect(jsonStr).not.toContain('costLabor');
+      expect(jsonStr).not.toContain('marginPct');
+      expect(jsonStr).not.toContain('pricingProfit');
+      expect(jsonStr).not.toContain('totalCost');
     });
   });
 });

@@ -263,6 +263,9 @@ export class ProposalSettingsService {
         ...dto.sectionsEnabled,
       };
     }
+    if (dto.paymentDefaults !== undefined) {
+      settings.paymentDefaults = dto.paymentDefaults as any;
+    }
 
     return this.repo.save(settings);
   }

@@ -2,11 +2,21 @@ import {
   PublicProposalView,
   toPublicProposalView,
 } from './renderers/public-proposal.view';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proposal } from './entities/proposal.entity';
 import { ProposalEvent } from './entities/proposal-event.entity';
+import { ProposalOption } from './entities/proposal-option.entity';
+import {
+  GenerateProposalDto,
+  ProposalOptionDto,
+} from './dto/proposal-option.dto';
+import { calculateProportionalGeneration } from './utils/payment-calculator';
 import { SolarEngineService } from '../solar-engine/solar-engine.service';
 import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
@@ -35,6 +45,8 @@ export class ProposalsService {
     private proposalsRepository: Repository<Proposal>,
     @InjectRepository(ProposalEvent)
     private proposalEventsRepository: Repository<ProposalEvent>,
+    @InjectRepository(ProposalOption)
+    private proposalOptionsRepository: Repository<ProposalOption>,
     private solarEngineService: SolarEngineService,
     private solarProjectService: SolarProjectService,
     private pricingEngineService: PricingEngineService,
@@ -119,6 +131,12 @@ export class ProposalsService {
       ? await this.proposalSettingsService.findByCompanyId(proposal.companyId)
       : undefined;
 
+    const options = await this.proposalOptionsRepository.find({
+      where: { proposalId: proposal.id, companyId },
+      order: { position: 'ASC' },
+    });
+    proposal.options = options;
+
     return {
       proposal,
       project,
@@ -151,7 +169,18 @@ export class ProposalsService {
     projectId: string,
     companyId: string,
     userId: string,
+    dto?: GenerateProposalDto,
   ): Promise<Proposal> {
+    if (dto?.options && dto.options.length > 0) {
+      if (dto.options.length > 3) {
+        throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
+      }
+      const recCount = dto.options.filter((o) => o.recommended).length;
+      if (recCount > 1) {
+        throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
+      }
+    }
+
     // 1. Load project with quotes
     const project = await this.solarProjectService.findOne(projectId, companyId);
 
@@ -234,6 +263,7 @@ export class ProposalsService {
       settings: {
         pricingInput,
         pricingOutput: pricingResult,
+        payment: dto?.payment,
         companyDefaults: company
           ? {
               cashDiscount: company.cashDiscount,
@@ -281,7 +311,156 @@ export class ProposalsService {
       stage: 'proposal_sent',
     });
 
-    return this.proposalsRepository.save(proposal);
+    const savedProposal = await this.proposalsRepository.save(proposal);
+
+    // 7. Save kit options (up to 3 options, exactly 1 recommended)
+    if (dto?.options && dto.options.length > 0) {
+      if (dto.options.length > 3) {
+        throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
+      }
+      const recCount = dto.options.filter((o) => o.recommended).length;
+      if (recCount > 1) {
+        throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
+      }
+      const optionsToSave = [...dto.options];
+      if (recCount === 0 && optionsToSave.length > 0) {
+        optionsToSave[0].recommended = true;
+      }
+
+      const savedOptions: ProposalOption[] = [];
+      for (let i = 0; i < optionsToSave.length; i++) {
+        const opt = optionsToSave[i];
+        const position = opt.position || i + 1;
+        const gen =
+          opt.generationMonthlyKwh !== undefined
+            ? opt.generationMonthlyKwh
+            : calculateProportionalGeneration(
+                opt.systemPowerKwp,
+                project.sizingPowerKwp,
+                project.sizingGenerationKwh,
+              );
+
+        const optEntity = this.proposalOptionsRepository.create({
+          proposalId: savedProposal.id,
+          companyId,
+          position,
+          name: opt.name || `Kit ${position}`,
+          recommended: Boolean(opt.recommended),
+          systemPowerKwp: Number(opt.systemPowerKwp || 0),
+          moduleQty: Number(opt.moduleQty || 0),
+          moduleDesc: opt.moduleDesc,
+          inverterDesc: opt.inverterDesc,
+          structureDesc:
+            opt.structureDesc || 'Estrutura de fixação completa em alumínio',
+          generationMonthlyKwh: gen,
+          finalPrice: Number(opt.finalPrice || 0),
+          imageUrl: opt.imageUrl,
+        });
+        savedOptions.push(await this.proposalOptionsRepository.save(optEntity));
+      }
+      savedProposal.options = savedOptions;
+    } else {
+      let moduleName = 'Módulos Fotovoltaicos';
+      let inverterName = 'Inversor Solar';
+      if (project.equipmentModules?.length) {
+        const m = project.equipmentModules[0];
+        moduleName = `${m.brand || ''} ${m.model || ''}`.trim() || moduleName;
+      }
+      if (project.equipmentInverters?.length) {
+        const inv = project.equipmentInverters[0];
+        inverterName = `${inv.brand || ''} ${inv.model || ''}`.trim() || inverterName;
+      }
+
+      const defaultOpt = this.proposalOptionsRepository.create({
+        proposalId: savedProposal.id,
+        companyId,
+        position: 1,
+        name: 'Kit 1',
+        recommended: true,
+        systemPowerKwp: project.sizingPowerKwp || 0,
+        moduleQty: project.sizingModuleQty || 0,
+        moduleDesc: moduleName,
+        inverterDesc: inverterName,
+        structureDesc: 'Estrutura de fixação completa em alumínio',
+        generationMonthlyKwh:
+          project.sizingGenerationKwh != null &&
+          Number(project.sizingGenerationKwh) > 0
+            ? Number(project.sizingGenerationKwh)
+            : null,
+        finalPrice: pricingResult.finalPrice,
+      });
+      savedProposal.options = [await this.proposalOptionsRepository.save(defaultOpt)];
+    }
+
+    return savedProposal;
+  }
+
+  async getOptions(
+    proposalId: string,
+    companyId: string,
+  ): Promise<ProposalOption[]> {
+    const proposal = await this.proposalsRepository.findOne({
+      where: { id: proposalId, companyId },
+    });
+    if (!proposal) throw new NotFoundException('Proposta não encontrada');
+
+    return this.proposalOptionsRepository.find({
+      where: { proposalId, companyId },
+      order: { position: 'ASC' },
+    });
+  }
+
+  async updateOptions(
+    proposalId: string,
+    companyId: string,
+    options: ProposalOptionDto[],
+  ): Promise<ProposalOption[]> {
+    const proposal = await this.proposalsRepository.findOne({
+      where: { id: proposalId, companyId },
+    });
+    if (!proposal) throw new NotFoundException('Proposta não encontrada');
+
+    if (!options || options.length === 0) {
+      throw new BadRequestException('A proposta deve ter pelo menos uma opção');
+    }
+    if (options.length > 3) {
+      throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
+    }
+    const recCount = options.filter((o) => o.recommended).length;
+    if (recCount > 1) {
+      throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
+    }
+    const optionsToSave = [...options];
+    if (recCount === 0) {
+      optionsToSave[0].recommended = true;
+    }
+
+    // Remover opções existentes desta proposta
+    await this.proposalOptionsRepository.delete({ proposalId, companyId });
+
+    const saved: ProposalOption[] = [];
+    for (let i = 0; i < optionsToSave.length; i++) {
+      const opt = optionsToSave[i];
+      const position = i + 1;
+      const optEntity = this.proposalOptionsRepository.create({
+        proposalId,
+        companyId,
+        position,
+        name: opt.name || `Kit ${position}`,
+        recommended: Boolean(opt.recommended),
+        systemPowerKwp: Number(opt.systemPowerKwp || 0),
+        moduleQty: Number(opt.moduleQty || 0),
+        moduleDesc: opt.moduleDesc,
+        inverterDesc: opt.inverterDesc,
+        structureDesc:
+          opt.structureDesc || 'Estrutura de fixação completa em alumínio',
+        generationMonthlyKwh: opt.generationMonthlyKwh ?? null,
+        finalPrice: Number(opt.finalPrice || 0),
+        imageUrl: opt.imageUrl,
+      });
+      saved.push(await this.proposalOptionsRepository.save(optEntity));
+    }
+    return saved;
   }
 
   // ────────── LEGACY create (kept for backward compatibility) ──────────

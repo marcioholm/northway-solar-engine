@@ -60,6 +60,28 @@ export interface ProposalHighlight {
   text: string;
 }
 
+export interface ProposalPaymentCard {
+  installments?: number;
+  totalMarkupPct?: number;
+}
+
+export interface ProposalPaymentFinanceOption {
+  n: number;
+  totalMarkupPct: number;
+}
+
+export interface ProposalPaymentOwnPlan {
+  downPaymentPct?: number;
+  installments?: number;
+}
+
+export interface ProposalPaymentDefaults {
+  cashDiscountPct?: number | null;
+  card?: ProposalPaymentCard | null;
+  finance?: ProposalPaymentFinanceOption[] | null;
+  own?: ProposalPaymentOwnPlan | null;
+}
+
 @Entity('proposal_settings')
 export class ProposalSettings {
   @PrimaryGeneratedColumn('uuid')
@@ -136,6 +158,9 @@ export class ProposalSettings {
 
   @Column({ name: 'sections_enabled', type: 'jsonb', default: () => "'{}'" })
   sectionsEnabled: ProposalSectionsEnabled;
+
+  @Column({ name: 'payment_defaults', type: 'jsonb', default: () => "'{}'" })
+  paymentDefaults: ProposalPaymentDefaults;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

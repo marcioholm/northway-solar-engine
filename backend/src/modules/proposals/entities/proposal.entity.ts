@@ -5,11 +5,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { Company } from '../../companies/entities/company.entity';
 import { SolarProject } from '../../solar-project/entities/solar-project.entity';
 import { Quote } from '../../solar-project/entities/quote.entity';
+import { ProposalOption } from './proposal-option.entity';
 
 @Entity('proposals')
 export class Proposal {
@@ -40,6 +42,9 @@ export class Proposal {
 
   @Column({ type: 'jsonb', default: {} })
   settings: Record<string, any>;
+
+  @OneToMany(() => ProposalOption, (opt) => opt.proposal, { cascade: true })
+  options: ProposalOption[];
 
   // ────────── Company ──────────
 

@@ -140,6 +140,58 @@ export class ProposalSectionsEnabledDto {
   @IsOptional() contact?: boolean;
 }
 
+export class ProposalPaymentCardDto {
+  @IsOptional()
+  @IsNumber()
+  installments?: number;
+
+  @IsOptional()
+  @IsNumber()
+  totalMarkupPct?: number;
+}
+
+export class ProposalPaymentFinanceOptionDto {
+  @IsNumber()
+  n: number;
+
+  @IsNumber()
+  totalMarkupPct: number;
+}
+
+export class ProposalPaymentOwnPlanDto {
+  @IsOptional()
+  @IsNumber()
+  downPaymentPct?: number;
+
+  @IsOptional()
+  @IsNumber()
+  installments?: number;
+}
+
+export class ProposalPaymentDefaultsDto {
+  @IsOptional()
+  @IsNumber()
+  cashDiscountPct?: number;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalPaymentCardDto)
+  card?: ProposalPaymentCardDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProposalPaymentFinanceOptionDto)
+  finance?: ProposalPaymentFinanceOptionDto[];
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalPaymentOwnPlanDto)
+  own?: ProposalPaymentOwnPlanDto;
+}
+
 export class UpdateProposalSettingsDto {
   @IsOptional()
   @IsIn(['classico', 'moderno', 'minimalista'], {
@@ -270,4 +322,10 @@ export class UpdateProposalSettingsDto {
   @ValidateNested()
   @Type(() => ProposalSectionsEnabledDto)
   sectionsEnabled?: ProposalSectionsEnabledDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalPaymentDefaultsDto)
+  paymentDefaults?: ProposalPaymentDefaultsDto;
 }

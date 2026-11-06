@@ -153,6 +153,27 @@ export function toPublicProposalView(
       financeInstallment,
       financeTotalPrice,
     },
+    options: Array.isArray(web.options)
+      ? web.options.map((o: any) => ({
+          id: o.id,
+          position: toNumber(o.position),
+          name: o.name,
+          recommended: Boolean(o.recommended),
+          systemPowerKwp: toNumber(o.systemPowerKwp),
+          moduleQty: toNumber(o.moduleQty),
+          moduleDesc: o.moduleDesc,
+          inverterDesc: o.inverterDesc,
+          structureDesc: o.structureDesc,
+          generationMonthlyKwh:
+            toNumber(o.generationMonthlyKwh) &&
+            Number(o.generationMonthlyKwh) > 0
+              ? toNumber(o.generationMonthlyKwh)
+              : undefined,
+          finalPrice: toNumber(o.finalPrice),
+          imageUrl: o.imageUrl,
+          payment: o.payment,
+        }))
+      : undefined,
   };
 }
 

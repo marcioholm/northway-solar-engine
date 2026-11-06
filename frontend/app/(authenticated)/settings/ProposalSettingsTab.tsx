@@ -19,6 +19,7 @@ import {
   SparklesIcon,
   QrCodeIcon,
   WrenchScrewdriverIcon,
+  CreditCardIcon,
 } from '@heroicons/react/24/outline';
 
 const BRAZIL_UFS = [
@@ -47,6 +48,24 @@ interface ProposalQrConfig {
   value?: string;
   message?: string;
   label?: string;
+}
+
+interface ProposalPaymentFinanceOption {
+  n: number;
+  totalMarkupPct: number;
+}
+
+interface ProposalPaymentDefaults {
+  cashDiscountPct?: number;
+  card?: {
+    installments?: number;
+    totalMarkupPct?: number;
+  };
+  finance?: ProposalPaymentFinanceOption[];
+  own?: {
+    downPaymentPct?: number;
+    installments?: number;
+  };
 }
 
 interface ProposalSettingsData {
@@ -94,6 +113,7 @@ interface ProposalSettingsData {
     partners?: boolean;
     contact?: boolean;
   };
+  paymentDefaults?: ProposalPaymentDefaults;
 }
 
 const DEFAULT_SETTINGS: ProposalSettingsData = {
@@ -146,6 +166,17 @@ const DEFAULT_SETTINGS: ProposalSettingsData = {
     warranties: true,
     partners: true,
     contact: true,
+  },
+  paymentDefaults: {
+    cashDiscountPct: 5,
+    card: { installments: 12, totalMarkupPct: 15 },
+    finance: [
+      { n: 24, totalMarkupPct: 18 },
+      { n: 36, totalMarkupPct: 28 },
+      { n: 48, totalMarkupPct: 38 },
+      { n: 60, totalMarkupPct: 48 },
+    ],
+    own: { downPaymentPct: 30, installments: 6 },
   },
 };
 
@@ -1707,7 +1738,255 @@ export function ProposalSettingsTab() {
             />
           </SectionContainer>
 
-          {/* 13. Canais de Contato */}
+          {/* 13. Condições de Pagamento Padrão */}
+          <SectionContainer icon={<CreditCardIcon style={{ width: 20, height: 20 }} />} title="Condições de Pagamento Padrão">
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              Defina os padrões de pagamento para novas propostas. O vendedor poderá personalizar por proposta no Wizard.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
+              {/* À Vista */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>💵</span> Pagamento À Vista
+                </div>
+                <div style={{ maxWidth: 300 }}>
+                  <label style={labelStyle}>Desconto à Vista (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={data.paymentDefaults?.cashDiscountPct ?? ''}
+                    onChange={e => {
+                      const val = e.target.value === '' ? undefined : Number(e.target.value);
+                      setData(prev => ({
+                        ...prev,
+                        paymentDefaults: { ...prev.paymentDefaults, cashDiscountPct: val },
+                      }));
+                    }}
+                    style={inputStyle}
+                    placeholder="Ex: 5"
+                  />
+                </div>
+              </div>
+
+              {/* Cartão de Crédito */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>💳</span> Cartão de Crédito
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Número de Parcelas</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="36"
+                      value={data.paymentDefaults?.card?.installments ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            card: { ...prev.paymentDefaults?.card, installments: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 12"
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Acréscimo Total (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={data.paymentDefaults?.card?.totalMarkupPct ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            card: { ...prev.paymentDefaults?.card, totalMarkupPct: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 15"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Financiamento Solar */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🏦</span> Financiamento Solar (Lista de Prazos)
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = data.paymentDefaults?.finance || [];
+                      const nextN = cur.length > 0 ? (cur[cur.length - 1].n || 60) + 12 : 60;
+                      const nextMarkup = cur.length > 0 ? (cur[cur.length - 1].totalMarkupPct || 40) + 10 : 45;
+                      setData(prev => ({
+                        ...prev,
+                        paymentDefaults: {
+                          ...prev.paymentDefaults,
+                          finance: [...cur, { n: nextN, totalMarkupPct: nextMarkup }],
+                        },
+                      }));
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '6px 12px',
+                      background: 'var(--primary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <PlusIcon style={{ width: 14, height: 14 }} /> Adicionar Prazo
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(data.paymentDefaults?.finance || []).map((f, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="120"
+                          value={f.n ?? ''}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            const updated = [...(data.paymentDefaults?.finance || [])];
+                            updated[idx] = { ...updated[idx], n: val };
+                            setData(prev => ({
+                              ...prev,
+                              paymentDefaults: { ...prev.paymentDefaults, finance: updated },
+                            }));
+                          }}
+                          style={inputStyle}
+                          placeholder="Prazo (meses / parcelas)"
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={f.totalMarkupPct ?? ''}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            const updated = [...(data.paymentDefaults?.finance || [])];
+                            updated[idx] = { ...updated[idx], totalMarkupPct: val };
+                            setData(prev => ({
+                              ...prev,
+                              paymentDefaults: { ...prev.paymentDefaults, finance: updated },
+                            }));
+                          }}
+                          style={inputStyle}
+                          placeholder="Acréscimo Total (%)"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (data.paymentDefaults?.finance || []).filter((_, i) => i !== idx);
+                          setData(prev => ({
+                            ...prev,
+                            paymentDefaults: { ...prev.paymentDefaults, finance: updated },
+                          }));
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#EF4444',
+                          cursor: 'pointer',
+                          padding: 6,
+                          borderRadius: 'var(--radius-md)',
+                        }}
+                        title="Remover prazo"
+                      >
+                        <TrashIcon style={{ width: 18, height: 18 }} />
+                      </button>
+                    </div>
+                  ))}
+                  {(!data.paymentDefaults?.finance || data.paymentDefaults.finance.length === 0) && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                      Nenhum prazo cadastrado. Clique em &quot;Adicionar Prazo&quot; para configurar.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Parcelamento Próprio */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>📑</span> Parcelamento Próprio (Boletos)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Entrada Mínima (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={data.paymentDefaults?.own?.downPaymentPct ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            own: { ...prev.paymentDefaults?.own, downPaymentPct: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 30"
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Número de Boletos (Parcelas)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="24"
+                      value={data.paymentDefaults?.own?.installments ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            own: { ...prev.paymentDefaults?.own, installments: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 6"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SectionContainer>
+
+          {/* 14. Canais de Contato */}
           <SectionContainer icon={<PhoneIcon style={{ width: 20, height: 20 }} />} title="Canais de Contato na Proposta">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
