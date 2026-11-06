@@ -117,6 +117,10 @@ export class ProposalWebRenderer implements ProposalRenderer {
       consumption: pd.consumptionMonthlyKwh ?? proposal.consumptionKwh,
       monthlyBill: pd.consumptionMonthlyBill,
       systemPowerKwp: pd.sizingPowerKwp ?? proposal.systemPowerKwp,
+      generationMonthlyKwh:
+        pd.sizingGenerationKwh != null && Number(pd.sizingGenerationKwh) > 0
+          ? Number(pd.sizingGenerationKwh)
+          : undefined,
       moduleQty: pd.sizingModuleQty ?? proposal.moduleQty,
       equipment: [
         ...((pd.equipmentModules || []) as any[]).map((m: any) => ({
@@ -153,6 +157,32 @@ export class ProposalWebRenderer implements ProposalRenderer {
         : undefined,
       quote: Object.keys(quoteData).length ? quoteData : undefined,
       project: Object.keys(pd).length ? pd : undefined,
+      settings: data.proposalSettings
+        ? {
+            template: data.proposalSettings.template,
+            primaryColor: data.proposalSettings.primaryColor,
+            secondaryColor: data.proposalSettings.secondaryColor,
+            coverImageUrl: data.proposalSettings.coverImageUrl,
+            aboutText: data.proposalSettings.aboutText,
+            aboutImageUrl: data.proposalSettings.aboutImageUrl,
+            stats: data.proposalSettings.stats,
+            partnerLogos: data.proposalSettings.partnerLogos,
+            brandLogos: data.proposalSettings.brandLogos,
+            serviceAreaText: data.proposalSettings.serviceAreaText,
+            includedItems: data.proposalSettings.includedItems,
+            warrantiesText: data.proposalSettings.warrantiesText,
+            exclusionsText: data.proposalSettings.exclusionsText,
+            notesText: data.proposalSettings.notesText,
+            acceptanceText: data.proposalSettings.acceptanceText,
+            contact: data.proposalSettings.contact,
+            sectionsEnabled: data.proposalSettings.sectionsEnabled,
+          }
+        : undefined,
+      paymentCashDiscount: pd.paymentCashDiscount,
+      paymentCardTax: pd.paymentCardTax,
+      paymentCardInstallments: pd.paymentCardInstallments,
+      paymentFinanceTax: pd.paymentFinanceTax,
+      paymentFinanceInstallments: pd.paymentFinanceInstallments,
     };
 
     return {

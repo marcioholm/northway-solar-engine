@@ -18,6 +18,7 @@ import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
 import { LeadsService } from '../leads/leads.service';
+import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
 
 describe('ProposalsService (equipamentos e cotações)', () => {
   let service: ProposalsService;
@@ -60,6 +61,33 @@ describe('ProposalsService (equipamentos e cotações)', () => {
         {
           provide: LeadsService,
           useValue: { findOne: jest.fn(), updateStage: jest.fn() },
+        },
+        {
+          provide: ProposalSettingsService,
+          useValue: {
+            findByCompanyId: jest.fn().mockResolvedValue({
+              template: 'moderno',
+              primaryColor: '#0f766e',
+              secondaryColor: '#f59e0b',
+              aboutText: 'Sobre nós',
+              stats: [],
+              partnerLogos: [],
+              brandLogos: [],
+              includedItems: [],
+              sectionsEnabled: {
+                cover: true,
+                about: true,
+                stats: true,
+                technical: true,
+                equipment: true,
+                financial: true,
+                kit: true,
+                warranties: true,
+                partners: true,
+                contact: true,
+              },
+            }),
+          },
         },
       ],
     }).compile();
@@ -193,5 +221,72 @@ describe('ProposalsService (equipamentos e cotações)', () => {
 
     const htmlResult = await service.render('p3', 'c1', 'html');
     expect(htmlResult.content).toBeDefined();
+  });
+
+  it('proposta sem condições de pagamento não mostra parcelas no HTML nem inventa valores', async () => {
+    const mockProposal = {
+      id: 'p-no-pay',
+      companyId: 'c1',
+      publicToken: 'token-no-pay',
+      clientName: 'Cliente Sem Pagamento',
+      finalPrice: 20000,
+      createdAt: new Date(),
+      solarProject: {
+        id: 'proj-no-pay',
+        // Sem paymentCashDiscount, paymentCardTax, etc.
+      },
+    };
+
+    mockProposalsRepo.findOne.mockResolvedValue(mockProposal);
+
+    const htmlResult = await service.render('p-no-pay', 'c1', 'html');
+    const html = htmlResult.content as string;
+
+    // Deve exibir valor total
+    expect(html).toContain('20.000,00');
+    // NÃO deve exibir cartões de parcelas nem padrões inventados
+    expect(html).not.toContain('Cartão de Crédito');
+    expect(html).not.toContain('Financiamento Solar');
+    expect(html).not.toContain('12x');
+    expect(html).not.toContain('60x');
+    expect(html).not.toContain('À Vista (');
+
+    // Testar renderização web
+    const webResult = await service.render('p-no-pay', 'c1', 'web');
+    const webData = JSON.parse(webResult.content as string);
+    expect(webData.paymentCardInstallments).toBeUndefined();
+    expect(webData.paymentFinanceInstallments).toBeUndefined();
+  });
+
+  it('proposta sem geração omite o gráfico e a métrica de geração e nenhum dado interno aparece', async () => {
+    const mockProposal = {
+      id: 'p-no-gen',
+      companyId: 'c1',
+      publicToken: 'token-no-gen',
+      clientName: 'Cliente Sem Geracao',
+      finalPrice: 20000,
+      systemPowerKwp: 4.5,
+      createdAt: new Date(),
+      solarProject: {
+        id: 'proj-no-gen',
+        // sizingGenerationKwh ausente
+      },
+    };
+
+    mockProposalsRepo.findOne.mockResolvedValue(mockProposal);
+
+    const htmlResult = await service.render('p-no-gen', 'c1', 'html');
+    const html = htmlResult.content as string;
+
+    // NÃO deve conter o gráfico de geração mensal nem geração média
+    expect(html).not.toContain('Geração Mensal Estimada');
+    expect(html).not.toContain('kWh/mês');
+    // Não deve inventar cálculo de potência x 125 (4.5 * 125 = 563)
+    expect(html).not.toContain('563');
+
+    // Confere que nenhum dado interno aparece
+    expect(html).not.toContain('marginPct');
+    expect(html).not.toContain('pricingProfit');
+    expect(html).not.toContain('totalCost');
   });
 });

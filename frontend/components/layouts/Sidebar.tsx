@@ -35,7 +35,15 @@ export default function Sidebar() {
         if (decoded?.role) {
           setRole(decoded.role);
         }
-        if (decoded?.email) {
+        if (decoded?.name) {
+          setUserName(decoded.name);
+          const parts = decoded.name.trim().split(/\s+/);
+          setUserInitials(
+            parts.length > 1
+              ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+              : parts[0].slice(0, 2).toUpperCase()
+          );
+        } else if (decoded?.email) {
           const rawName = decoded.email.split('@')[0];
           const capitalized = rawName.charAt(0).toUpperCase() + rawName.slice(1);
           setUserName(capitalized);

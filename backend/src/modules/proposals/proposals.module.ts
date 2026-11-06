@@ -9,6 +9,7 @@ import { SolarProjectModule } from '../solar-project/solar-project.module';
 import { PricingEngineModule } from '../pricing-engine/pricing-engine.module';
 import { CompaniesModule } from '../companies/companies.module';
 import { LeadsModule } from '../leads/leads.module';
+import { ProposalSettingsModule } from '../proposal-settings/proposal-settings.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { LeadsModule } from '../leads/leads.module';
     PricingEngineModule,
     CompaniesModule,
     LeadsModule,
+    ProposalSettingsModule,
   ],
   controllers: [ProposalsController],
   providers: [ProposalsService],

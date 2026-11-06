@@ -118,10 +118,18 @@ export class ProposalPdfRenderer implements ProposalRenderer {
 
       const page = await browser.newPage();
 
-      // We set the content and wait for networkidle0 so images/fonts load
-      await page.setContent(htmlOutput.content as string, {
-        waitUntil: 'networkidle0' as any,
-      });
+      // We set the content and wait for networkidle0 so images/fonts load,
+      // with a fallback to domcontentloaded if any network asset fails or hangs
+      try {
+        await page.setContent(htmlOutput.content as string, {
+          waitUntil: 'networkidle0' as any,
+          timeout: 10000,
+        });
+      } catch {
+        await page.setContent(htmlOutput.content as string, {
+          waitUntil: 'domcontentloaded' as any,
+        });
+      }
 
       const uint8Array = await page.pdf({
         format: 'A4',
