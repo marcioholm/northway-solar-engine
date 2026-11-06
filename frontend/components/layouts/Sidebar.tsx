@@ -14,7 +14,10 @@ const NAV_ITEMS = [
   { label: 'Obras', icon: '🏗', href: '/obras' },
   { label: 'Equipes', icon: '👥', href: '/dashboard/equipes' },
   { label: 'Catálogo', icon: '⬡', href: '/catalog' },
+  { label: 'Configurações', icon: '⚙', href: '/settings', adminOnly: true },
 ];
+
+const ADMIN_ROLES = ['admin', 'superadmin'];
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -123,7 +126,9 @@ export default function Sidebar() {
         flex: 1, padding: '4px 8px', overflowY: 'auto',
         display: 'flex', flexDirection: 'column', gap: '1px',
       }}>
-        {NAV_ITEMS.map(item => {
+        {NAV_ITEMS.filter(
+          item => !item.adminOnly || ADMIN_ROLES.includes(role ?? ''),
+        ).map(item => {
           const active = isActive(item.href);
           return (
             <Link
