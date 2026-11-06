@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { Stack } from '../../../../components/primitives/Stack';
 import { PageHeader } from '../../../../components/compositions/PageHeader';
 import { ProjectWizard } from '../../../../components/solar-project/ProjectWizard';
@@ -12,7 +13,9 @@ export default function NewSolarProjectPage() {
           title="Novo Projeto"
           subtitle="Preencha as informações em cada etapa para criar um projeto solar completo."
         />
-        <ProjectWizard />
+        <Suspense fallback={<div style={{ padding: '32px 0', color: 'var(--text-secondary)' }}>Carregando assistente...</div>}>
+          <ProjectWizard />
+        </Suspense>
       </Stack>
     </div>
   );

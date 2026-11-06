@@ -150,7 +150,21 @@ export default function LeadDetailPage() {
                         </div>
                     )}
 
-                    <button onClick={() => router.push(`/dashboard?leadId=${lead.id}&name=${encodeURIComponent(lead.name)}&city=${encodeURIComponent(lead.city)}&state=${lead.state}&consumption=${lead.monthlyConsumption || ''}`)} className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-bold text-sm hover:bg-[var(--color-primary-hover)] transition">
+                    <button
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            if (lead.id) params.set('leadId', lead.id);
+                            if (lead.name) params.set('name', lead.name);
+                            if (lead.phone) params.set('phone', lead.phone);
+                            if (lead.email) params.set('email', lead.email);
+                            if (lead.city) params.set('city', lead.city);
+                            if (lead.state) params.set('state', lead.state);
+                            if (lead.monthlyConsumption) params.set('consumption', String(lead.monthlyConsumption));
+                            const qs = params.toString();
+                            router.push(`/solar-project/new${qs ? `?${qs}` : ''}`);
+                        }}
+                        className="w-full bg-[var(--color-primary)] text-white py-3 rounded-lg font-bold text-sm hover:bg-[var(--color-primary-hover)] transition"
+                    >
                         Abrir Dimensionamento
                     </button>
                 </div>

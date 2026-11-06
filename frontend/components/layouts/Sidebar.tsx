@@ -1,8 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '../../lib/cn';
 import { useSidebar } from '../../hooks/useSidebar';
+import { decodeToken } from '../../lib/jwt';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: '◱', href: '/dashboard' },
@@ -17,6 +19,27 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { collapsed, toggle } = useSidebar();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token) {
+        const decoded = decodeToken(token);
+        if (decoded?.role) {
+          setRole(decoded.role);
+        }
+      }
+    } catch {}
+  }, []);
+
+  const getRoleLabel = (r: string | null) => {
+    if (!r) return 'Administrador';
+    if (r.toLowerCase() === 'superadmin') return 'Superadmin';
+    if (r.toLowerCase() === 'seller') return 'Vendedor';
+    if (r.toLowerCase() === 'admin') return 'Administrador';
+    return r;
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -157,7 +180,7 @@ export default function Sidebar() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>Marcio Holm</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Administrador</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{getRoleLabel(role)}</div>
             </div>
             <button
               onClick={handleLogout}
