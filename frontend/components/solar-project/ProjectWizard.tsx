@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../ui/Button';
 import { Text } from '../primitives/Text';
 import { Flex } from '../primitives/Flex';
@@ -59,10 +59,66 @@ function StepStatusIcon({ status }: { status: string }) {
 
 export function ProjectWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [data, setData] = useState<Record<string, any>>({});
+  const [data, setData] = useState<Record<string, any>>(() => {
+    const initial: Record<string, any> = {};
+    if (searchParams) {
+      const leadId = searchParams.get('leadId');
+      const name = searchParams.get('name');
+      const phone = searchParams.get('phone');
+      const email = searchParams.get('email');
+      const city = searchParams.get('city');
+      const state = searchParams.get('state');
+      const consumption = searchParams.get('consumption');
+
+      if (leadId) initial.leadId = leadId;
+      if (name) initial.clientName = name;
+      if (phone) initial.clientPhone = phone;
+      if (email) initial.clientEmail = email;
+      if (city) initial.clientCity = city;
+      if (state) initial.clientState = state;
+      if (consumption) {
+        const val = Number(consumption);
+        if (!isNaN(val) && val > 0) initial.consumptionMonthlyKwh = val;
+      }
+    }
+    return initial;
+  });
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const leadId = searchParams.get('leadId');
+    const name = searchParams.get('name');
+    const phone = searchParams.get('phone');
+    const email = searchParams.get('email');
+    const city = searchParams.get('city');
+    const state = searchParams.get('state');
+    const consumption = searchParams.get('consumption');
+
+    if (leadId || name || phone || email || city || state || consumption) {
+      setData(prev => {
+        let changed = false;
+        const next = { ...prev };
+        if (leadId && !next.leadId) { next.leadId = leadId; changed = true; }
+        if (name && !next.clientName) { next.clientName = name; changed = true; }
+        if (phone && !next.clientPhone) { next.clientPhone = phone; changed = true; }
+        if (email && !next.clientEmail) { next.clientEmail = email; changed = true; }
+        if (city && !next.clientCity) { next.clientCity = city; changed = true; }
+        if (state && !next.clientState) { next.clientState = state; changed = true; }
+        if (consumption && !next.consumptionMonthlyKwh) {
+          const val = Number(consumption);
+          if (!isNaN(val) && val > 0) {
+            next.consumptionMonthlyKwh = val;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }
+  }, [searchParams]);
 
   const totalCost = (data.pricingEquipmentCost || 0) + (data.pricingProjectCost || 0)
     + (data.pricingArtCost || 0) + (data.pricingInstallationCost || 0)
