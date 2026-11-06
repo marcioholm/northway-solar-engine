@@ -66,3 +66,10 @@ Mostre estes valores ao lado de cada campo de upload e mantenha o aviso no naveg
 - A página Investimento já trata de 1 a 3 colunas. Com 1 opção, mostre um card único mais largo e sem o selo "Recomendado".
 - Pagamento por empresa: desconto à vista (%); cartão com parcelas e acréscimo total (%); financiamento com **lista** de prazos `{ n, acrescimoTotalPct }`; parcelamento próprio `{ entradaPct, boletos }`. A parcela é `preço × (1 + acréscimo) / n`. Essa regra é a mesma já usada hoje (acréscimo total, sem juros compostos).
 - No aceite, o cliente marca a opção escolhida. O aceite online fica para um PR futuro.
+
+## Cores e imagem do kit (atualização)
+
+- **Cores só em variáveis CSS.** Todas as cores do layout vêm de `--sec`, `--pri`, `--on-sec` e `--on-pri`, definidas uma única vez a partir de `proposal_settings`. Isso inclui o mapa, que usa `style="fill:var(--sec)"`. Não pode haver cor de empresa escrita direto no layout.
+- **Cores padrão de empresa nova.** Use cores neutras, **nunca** as de algum cliente.
+- **Pré-visualização das cores.** `referencia/demo-cores.html` mostra a troca ao vivo e o aviso de contraste. A tela de Configurações deve funcionar assim: o seletor de cor atualiza a pré-visualização na hora.
+- **Imagem padrão do kit.** Sem `kitImageUrl`, use a ilustração `kitArt()` (painel e inversor desenhados em SVG, com a cor da empresa). O kit nunca fica sem imagem.

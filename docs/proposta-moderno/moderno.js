@@ -92,7 +92,7 @@ table.spec td:last-child{font-weight:600}
 .opt.rec .tag{color:var(--pri)}
 .opt .nm{font-family:'Barlow Condensed';font-weight:800;font-size:24pt;line-height:1;text-transform:uppercase}
 .opt .kw{font-size:9pt;font-weight:600;color:var(--mut)}.opt.rec .kw{color:rgba(255,255,255,.8)}
-.opt img{width:100%;height:30mm;object-fit:contain;margin:3mm 0 0}
+.opt img,.opt .kitart{width:100%;height:30mm;object-fit:contain;margin:3mm 0 0;display:block}
 .opt .rows{padding:1mm 4mm}
 .opt .row{display:flex;justify-content:space-between;gap:2mm;font-size:8.2pt;padding:1.6mm 0;border-bottom:.3mm solid var(--line)}
 .opt .row span:first-child{color:var(--mut)}.opt .row span:last-child{font-weight:600;text-align:right}
@@ -129,6 +129,21 @@ function ftr(d, n) {
 }
 const head = (n, t) => `<div class="kick">${String(n).padStart(2, '0')} · ${esc(t)}</div><div class="h1">${esc(t)}</div>`;
 
+/** Ilustração padrão do kit (painel + inversor), usada quando a empresa não envia imagem própria. */
+function kitArt() {
+  let cells = '';
+  for (let c = 0; c < 6; c++) for (let r = 0; r < 10; r++) cells += `<rect x="${93 + c * 15.3}" y="${12 + r * 9.6}" width="14.3" height="8.6" rx=".6" fill="#1d2a3f"/>`;
+  return `<svg class="kitart" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+  <rect x="98" y="4" width="98" height="104" rx="2" fill="#dfe3e8"/>
+  <rect x="89" y="8" width="98" height="104" rx="2" fill="#aab3bd"/><rect x="91" y="10" width="94" height="100" rx="1.5" fill="#2c3b54"/>${cells}
+  <line x1="91" y1="60" x2="185" y2="60" stroke="#aab3bd" stroke-width="1.2"/>
+  <rect x="14" y="44" width="58" height="66" rx="6" fill="#f3f5f7" stroke="#c9cfd6" stroke-width="1.2"/>
+  <rect x="26" y="60" width="34" height="12" rx="3" fill="#1d2a3f"/><circle cx="53" cy="66" r="2.2" style="fill:var(--pri)"/>
+  <rect x="14" y="92" width="58" height="5" style="fill:var(--sec)"/>
+  <rect x="28" y="110" width="5" height="7" fill="#3b4250"/><rect x="40" y="110" width="5" height="7" fill="#3b4250"/><rect x="52" y="110" width="5" height="7" fill="#3b4250"/>
+</svg>`;
+}
+
 function cover(d, qr) {
   const s = d.settings, r = recommendedOf(d), c = s.contact || {};
   const cell = (l, v) => `<div><div class="lab">${l}</div><div class="v">${v}</div></div>`;
@@ -151,7 +166,7 @@ function areaBlock(d) {
   const s = d.settings, a = s.serviceArea;
   const lead = `<p class="lead">${esc(s.aboutText)}</p>`;
   if (!a || !a.states || !a.states.length) return lead;
-  const col = s.secondaryColor, acc = s.primaryColor;
+  const col = 'var(--sec)', acc = 'var(--pri)'; // cores via CSS: mudam junto com as Configurações
   const byUf = a.states.map((uf) => ({ uf, list: (a.cities || []).filter((c) => c.uf === uf) }));
   if (a.style === 'zoom') {
     let n = 0;
@@ -222,7 +237,7 @@ function invest(d) {
       const p = o.payment;
       return `<div class="opt${o.recommended ? ' rec' : ''}">
       <div class="top"><div class="tag">${o.recommended ? 'Recomendado' : ''}</div><div class="nm">${esc(o.name)}</div><div class="kw">${num(o.systemPowerKwp, 2)} kWp · ${o.moduleQty} módulos</div></div>
-      <div style="padding:0 4mm">${s.kitImageUrl ? `<img src="${s.kitImageUrl}">` : ''}</div>
+      <div style="padding:0 4mm">${s.kitImageUrl ? `<img src="${s.kitImageUrl}">` : kitArt()}</div>
       <div class="rows">
         <div class="row"><span>Inversor</span><span>${esc(o.inverter)}</span></div>
         <div class="row"><span>Geração est.*</span><span>${num(o.generationMonthlyKwh)} kWh/mês</span></div>

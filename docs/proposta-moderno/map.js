@@ -30,7 +30,7 @@ function mapSvg(mode, { states, cities = [], color, accent, numbered = false, la
   const paths = GEO.states
     .map((s) => {
       const on = sel.has(s.uf);
-      return `<path d="${s.path}" fill="${on ? color : '#e2e6e4'}" stroke="#fff" stroke-width="${(on ? 1.4 : 1) * k}" stroke-linejoin="round"/>`;
+      return `<path d="${s.path}" style="fill:${on ? color : '#e2e6e4'}" stroke="#fff" stroke-width="${(on ? 1.4 : 1) * k}" stroke-linejoin="round"/>`;
     })
     .join('');
   const ufLabels = labels
@@ -57,8 +57,8 @@ function mapSvg(mode, { states, cities = [], color, accent, numbered = false, la
     .map((c, i) => {
       const [x, y] = pos[i];
       return numbered
-        ? `<circle cx="${x}" cy="${y}" r="${r * 1.55}" fill="${accent}" stroke="#fff" stroke-width="${1.2 * k}"/><text x="${x}" y="${y + 0.4 * k}" font-size="${r * 1.7}" font-weight="700" text-anchor="middle" dominant-baseline="central" fill="#111" font-family="Barlow Condensed,sans-serif">${i + 1}</text>`
-        : `<circle cx="${x}" cy="${y}" r="${r}" fill="${accent}" stroke="#111" stroke-opacity=".55" stroke-width="${0.9 * k}"/>`;
+        ? `<circle cx="${x}" cy="${y}" r="${r * 1.55}" style="fill:${accent}" stroke="#fff" stroke-width="${1.2 * k}"/><text x="${x}" y="${y + 0.4 * k}" font-size="${r * 1.7}" font-weight="700" text-anchor="middle" dominant-baseline="central" style="fill:var(--on-pri,#111)" font-family="Barlow Condensed,sans-serif">${i + 1}</text>`
+        : `<circle cx="${x}" cy="${y}" r="${r}" style="fill:${accent}" stroke="#111" stroke-opacity=".55" stroke-width="${0.9 * k}"/>`;
     })
     .join('');
   return `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">${paths}${ufLabels}${dots}</svg>`;
@@ -72,9 +72,9 @@ function stateTile(uf, cities, color, accent) {
   const k = Math.max(w, h) / 120;
   const dots = cities
     .filter((c) => c.uf === uf)
-    .map((c) => { const [cx, cy] = project(c.lat, c.lon); return `<circle cx="${cx}" cy="${cy}" r="${3.4 * k}" fill="${accent}" stroke="#111" stroke-opacity=".55" stroke-width="${0.8 * k}"/>`; })
+    .map((c) => { const [cx, cy] = project(c.lat, c.lon); return `<circle cx="${cx}" cy="${cy}" r="${3.4 * k}" style="fill:${accent}" stroke="#111" stroke-opacity=".55" stroke-width="${0.8 * k}"/>`; })
     .join('');
-  return `<svg viewBox="${x - p} ${y - p} ${w + 2 * p} ${h + 2 * p}" style="width:100%;height:100%;display:block"><path d="${s.path}" fill="${color}"/>${dots}</svg>`;
+  return `<svg viewBox="${x - p} ${y - p} ${w + 2 * p} ${h + 2 * p}" style="width:100%;height:100%;display:block"><path d="${s.path}" style="fill:${color}"/>${dots}</svg>`;
 }
 
 const stateName = (uf) => BY_UF[uf]?.name || uf;
