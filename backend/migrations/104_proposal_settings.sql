@@ -64,3 +64,16 @@ SELECT c.id FROM companies c
 WHERE NOT EXISTS (
   SELECT 1 FROM proposal_settings ps WHERE ps.company_id::text = c.id::text
 );
+
+-- Ativar RLS e revogar privilégios para roles anônima e autenticada direta do Supabase
+DO $$
+DECLARE
+  has_api_roles BOOLEAN := EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')
+    AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated');
+BEGIN
+  ALTER TABLE public.proposal_settings ENABLE ROW LEVEL SECURITY;
+  IF has_api_roles THEN
+    REVOKE ALL ON TABLE public.proposal_settings FROM anon, authenticated;
+  END IF;
+END $$;
+

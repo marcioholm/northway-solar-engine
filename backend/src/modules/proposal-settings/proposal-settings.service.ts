@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProposalSettings } from './entities/proposal-settings.entity';
@@ -57,6 +58,7 @@ export class ProposalSettingsService {
   constructor(
     @InjectRepository(ProposalSettings)
     private readonly repo: Repository<ProposalSettings>,
+    private readonly configService: ConfigService,
   ) {}
 
   async findByCompanyId(companyId: string): Promise<ProposalSettings> {
@@ -92,11 +94,105 @@ export class ProposalSettingsService {
     return settings;
   }
 
+  private validateSupabaseImageUrl(
+    url: string,
+    companyId: string,
+    field: string,
+  ): void {
+    if (typeof url !== 'string' || !url.trim()) {
+      throw new BadRequestException(
+        `A URL informada para ${field} é inválida`,
+      );
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(url.trim());
+    } catch {
+      throw new BadRequestException(
+        `A URL informada para ${field} é malformada`,
+      );
+    }
+
+    if (parsed.protocol !== 'https:') {
+      throw new BadRequestException(
+        `A URL em ${field} deve utilizar o protocolo HTTPS`,
+      );
+    }
+
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+    if (supabaseUrl) {
+      try {
+        const expectedHost = new URL(supabaseUrl).hostname.toLowerCase();
+        if (parsed.hostname.toLowerCase() !== expectedHost) {
+          throw new BadRequestException(
+            `A URL em ${field} deve pertencer ao Supabase da aplicação`,
+          );
+        }
+      } catch {
+        if (!parsed.hostname.toLowerCase().endsWith('supabase.co')) {
+          throw new BadRequestException(
+            `A URL em ${field} deve pertencer ao Supabase da aplicação`,
+          );
+        }
+      }
+    } else {
+      if (!parsed.hostname.toLowerCase().endsWith('supabase.co')) {
+        throw new BadRequestException(
+          `A URL em ${field} deve pertencer ao Supabase da aplicação`,
+        );
+      }
+    }
+
+    const expectedPrefix = `/storage/v1/object/public/logos/proposals/${companyId}/`;
+    if (!parsed.pathname.startsWith(expectedPrefix)) {
+      throw new BadRequestException(
+        `A URL em ${field} deve ser do bucket logos no caminho proposals/${companyId}/`,
+      );
+    }
+
+    const filename = parsed.pathname.slice(expectedPrefix.length);
+    if (!filename || filename.trim().length === 0) {
+      throw new BadRequestException(
+        `A URL em ${field} deve conter o arquivo no caminho proposals/${companyId}/`,
+      );
+    }
+  }
+
   async update(
     companyId: string,
     dto: UpdateProposalSettingsDto,
   ): Promise<ProposalSettings> {
     const settings = await this.findByCompanyId(companyId);
+
+    // Validação de URLs de imagens
+    if (
+      dto.coverImageUrl !== undefined &&
+      dto.coverImageUrl !== null &&
+      dto.coverImageUrl.trim() !== ''
+    ) {
+      this.validateSupabaseImageUrl(dto.coverImageUrl, companyId, 'coverImageUrl');
+    }
+
+    if (
+      dto.aboutImageUrl !== undefined &&
+      dto.aboutImageUrl !== null &&
+      dto.aboutImageUrl.trim() !== ''
+    ) {
+      this.validateSupabaseImageUrl(dto.aboutImageUrl, companyId, 'aboutImageUrl');
+    }
+
+    if (dto.partnerLogos !== undefined && Array.isArray(dto.partnerLogos)) {
+      for (const logoUrl of dto.partnerLogos) {
+        this.validateSupabaseImageUrl(logoUrl, companyId, 'partnerLogos');
+      }
+    }
+
+    if (dto.brandLogos !== undefined && Array.isArray(dto.brandLogos)) {
+      for (const logoUrl of dto.brandLogos) {
+        this.validateSupabaseImageUrl(logoUrl, companyId, 'brandLogos');
+      }
+    }
 
     // Apply fields from DTO
     if (dto.template !== undefined) settings.template = dto.template;
