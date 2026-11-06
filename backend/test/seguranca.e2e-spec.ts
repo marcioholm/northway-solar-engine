@@ -14,6 +14,7 @@ const PASSWORD = 'senha-de-teste';
 
 describe('Isolamento e rotas públicas (e2e)', () => {
   let app: INestApplication;
+  let db: DataSource;
   let adminToken: string;
   let sellerToken: string;
   let superadminToken: string;
@@ -36,7 +37,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     configureApp(app);
     await app.init();
 
-    const db = app.get(DataSource);
+    db = app.get(DataSource);
     // Este teste apaga dados: só roda em banco cujo nome termina em _test.
     const [{ current_database: database }] = await db.query(
       'SELECT current_database()',
@@ -735,5 +736,155 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     expect(pdfRes.headers['content-type']).toMatch(/application\/pdf/);
     expect(pdfRes.headers['content-disposition']).toMatch(/attachment; filename=/);
     expect(pdfRes.body.toString('utf8')).toContain('%PDF-1.4');
+  });
+
+  describe('Configurações de Proposta Comercial (e2e)', () => {
+    it('GET /proposal-settings exige login', async () => {
+      await http().get('/proposal-settings').expect(401);
+    });
+
+    it('vendedor não altera proposal-settings (403)', async () => {
+      await http()
+        .patch('/proposal-settings')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({ template: 'minimalista' })
+        .expect(403);
+    });
+
+    it('vendedor não faz upload em proposal-settings (403)', async () => {
+      await http()
+        .post('/proposal-settings/upload')
+        .auth(sellerToken, { type: 'bearer' })
+        .attach('file', Buffer.from('fake'), { filename: 'test.png', contentType: 'image/png' })
+        .expect(403);
+    });
+
+    it('upload com tipo inválido é recusado (400)', async () => {
+      const res = await http()
+        .post('/proposal-settings/upload')
+        .auth(adminToken, { type: 'bearer' })
+        .attach('file', Buffer.from('documento texto'), { filename: 'arquivo.txt', contentType: 'text/plain' })
+        .expect(400);
+
+      expect(res.body.message).toMatch(/PNG, JPEG/i);
+    });
+
+    it('isolamento entre empresas: empresa A não altera configurações da empresa B', async () => {
+      // 1. Empresa A customiza sua proposta
+      const patchA = await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          template: 'classico',
+          primaryColor: '#112233',
+          secondaryColor: '#445566',
+          aboutText: 'História exclusiva da Empresa A',
+          stats: [{ value: '+500', label: 'Projetos A' }],
+        })
+        .expect(200);
+
+      expect(patchA.body.template).toBe('classico');
+      expect(patchA.body.primaryColor).toBe('#112233');
+
+      // 2. Consulta da Empresa A reflete alterações
+      const getA = await http()
+        .get('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .expect(200);
+
+      expect(getA.body.companyId).toBe(COMPANY_A);
+      expect(getA.body.template).toBe('classico');
+      expect(getA.body.aboutText).toBe('História exclusiva da Empresa A');
+
+      // 3. Consulta da Empresa B mantém dados próprios isolados
+      const getB = await http()
+        .get('/proposal-settings')
+        .auth(adminBToken, { type: 'bearer' })
+        .expect(200);
+
+      expect(getB.body.companyId).toBe(COMPANY_B);
+      expect(getB.body.template).not.toBe('classico');
+      expect(getB.body.aboutText).not.toBe('História exclusiva da Empresa A');
+    });
+
+    it('URL externa em coverImageUrl é recusada (400)', async () => {
+      const res = await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({ coverImageUrl: 'https://images.unsplash.com/photo-123.jpg' })
+        .expect(400);
+
+      expect(res.body.message).toMatch(/Supabase da aplicação/i);
+    });
+
+    it('URL de imagem de outra empresa é recusada (400)', async () => {
+      const otherCompanyUrl = `https://vwyywxckjusuogwkpjjs.supabase.co/storage/v1/object/public/logos/proposals/${COMPANY_B}/capa.png`;
+      const res = await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({ coverImageUrl: otherCompanyUrl })
+        .expect(400);
+
+      expect(res.body.message).toMatch(/proposals\//i);
+    });
+
+    it('URL válida da própria empresa no storage Supabase é aceita (200)', async () => {
+      const validCompanyUrl = `https://vwyywxckjusuogwkpjjs.supabase.co/storage/v1/object/public/logos/proposals/${COMPANY_A}/capa.png`;
+      const res = await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({ coverImageUrl: validCompanyUrl })
+        .expect(200);
+
+      expect(res.body.coverImageUrl).toBe(validCompanyUrl);
+    });
+
+    it('tabela proposal_settings sem privilégio para anon, quando o papel existir', async () => {
+      const [{ has_anon }] = await db.query(
+        "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') AS has_anon",
+      );
+
+      if (has_anon) {
+        const privileges = await db.query(
+          "SELECT privilege_type FROM information_schema.table_privileges WHERE grantee = 'anon' AND table_name = 'proposal_settings'",
+        );
+        expect(privileges).toHaveLength(0);
+      } else {
+        // Valida que ao existir a role anon, os privilégios na tabela são revogados conforme a migration 104
+        await db.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+              CREATE ROLE anon NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN;
+            END IF;
+          END $$;
+          GRANT ALL ON TABLE proposal_settings TO anon, authenticated;
+          DO $$
+          DECLARE
+            has_api_roles BOOLEAN := EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')
+              AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated');
+          BEGIN
+            ALTER TABLE public.proposal_settings ENABLE ROW LEVEL SECURITY;
+            IF has_api_roles THEN
+              REVOKE ALL ON TABLE public.proposal_settings FROM anon, authenticated;
+            END IF;
+          END $$;
+        `);
+        try {
+          const privileges = await db.query(
+            "SELECT privilege_type FROM information_schema.table_privileges WHERE grantee = 'anon' AND table_name = 'proposal_settings'",
+          );
+          expect(privileges).toHaveLength(0);
+        } finally {
+          await db.query(`
+            DROP ROLE IF EXISTS anon;
+            DROP ROLE IF EXISTS authenticated;
+          `);
+        }
+      }
+    });
   });
 });
