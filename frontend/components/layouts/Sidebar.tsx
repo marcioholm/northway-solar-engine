@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '../../lib/cn';
 import { useSidebar } from '../../hooks/useSidebar';
@@ -20,6 +21,8 @@ export default function Sidebar() {
   const router = useRouter();
   const { collapsed, toggle } = useSidebar();
   const [role, setRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('Usuário');
+  const [userInitials, setUserInitials] = useState<string>('US');
 
   useEffect(() => {
     try {
@@ -28,6 +31,25 @@ export default function Sidebar() {
         const decoded = decodeToken(token);
         if (decoded?.role) {
           setRole(decoded.role);
+        }
+        if (decoded?.email) {
+          const rawName = decoded.email.split('@')[0];
+          const capitalized = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+          setUserName(capitalized);
+          setUserInitials(rawName.slice(0, 2).toUpperCase());
+        }
+      }
+      const rawUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        if (parsed?.name) {
+          setUserName(parsed.name);
+          const parts = parsed.name.trim().split(/\s+/);
+          setUserInitials(
+            parts.length > 1
+              ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+              : parts[0].slice(0, 2).toUpperCase()
+          );
         }
       }
     } catch {}
@@ -47,7 +69,8 @@ export default function Sidebar() {
   };
 
   const isActive = (href: string) => {
-    if (href === '/crm') return pathname === '/crm';
+    if (href === '/dashboard') return pathname === '/dashboard';
+    if (href === '/crm' || href === '/crm/leads') return pathname.startsWith('/crm');
     return pathname.startsWith(href);
   };
 
@@ -103,15 +126,17 @@ export default function Sidebar() {
         {NAV_ITEMS.map(item => {
           const active = isActive(item.href);
           return (
-            <button
+            <Link
               key={item.label}
-              onClick={() => router.push(item.href)}
+              href={item.href}
               className="nav-item"
               style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
                 padding: collapsed ? '10px 0' : '10px 14px',
                 borderRadius: 'var(--radius-lg)',
                 border: 'none', outline: 'none',
+                textDecoration: 'none',
+                boxSizing: 'border-box',
                 background: active ? 'var(--green-light)' : 'transparent',
                 color: active ? 'var(--green-dark)' : 'var(--text-secondary)',
                 fontWeight: active ? 700 : 500,
@@ -129,7 +154,7 @@ export default function Sidebar() {
                 {item.icon}
               </span>
               {!collapsed && <span style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>{item.label}</span>}
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -176,10 +201,12 @@ export default function Sidebar() {
                 flexShrink: 0,
               }}
             >
-              MH
+              {userInitials}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>Marcio Holm</div>
+              <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {userName}
+              </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{getRoleLabel(role)}</div>
             </div>
             <button

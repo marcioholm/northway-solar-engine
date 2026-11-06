@@ -1,6 +1,7 @@
 {
     "buildCommand": "npx nest build",
     "outputDirectory": ".",
+    "regions": ["gru1"],
     "functions": {
         "api/index.js": {
             "memory": 512,
