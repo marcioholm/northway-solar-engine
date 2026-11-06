@@ -35,10 +35,37 @@ export default function LeadDetailPage() {
     const [tab, setTab] = useState<Tab>('timeline');
     const [newNote, setNewNote] = useState('');
     const [savingNote, setSavingNote] = useState(false);
+    const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
 
     const api = process.env.NEXT_PUBLIC_API_URL;
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const headers = { Authorization: `Bearer ${token}` };
+
+    const handleDownloadPdf = async (proposalId: string) => {
+        setDownloadingPdfId(proposalId);
+        try {
+            const storedToken = localStorage.getItem('token');
+            const res = await fetch(`${api}/proposals/${proposalId}/pdf`, {
+                headers: { Authorization: `Bearer ${storedToken}` },
+            });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    throw new Error('Sessão expirada. Faça login novamente.');
+                }
+                if (res.status === 404) {
+                    throw new Error('Proposta não encontrada.');
+                }
+                throw new Error(`Falha ao gerar o PDF da proposta (código ${res.status}).`);
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (err: any) {
+            alert(err?.message || 'Não foi possível gerar o PDF da proposta.');
+        } finally {
+            setDownloadingPdfId(null);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -229,7 +256,14 @@ export default function LeadDetailPage() {
                                         <p className="text-sm font-bold text-white">{p.clientName}</p>
                                         <p className="text-xs text-gray-500 mt-1">{Number(p.systemPowerKwp).toFixed(2)} kWp · {formatBRL(Number(p.finalPrice))}</p>
                                     </div>
-                                    <a href={`${api}/proposals/${p.id}/pdf`} target="_blank" className="text-xs text-[var(--color-primary)] font-bold hover:underline">PDF</a>
+                                    <button
+                                        type="button"
+                                        disabled={downloadingPdfId === p.id}
+                                        onClick={() => handleDownloadPdf(p.id)}
+                                        className="text-xs text-[var(--color-primary)] font-bold hover:underline disabled:opacity-50"
+                                    >
+                                        {downloadingPdfId === p.id ? 'Baixando...' : 'PDF'}
+                                    </button>
                                 </div>
                             ))}
                             {proposals.length === 0 && <p className="text-sm text-gray-500">Nenhuma proposta associada.</p>}
