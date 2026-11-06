@@ -108,10 +108,10 @@ export class ImageOptimizerService {
     let pipeline: sharp.Sharp;
     let metadata: sharp.Metadata;
     try {
-      pipeline = sharp(buffer);
+      pipeline = sharp(buffer, { limitInputPixels: 40_000_000, failOn: 'error' });
       metadata = await pipeline.metadata();
     } catch (err: any) {
-      throw new BadRequestException(`Arquivo de imagem inválido ou corrompido: ${err.message}`);
+      throw new BadRequestException('Imagem inválida ou grande demais');
     }
 
     // 1. Corrigir rotação da foto (orientação baseada em EXIF)
@@ -150,17 +150,21 @@ export class ImageOptimizerService {
       outputExtension = 'webp';
     }
 
-    const { data: outputBuffer, info } = await pipeline.toBuffer({
-      resolveWithObject: true,
-    });
+    try {
+      const { data: outputBuffer, info } = await pipeline.toBuffer({
+        resolveWithObject: true,
+      });
 
-    return {
-      buffer: outputBuffer,
-      mimetype: outputMimetype,
-      extension: outputExtension,
-      width: info.width,
-      height: info.height,
-      hasAlpha: Boolean(info.channels === 4 || hasAlpha),
-    };
+      return {
+        buffer: outputBuffer,
+        mimetype: outputMimetype,
+        extension: outputExtension,
+        width: info.width,
+        height: info.height,
+        hasAlpha: Boolean(info.channels === 4 || hasAlpha),
+      };
+    } catch (err: any) {
+      throw new BadRequestException('Imagem inválida ou grande demais');
+    }
   }
 }

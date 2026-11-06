@@ -121,11 +121,30 @@ describe('ImageOptimizerService', () => {
       expect(meta.format).toBe('webp');
     });
 
-    it('rejeita buffer inválido com 400', async () => {
+    it('rejeita buffer inválido com 400 e mensagem amigável', async () => {
       const corrupted = Buffer.from('arquivo corrompido que nao e imagem');
       await expect(
         service.processImage(corrupted, 'image/jpeg', 'logo'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow('Imagem inválida ou grande demais');
+    });
+
+    it('imagem acima do limite de pixels (limitInputPixels) → 400', async () => {
+      // 7000 x 6000 = 42.000.000 pixels (> limite de 40.000.000)
+      const hugeBuffer = await sharp({
+        create: {
+          width: 7000,
+          height: 6000,
+          channels: 3,
+          background: { r: 10, g: 20, b: 30 },
+        },
+      })
+        .jpeg()
+        .toBuffer();
+
+      await expect(
+        service.processImage(hugeBuffer, 'image/jpeg', 'logo'),
+      ).rejects.toThrow('Imagem inválida ou grande demais');
     });
   });
 });
+
