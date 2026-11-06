@@ -736,4 +736,74 @@ describe('Isolamento e rotas públicas (e2e)', () => {
     expect(pdfRes.headers['content-disposition']).toMatch(/attachment; filename=/);
     expect(pdfRes.body.toString('utf8')).toContain('%PDF-1.4');
   });
+
+  describe('Configurações de Proposta Comercial (e2e)', () => {
+    it('GET /proposal-settings exige login', async () => {
+      await http().get('/proposal-settings').expect(401);
+    });
+
+    it('vendedor não altera proposal-settings (403)', async () => {
+      await http()
+        .patch('/proposal-settings')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({ template: 'minimalista' })
+        .expect(403);
+    });
+
+    it('vendedor não faz upload em proposal-settings (403)', async () => {
+      await http()
+        .post('/proposal-settings/upload')
+        .auth(sellerToken, { type: 'bearer' })
+        .attach('file', Buffer.from('fake'), { filename: 'test.png', contentType: 'image/png' })
+        .expect(403);
+    });
+
+    it('upload com tipo inválido é recusado (400)', async () => {
+      const res = await http()
+        .post('/proposal-settings/upload')
+        .auth(adminToken, { type: 'bearer' })
+        .attach('file', Buffer.from('documento texto'), { filename: 'arquivo.txt', contentType: 'text/plain' })
+        .expect(400);
+
+      expect(res.body.message).toMatch(/PNG, JPEG/i);
+    });
+
+    it('isolamento entre empresas: empresa A não altera configurações da empresa B', async () => {
+      // 1. Empresa A customiza sua proposta
+      const patchA = await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          template: 'classico',
+          primaryColor: '#112233',
+          secondaryColor: '#445566',
+          aboutText: 'História exclusiva da Empresa A',
+          stats: [{ value: '+500', label: 'Projetos A' }],
+        })
+        .expect(200);
+
+      expect(patchA.body.template).toBe('classico');
+      expect(patchA.body.primaryColor).toBe('#112233');
+
+      // 2. Consulta da Empresa A reflete alterações
+      const getA = await http()
+        .get('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .expect(200);
+
+      expect(getA.body.companyId).toBe(COMPANY_A);
+      expect(getA.body.template).toBe('classico');
+      expect(getA.body.aboutText).toBe('História exclusiva da Empresa A');
+
+      // 3. Consulta da Empresa B mantém dados próprios isolados
+      const getB = await http()
+        .get('/proposal-settings')
+        .auth(adminBToken, { type: 'bearer' })
+        .expect(200);
+
+      expect(getB.body.companyId).toBe(COMPANY_B);
+      expect(getB.body.template).not.toBe('classico');
+      expect(getB.body.aboutText).not.toBe('História exclusiva da Empresa A');
+    });
+  });
 });

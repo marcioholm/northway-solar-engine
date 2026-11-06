@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Cog6ToothIcon, CurrencyDollarIcon, BuildingOfficeIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { Cog6ToothIcon, CurrencyDollarIcon, BuildingOfficeIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { decodeToken } from '../../../lib/jwt';
 import { Input } from '../../../components/ui/Input';
+import { ProposalSettingsTab } from './ProposalSettingsTab';
 
 export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<'empresa' | 'proposta'>('empresa');
   const [companyId, setCompanyId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [baseCity, setBaseCity] = useState('');
@@ -118,147 +120,197 @@ export default function SettingsPage() {
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', width: '100%', padding: '0 24px' }}>
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Configurações</h1>
-        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>Gerencie os parâmetros da sua empresa</p>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '4px 0 0' }}>Gerencie os parâmetros da sua empresa e da proposta comercial</p>
       </div>
 
-      <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Empresa */}
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
-              <BuildingOfficeIcon style={{ width: 20, height: 20 }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Empresa</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Nome">
-                <input value={companyName} onChange={e => setCompanyName(e.target.value)} style={inputStyle} />
-              </Field>
-              <Field label="Cidade Base">
-                <input value={baseCity} onChange={e => setBaseCity(e.target.value)} style={inputStyle} placeholder="Ex: São Paulo - SP" />
-              </Field>
-              <Field label="Logo">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ width: 80, height: 80, borderRadius: 'var(--radius-md)', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg)' }}>
-                    {logoUrl ? (
-                      <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <PhotoIcon style={{ width: 28, height: 28, color: 'var(--text-muted)', opacity: 0.5 }} />
-                    )}
-                  </div>
-                  <label style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
-                    {uploading ? 'Enviando...' : 'Escolher imagem'}
-                    <input type="file" accept="image/png,image/jpeg" onChange={handleLogoUpload} style={{ display: 'none' }} />
-                  </label>
-                </div>
-              </Field>
-            </div>
-          </div>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 28, borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('empresa')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 'var(--radius-md)',
+            background: activeTab === 'empresa' ? 'var(--surface-hover)' : 'transparent',
+            color: activeTab === 'empresa' ? 'var(--text)' : 'var(--text-secondary)',
+            border: activeTab === 'empresa' ? '1px solid var(--border)' : '1px solid transparent',
+            fontWeight: 600,
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <BuildingOfficeIcon style={{ width: 18, height: 18 }} />
+          Geral & Integrações
+        </button>
 
-          {/* Financeiro */}
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
-              <CurrencyDollarIcon style={{ width: 20, height: 20 }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Financeiro</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Field label="Margem Padrão (%)">
-                <Input variant="number" value={defaultMargin} onChange={v => setDefaultMargin(Number(v))} />
-              </Field>
-              <Field label="Desconto à Vista (%)">
-                <Input variant="number" value={cashDiscount} onChange={v => setCashDiscount(Number(v))} />
-              </Field>
-              <Field label="Taxa Cartão (%)">
-                <Input variant="number" value={cardTax} onChange={v => setCardTax(Number(v))} />
-              </Field>
-              <Field label="Taxa Financiamento (%)">
-                <Input variant="number" value={financeTax} onChange={v => setFinanceTax(Number(v))} />
-              </Field>
-            </div>
-          </div>
-          {/* Integrações - WhatsApp */}
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
-              <Cog6ToothIcon style={{ width: 20, height: 20 }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Integração: WhatsApp (Evolution API)</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Nome da Instância">
-                <input style={inputStyle} placeholder="Ex: solar_vendas_1" />
-              </Field>
-              <Field label="URL da API">
-                <input style={inputStyle} placeholder="https://sua-evolution-api.com" />
-              </Field>
-              <Field label="Global API Key">
-                <input style={inputStyle} type="password" placeholder="••••••••••••" />
-              </Field>
-              <button type="button" style={{
-                padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
-                background: 'var(--bg)', color: 'var(--text)', fontSize: '13px', fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit', marginTop: 8
-              }}>
-                Conectar e Gerar QR Code
-              </button>
-            </div>
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('proposta')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 'var(--radius-md)',
+            background: activeTab === 'proposta' ? 'var(--surface-hover)' : 'transparent',
+            color: activeTab === 'proposta' ? 'var(--text)' : 'var(--text-secondary)',
+            border: activeTab === 'proposta' ? '1px solid var(--border)' : '1px solid transparent',
+            fontWeight: 600,
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <DocumentTextIcon style={{ width: 18, height: 18 }} />
+          Proposta
+        </button>
+      </div>
 
-          {/* Integrações - Meta Ads */}
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
-              <Cog6ToothIcon style={{ width: 20, height: 20 }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Integração: Meta Ads (Conversões)</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Pixel ID (Opcional)">
-                <input style={inputStyle} placeholder="Ex: 1234567890" value={metaPixelId} onChange={e => setMetaPixelId(e.target.value)} />
-              </Field>
-              <Field label="Access Token">
-                <input style={inputStyle} type="password" placeholder={hasMetaAccessToken ? 'Token salvo. Preencha só para trocar.' : 'EAAB...'} value={metaAccessToken} onChange={e => setMetaAccessToken(e.target.value)} />
-              </Field>
-              <Field label="Ad Account ID">
-                <input style={inputStyle} placeholder="act_123456" value={metaAdAccountId} onChange={e => setMetaAdAccountId(e.target.value)} />
-              </Field>
-              <Field label="Dataset ID">
-                <input style={inputStyle} placeholder="Dataset/Offline Event Set ID" value={metaDatasetId} onChange={e => setMetaDatasetId(e.target.value)} />
-              </Field>
-            </div>
-          </div>
-        </div>
-
-        {/* Preview / ações */}
-        <div>
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28, position: 'sticky', top: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
-              <Cog6ToothIcon style={{ width: 20, height: 20 }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ações</span>
-            </div>
-
-            <button type="submit" disabled={saving} style={{
-              width: '100%', padding: '12px 24px', borderRadius: 'var(--radius-md)', border: 'none',
-              background: 'var(--green)', color: '#fff', fontSize: '13px', fontWeight: 700,
-              cursor: 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit',
-            }}>
-              {saving ? 'Salvando...' : 'Salvar Alterações'}
-            </button>
-
-            {message && (
-              <p style={{ marginTop: 12, fontSize: '12px', fontWeight: 600, color: message.includes('Erro') ? 'var(--danger)' : 'var(--success)', textAlign: 'center' }}>
-                {message}
-              </p>
-            )}
-
-            {logoUrl && (
-              <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', marginBottom: 12 }}>Preview na Proposta</p>
-                <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 80 }}>
-                  <img src={logoUrl} alt="Logo preview" style={{ maxHeight: 48, objectFit: 'contain' }} />
-                </div>
+      {activeTab === 'proposta' ? (
+        <ProposalSettingsTab />
+      ) : (
+        <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {/* Empresa */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+                <BuildingOfficeIcon style={{ width: 20, height: 20 }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Empresa</span>
               </div>
-            )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Field label="Nome">
+                  <input value={companyName} onChange={e => setCompanyName(e.target.value)} style={inputStyle} />
+                </Field>
+                <Field label="Cidade Base">
+                  <input value={baseCity} onChange={e => setBaseCity(e.target.value)} style={inputStyle} placeholder="Ex: São Paulo - SP" />
+                </Field>
+                <Field label="Logo">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ width: 80, height: 80, borderRadius: 'var(--radius-md)', border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'var(--bg)' }}>
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      ) : (
+                        <PhotoIcon style={{ width: 28, height: 28, color: 'var(--text-muted)', opacity: 0.5 }} />
+                      )}
+                    </div>
+                    <label style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: '12px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
+                      {uploading ? 'Enviando...' : 'Escolher imagem'}
+                      <input type="file" accept="image/png,image/jpeg" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                </Field>
+              </div>
+            </div>
+
+            {/* Financeiro */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+                <CurrencyDollarIcon style={{ width: 20, height: 20 }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Financeiro</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Field label="Margem Padrão (%)">
+                  <Input variant="number" value={defaultMargin} onChange={v => setDefaultMargin(Number(v))} />
+                </Field>
+                <Field label="Desconto à Vista (%)">
+                  <Input variant="number" value={cashDiscount} onChange={v => setCashDiscount(Number(v))} />
+                </Field>
+                <Field label="Taxa Cartão (%)">
+                  <Input variant="number" value={cardTax} onChange={v => setCardTax(Number(v))} />
+                </Field>
+                <Field label="Taxa Financiamento (%)">
+                  <Input variant="number" value={financeTax} onChange={v => setFinanceTax(Number(v))} />
+                </Field>
+              </div>
+            </div>
+
+            {/* Integrações - WhatsApp */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+                <Cog6ToothIcon style={{ width: 20, height: 20 }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Integração: WhatsApp (Evolution API)</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Field label="Nome da Instância">
+                  <input style={inputStyle} placeholder="Ex: solar_vendas_1" />
+                </Field>
+                <Field label="URL da API">
+                  <input style={inputStyle} placeholder="https://sua-evolution-api.com" />
+                </Field>
+                <Field label="Global API Key">
+                  <input style={inputStyle} type="password" placeholder="••••••••••••" />
+                </Field>
+                <button type="button" style={{
+                  padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+                  background: 'var(--bg)', color: 'var(--text)', fontSize: '13px', fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit', marginTop: 8
+                }}>
+                  Conectar e Gerar QR Code
+                </button>
+              </div>
+            </div>
+
+            {/* Integrações - Meta Ads */}
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+                <Cog6ToothIcon style={{ width: 20, height: 20 }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Integração: Meta Ads (Conversões)</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Field label="Pixel ID (Opcional)">
+                  <input style={inputStyle} placeholder="Ex: 1234567890" value={metaPixelId} onChange={e => setMetaPixelId(e.target.value)} />
+                </Field>
+                <Field label="Access Token">
+                  <input style={inputStyle} type="password" placeholder={hasMetaAccessToken ? 'Token salvo. Preencha só para trocar.' : 'EAAB...'} value={metaAccessToken} onChange={e => setMetaAccessToken(e.target.value)} />
+                </Field>
+                <Field label="Ad Account ID">
+                  <input style={inputStyle} placeholder="act_123456" value={metaAdAccountId} onChange={e => setMetaAdAccountId(e.target.value)} />
+                </Field>
+                <Field label="Dataset ID">
+                  <input style={inputStyle} placeholder="Dataset/Offline Event Set ID" value={metaDatasetId} onChange={e => setMetaDatasetId(e.target.value)} />
+                </Field>
+              </div>
+            </div>
           </div>
-        </div>
-      </form>
+
+          {/* Preview / ações */}
+          <div>
+            <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: 28, position: 'sticky', top: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 24 }}>
+                <Cog6ToothIcon style={{ width: 20, height: 20 }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ações</span>
+              </div>
+
+              <button type="submit" disabled={saving} style={{
+                width: '100%', padding: '12px 24px', borderRadius: 'var(--radius-md)', border: 'none',
+                background: 'var(--green)', color: '#fff', fontSize: '13px', fontWeight: 700,
+                cursor: 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit',
+              }}>
+                {saving ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+
+              {message && (
+                <p style={{ marginTop: 12, fontSize: '12px', fontWeight: 600, color: message.includes('Erro') ? 'var(--danger)' : 'var(--success)', textAlign: 'center' }}>
+                  {message}
+                </p>
+              )}
+
+              {logoUrl && (
+                <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', marginBottom: 12 }}>Preview na Proposta</p>
+                  <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 80 }}>
+                    <img src={logoUrl} alt="Logo preview" style={{ maxHeight: 48, objectFit: 'contain' }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

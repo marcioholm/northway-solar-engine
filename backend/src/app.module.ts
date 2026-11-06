@@ -27,6 +27,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { IntelligenceModule } from './modules/intelligence/intelligence.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { TeamsModule } from './modules/teams/teams.module';
+import { ProposalSettingsModule } from './modules/proposal-settings/proposal-settings.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { TeamsModule } from './modules/teams/teams.module';
     IntelligenceModule,
     FinanceModule,
     TeamsModule,
+    ProposalSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
