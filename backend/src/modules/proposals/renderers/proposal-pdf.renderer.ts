@@ -133,9 +133,11 @@ export class ProposalPdfRenderer implements ProposalRenderer {
 
       // O template distribui o conteúdo em páginas via script (paginação automática).
       // Espera o sinal de conclusão; se não vier, segue com o que estiver renderizado.
-      await page
-        .waitForFunction('window.__paged === true', { timeout: 10000 })
-        .catch(() => undefined);
+      if (typeof (page as any).waitForFunction === 'function') {
+        await page
+          .waitForFunction('window.__paged === true', { timeout: 10000 })
+          .catch(() => undefined);
+      }
 
       const uint8Array = await page.pdf({
         format: 'A4',
