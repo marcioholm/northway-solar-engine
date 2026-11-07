@@ -409,6 +409,13 @@ export function ProposalSettingsTab() {
   const [uploadingTarget, setUploadingTarget] = useState<string | null>(null);
   const [newKitItem, setNewKitItem] = useState('');
 
+  // Pré-visualização do PDF em memória
+  const [previewConsumption, setPreviewConsumption] = useState<number | string>(850);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewWarning, setPreviewWarning] = useState<string | null>(null);
+  const savedDataSnapshot = useRef<string>('');
+
   // Autocomplete de cidades para "Onde atuamos"
   const [citySearchQuery, setCitySearchQuery] = useState('');
   const [citySearchResults, setCitySearchResults] = useState<ServiceAreaCity[]>([]);
@@ -424,7 +431,7 @@ export function ProposalSettingsTab() {
         });
         if (res.ok) {
           const settings = await res.json();
-          setData({
+          const formatted: ProposalSettingsData = {
             template: 'moderno',
             primaryColor: settings.primaryColor || '#1F2937',
             secondaryColor: settings.secondaryColor || '#F59E0B',
@@ -475,7 +482,12 @@ export function ProposalSettingsTab() {
               partners: settings.sectionsEnabled?.partners ?? true,
               contact: settings.sectionsEnabled?.contact ?? true,
             },
-          });
+            paymentDefaults: settings.paymentDefaults,
+            sizingRules: settings.sizingRules,
+            futureLoads: settings.futureLoads,
+          };
+          setData(formatted);
+          savedDataSnapshot.current = JSON.stringify(formatted);
         }
       } catch (err) {
         console.error('Erro ao carregar configurações de proposta:', err);
@@ -638,6 +650,8 @@ export function ProposalSettingsTab() {
       }
 
       setMessage({ type: 'success', text: 'Configurações da proposta comercial salvas com sucesso!' });
+      savedDataSnapshot.current = JSON.stringify(data);
+      setPreviewWarning(null);
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Erro ao salvar' });
     } finally {
@@ -776,6 +790,58 @@ export function ProposalSettingsTab() {
     }
   };
 
+  const isDirty =
+    savedDataSnapshot.current !== '' &&
+    JSON.stringify(data) !== savedDataSnapshot.current;
+
+  const handlePreviewPdf = async () => {
+    if (isDirty) {
+      setPreviewWarning('Salve as alterações para vê-las na prévia.');
+    } else {
+      setPreviewWarning(null);
+    }
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const kwh = Number(previewConsumption) || 850;
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/proposal-settings/preview-pdf`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            consumptionKwh: Math.max(100, Math.min(20000, kwh)),
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        if (res.status === 429) {
+          throw new Error(
+            'Limite de pré-visualizações atingido (máx. 5 por minuto). Aguarde um instante.',
+          );
+        }
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Falha ao gerar pré-visualização do PDF.');
+      }
+
+      const blob = await res.blob();
+      const fileUrl = window.URL.createObjectURL(blob);
+      window.open(fileUrl, '_blank');
+      setTimeout(() => window.URL.revokeObjectURL(fileUrl), 60000);
+    } catch (err: any) {
+      setPreviewError(err.message || 'Erro ao gerar prévia do PDF.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   if (loading) {
     return <div style={{ padding: '32px 0', color: 'var(--text-secondary)' }}>Carregando configurações...</div>;
   }
@@ -785,13 +851,132 @@ export function ProposalSettingsTab() {
 
   return (
     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      <div>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 6px', color: 'var(--text)' }}>
-          Modelo & Personalização da Proposta Comercial
-        </h2>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-          Configure o modelo Moderno, cores institucionais, mapa de atuação e rastreamento por QR code para propostas em PDF e link público.
-        </p>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 16,
+          paddingBottom: 20,
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <div>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 6px', color: 'var(--text)' }}>
+            Modelo & Personalização da Proposta Comercial
+          </h2>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+            Configure o modelo Moderno, cores institucionais, mapa de atuação e rastreamento por QR code para propostas em PDF e link público.
+          </p>
+        </div>
+
+        {/* Toolbar de Pré-visualização do PDF em Memória */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <label
+                htmlFor="preview-consumption"
+                style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}
+              >
+                Consumo de exemplo:
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  id="preview-consumption"
+                  type="number"
+                  min="100"
+                  max="20000"
+                  step="50"
+                  value={previewConsumption}
+                  onChange={(e) => setPreviewConsumption(e.target.value)}
+                  style={{
+                    width: 90,
+                    padding: '8px 10px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                  }}
+                  placeholder="850"
+                />
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>kWh/mês</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handlePreviewPdf}
+              disabled={previewLoading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 18px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: 'var(--blue, #2563eb)',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: previewLoading ? 'not-allowed' : 'pointer',
+                opacity: previewLoading ? 0.7 : 1,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                transition: 'all 0.15s ease',
+                fontFamily: 'inherit',
+              }}
+            >
+              {previewLoading ? (
+                <>
+                  <svg
+                    style={{
+                      animation: 'spin 1s linear infinite',
+                      width: 16,
+                      height: 16,
+                    }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeOpacity="0.3"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                  <span>Gerando prévia…</span>
+                </>
+              ) : (
+                <>
+                  <DocumentTextIcon style={{ width: 16, height: 16 }} />
+                  <span>Pré-visualizar PDF</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Alerta de alterações não salvas */}
+          {(isDirty || previewWarning) && (
+            <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 600 }}>
+              ⚠️ Salve as alterações para vê-las na prévia.
+            </span>
+          )}
+
+          {/* Mensagem de erro amigável */}
+          {previewError && (
+            <span style={{ fontSize: '12px', color: 'var(--danger)', fontWeight: 600 }}>
+              {previewError}
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 32, alignItems: 'start' }}>

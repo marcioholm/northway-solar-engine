@@ -4,6 +4,7 @@ import { ProposalSettingsController } from './proposal-settings.controller';
 import { ProposalSettingsService } from './proposal-settings.service';
 import { ImageOptimizerService } from './image-optimizer.service';
 import { SupabaseService } from '../../supabase/supabase.service';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 
 describe('ProposalSettingsController', () => {
   let controller: ProposalSettingsController;
@@ -44,7 +45,10 @@ describe('ProposalSettingsController', () => {
         { provide: SupabaseService, useValue: supabase },
         { provide: ImageOptimizerService, useValue: optimizer },
       ],
-    }).compile();
+    })
+      .overrideGuard(UserThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ProposalSettingsController>(ProposalSettingsController);
   });

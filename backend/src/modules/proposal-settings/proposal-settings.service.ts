@@ -2,12 +2,29 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as QR from 'qrcode';
 import {
   DEFAULT_FUTURE_LOADS,
   DEFAULT_SIZING_RULES,
   ProposalSettings,
 } from './entities/proposal-settings.entity';
 import { UpdateProposalSettingsDto } from './dto/update-proposal-settings.dto';
+import { PreviewPdfDto } from './dto/preview-pdf.dto';
+import { Company } from '../companies/entities/company.entity';
+import { Proposal } from '../proposals/entities/proposal.entity';
+import { SolarProject } from '../solar-project/entities/solar-project.entity';
+import { ProposalHtmlRenderer } from '../proposals/renderers/proposal-html.renderer';
+import { ProposalPdfRenderer } from '../proposals/renderers/proposal-pdf.renderer';
+import { ProposalAssembledData } from '../proposals/renderers/proposal-renderer.interface';
+import {
+  calculateScenarios,
+  validateAndEnrichFutureLoads,
+} from '../proposals/utils/scenario-calculator';
+import {
+  calculateOptionPayment,
+  PaymentConfig,
+} from '../proposals/utils/payment-calculator';
+import { DEFAULT_LABEL } from '../proposals/templates/qr-target';
 
 const DEFAULT_ABOUT_TEXT =
   'Somos especialistas em soluções completas de energia solar fotovoltaica, dedicados a entregar máxima economia, sustentabilidade e segurança para residências, comércios e propriedades rurais.';
@@ -58,10 +75,14 @@ const DEFAULT_SECTIONS_ENABLED = {
 @Injectable()
 export class ProposalSettingsService {
   private readonly logger = new Logger(ProposalSettingsService.name);
+  private readonly htmlRenderer = new ProposalHtmlRenderer();
+  private readonly pdfRenderer = new ProposalPdfRenderer(this.htmlRenderer);
 
   constructor(
     @InjectRepository(ProposalSettings)
     private readonly repo: Repository<ProposalSettings>,
+    @InjectRepository(Company)
+    private readonly companyRepo: Repository<Company>,
     private readonly configService: ConfigService,
   ) {}
 
@@ -290,5 +311,196 @@ export class ProposalSettingsService {
     }
 
     return this.repo.save(settings);
+  }
+
+  async generatePreviewPdf(
+    companyId: string,
+    dto?: PreviewPdfDto,
+  ): Promise<Buffer> {
+    const settings = await this.findByCompanyId(companyId);
+    const company = await this.companyRepo.findOne({ where: { id: companyId } });
+
+    const consumptionMonthlyKwh =
+      dto?.consumptionKwh != null
+        ? Math.max(100, Math.min(20000, Number(dto.consumptionKwh)))
+        : 850;
+
+    const generationFactor = 130;
+    const basePowerKwp = consumptionMonthlyKwh / generationFactor;
+    const baseGenerationKwh = consumptionMonthlyKwh;
+    const modulePowerWatt = 550;
+
+    const catalog =
+      settings.futureLoads && settings.futureLoads.length > 0
+        ? settings.futureLoads
+        : DEFAULT_FUTURE_LOADS;
+
+    const validatedFutureLoads = validateAndEnrichFutureLoads(
+      dto?.futureLoads,
+      catalog,
+    );
+
+    const scenarioResult = calculateScenarios({
+      consumptionMonthlyKwh,
+      sizingPowerKwp: basePowerKwp,
+      sizingGenerationKwh: baseGenerationKwh,
+      modulePowerWatt,
+      sizingRules: settings.sizingRules,
+      futureLoads: validatedFutureLoads,
+    });
+
+    const EXAMPLE_PRICE_PER_KWP = 3400;
+
+    const paymentConfig: PaymentConfig = {
+      cashDiscountPct: settings.paymentDefaults?.cashDiscountPct,
+      card: settings.paymentDefaults?.card,
+      finance: settings.paymentDefaults?.finance,
+      own: settings.paymentDefaults?.own,
+    };
+
+    const templateOptions = scenarioResult.scenarios.map((sc) => {
+      const optPrice = Math.round(sc.systemPowerKwp * EXAMPLE_PRICE_PER_KWP);
+      const coverage =
+        consumptionMonthlyKwh > 0 && sc.generationMonthlyKwh > 0
+          ? Math.min(sc.generationMonthlyKwh / consumptionMonthlyKwh, 1)
+          : 0;
+      const averageBill = Math.round(consumptionMonthlyKwh * 0.95);
+      const monthlySavings = averageBill * 0.9 * coverage;
+      const paybackYears =
+        monthlySavings > 0
+          ? Math.round((optPrice / (monthlySavings * 12)) * 10) / 10
+          : 3.5;
+
+      const optPayment = calculateOptionPayment(optPrice, paymentConfig);
+
+      return {
+        id: `prev-opt-${sc.position}`,
+        position: sc.position,
+        name: `${sc.name} (Exemplo)`,
+        recommended: sc.recommended,
+        scenarioType: sc.scenarioType,
+        scenarioText: sc.scenarioText,
+        isManualPrice: false,
+        targetConsumptionKwh: sc.targetConsumptionKwh,
+        systemPowerKwp: sc.systemPowerKwp,
+        moduleQty: sc.moduleQty,
+        moduleDesc: `${sc.moduleQty}x Módulos 550 W (Exemplo)`,
+        inverterDesc: `Inversor Solar ${sc.systemPowerKwp.toFixed(1)} kW (Exemplo)`,
+        structureDesc: undefined,
+        generationMonthlyKwh: sc.generationMonthlyKwh,
+        finalPrice: optPrice,
+        imageUrl: undefined,
+        coverage,
+        monthlySavings,
+        paybackYears,
+        payment: optPayment,
+        futureLoads: sc.scenarioType === 'expansion' ? validatedFutureLoads : undefined,
+      };
+    });
+
+    const recommendedOption =
+      templateOptions.find((o) => o.recommended) ||
+      templateOptions[1] ||
+      templateOptions[0];
+
+    let clientCity = 'Sua cidade';
+    let clientState = 'UF';
+    if (company?.baseCity) {
+      if (company.baseCity.includes(' - ')) {
+        const parts = company.baseCity.split(' - ');
+        clientCity = parts[0]?.trim() || 'Sua cidade';
+        clientState = parts[1]?.trim() || 'UF';
+      } else {
+        clientCity = company.baseCity.trim();
+      }
+    }
+
+    let qr: { img: string; label: string; url?: string } | null = null;
+    if (settings.qr?.enabled !== false) {
+      const frontendUrl = (
+        process.env.FRONTEND_URL || 'https://northway-solar-engine.vercel.app'
+      ).replace(/\/?$/, '');
+      const settingsUrl = `${frontendUrl}/settings`;
+      const qrLabel = (
+        settings.qr?.label ||
+        DEFAULT_LABEL[settings.qr?.type || 'proposal'] ||
+        'Configurações'
+      ).slice(0, 40);
+
+      try {
+        const qrDataUrl = await QR.toDataURL(settingsUrl, {
+          margin: 0,
+          width: 400,
+          errorCorrectionLevel: 'M',
+          color: { dark: '#111111', light: '#ffffff' },
+        });
+        qr = { img: qrDataUrl, label: qrLabel, url: settingsUrl };
+      } catch {
+        qr = null;
+      }
+    }
+
+    const averageBill = Math.round(consumptionMonthlyKwh * 0.95);
+
+    const equipmentList = [
+      {
+        type: 'module',
+        brand: 'Fabricante Tier 1 (Exemplo)',
+        model: '550 W Monocristalino (Exemplo)',
+        power: '550 W',
+        quantity: recommendedOption.moduleQty,
+      },
+      {
+        type: 'inverter',
+        brand: 'Fabricante Líder (Exemplo)',
+        model: `Inversor ${recommendedOption.systemPowerKwp.toFixed(1)} kW (Exemplo)`,
+        power: `${recommendedOption.systemPowerKwp.toFixed(1)} kW`,
+        quantity: 1,
+      },
+    ];
+
+    const proposalObj = {
+      id: 'previa',
+      code: 'PREVIA',
+      clientName: 'Cliente Exemplo',
+      clientCity,
+      clientCep: '00000-000',
+      consumptionKwh: consumptionMonthlyKwh,
+      systemPowerKwp: recommendedOption.systemPowerKwp,
+      moduleQty: recommendedOption.moduleQty,
+      generationMonthlyKwh: recommendedOption.generationMonthlyKwh,
+      finalPrice: recommendedOption.finalPrice,
+      paybackYears: recommendedOption.paybackYears,
+      options: templateOptions,
+      createdAt: new Date(),
+    } as unknown as Proposal;
+
+    const projectObj = {
+      clientName: 'Cliente Exemplo',
+      clientCity,
+      clientState,
+      consumptionMonthlyKwh,
+      consumptionMonthlyBill: averageBill,
+      sizingPowerKwp: recommendedOption.systemPowerKwp,
+      sizingModuleQty: recommendedOption.moduleQty,
+      sizingGenerationKwh: recommendedOption.generationMonthlyKwh,
+      consultantName: 'Consultor Exemplo',
+      equipments: equipmentList,
+    } as unknown as SolarProject;
+
+    const assembled: ProposalAssembledData = {
+      proposal: proposalObj,
+      project: projectObj,
+      company: company || ({ name: 'Minha Empresa Solar' } as Company),
+      proposalSettings: settings,
+      consultantName: 'Consultor Exemplo',
+      consultantPhone:
+        settings.contact?.whatsapp || settings.contact?.phone || undefined,
+      isPreview: true,
+      qr,
+    };
+
+    const result = await this.pdfRenderer.render(assembled);
+    return result.content as Buffer;
   }
 }

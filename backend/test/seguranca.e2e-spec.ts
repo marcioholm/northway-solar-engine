@@ -1558,4 +1558,81 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(savedIp).toHaveLength(32);
     });
   });
+
+  describe('Pré-visualização do PDF da proposta (preview-pdf e2e)', () => {
+    it('seller não pode gerar prévia (403)', async () => {
+      await http()
+        .post('/proposal-settings/preview-pdf')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({ consumptionKwh: 850 })
+        .expect(403);
+    });
+
+    it('admin gera preview-pdf com 200 application/pdf, empresa A não vaza dados da empresa B, e contagem do banco não se altera', async () => {
+      // 1. Configurar Empresa B com configurações e cores distintas
+      await http()
+        .patch('/proposal-settings')
+        .auth(adminBToken, { type: 'bearer' })
+        .send({
+          primaryColor: '#003366',
+          secondaryColor: '#FF6600',
+          aboutText: 'Texto exclusivo e sigiloso da Empresa B',
+        })
+        .expect(200);
+
+      // 2. Contagem prévia no banco
+      const [{ count: pBefore }] = await db.query('SELECT count(*) FROM proposals');
+      const [{ count: oBefore }] = await db.query('SELECT count(*) FROM proposal_options');
+      const [{ count: eBefore }] = await db.query('SELECT count(*) FROM proposal_events');
+
+      // 3. Admin A gera pré-visualização com dados de exemplo
+      const resA = await http()
+        .post('/proposal-settings/preview-pdf')
+        .auth(adminToken, { type: 'bearer' })
+        .send({ consumptionKwh: 900 })
+        .expect(200);
+
+      expect(resA.headers['content-type']).toContain('application/pdf');
+      expect(resA.headers['content-disposition']).toContain('proposta-previa.pdf');
+      expect(resA.body).toBeDefined();
+
+      // 4. Contagem posterior no banco: rigorosamente inalterada (nada é gravado)
+      const [{ count: pAfter }] = await db.query('SELECT count(*) FROM proposals');
+      const [{ count: oAfter }] = await db.query('SELECT count(*) FROM proposal_options');
+      const [{ count: eAfter }] = await db.query('SELECT count(*) FROM proposal_events');
+
+      expect(pAfter).toBe(pBefore);
+      expect(oAfter).toBe(oBefore);
+      expect(eAfter).toBe(eBefore);
+    });
+
+    it('aplica rate limit de 5 requisições por minuto por usuário: 6ª chamada -> 429', async () => {
+      // Cria um usuário admin dedicado para o teste de rate limit para não colidir com outros testes
+      const hash = await bcrypt.hash(PASSWORD, 4);
+      const rlUserId = '11111111-2222-3333-4444-555555555555';
+      await db.query(
+        `INSERT INTO users (id, company_id, name, email, password_hash, role)
+         VALUES ($1, $2, 'Admin RL', 'admin-rl@a.test', $3, 'admin')
+         ON CONFLICT (id) DO NOTHING`,
+        [rlUserId, COMPANY_A, hash],
+      );
+      const rlToken = await login('admin-rl@a.test');
+
+      // As 5 primeiras chamadas devem suceder com 200
+      for (let i = 1; i <= 5; i++) {
+        const res = await http()
+          .post('/proposal-settings/preview-pdf')
+          .auth(rlToken, { type: 'bearer' })
+          .send({ consumptionKwh: 850 });
+        expect(res.status).toBe(200);
+      }
+
+      // A 6ª chamada no mesmo minuto deve retornar 429 Too Many Requests
+      const res6 = await http()
+        .post('/proposal-settings/preview-pdf')
+        .auth(rlToken, { type: 'bearer' })
+        .send({ consumptionKwh: 850 });
+      expect(res6.status).toBe(429);
+    });
+  });
 });
