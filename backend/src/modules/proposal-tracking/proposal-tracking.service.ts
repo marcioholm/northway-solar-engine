@@ -28,13 +28,19 @@ export class ProposalTrackingService {
       ...(dto.metadata || {}),
     };
     if (dto.section) metadata.section = dto.section;
-    if (dto.duration !== undefined) metadata.durationSeconds = dto.duration;
+    const rawDuration = dto.durationSeconds ?? dto.duration ?? metadata.durationSeconds;
+    if (rawDuration !== undefined) {
+      const dur = Math.round(Number(rawDuration));
+      if (!isNaN(dur) && dur >= 0 && dur <= 86400) {
+        metadata.durationSeconds = dur;
+      }
+    }
 
     const event = this.repository.create({
       proposalId,
       eventType: dto.eventType,
       metadata,
-      ipAddress: ip || '',
+      ipAddress: ip || (null as any),
       userAgent: userAgent || '',
     });
 

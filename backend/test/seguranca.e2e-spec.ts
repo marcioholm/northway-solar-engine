@@ -150,7 +150,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       .expect(403);
   });
 
-  it('cadastro ignora papel e empresa enviados pelo cliente', async () => {
+  it('endpoint público de auto-cadastro foi removido (retorna 404)', async () => {
     const response = await http().post('/auth/register').send({
       email: 'x@x.test',
       password: 'senha-longa',
@@ -158,7 +158,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       role: 'superadmin',
       companyId: COMPANY_A,
     });
-    expect(response.status).not.toBe(201);
+    expect(response.status).toBe(404);
 
     const users = await app
       .get(DataSource)
@@ -1381,6 +1381,181 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(updateRes.body[0].imageUrl).toBe(validCompanyUrl);
       // Sem estrutura definida: null
       expect(updateRes.body[0].structureDesc).toBeNull();
+    });
+  });
+
+  describe('Proposta Confiável: Snapshots, Validade 410 e Tracking LGPD (e2e)', () => {
+    it('migration 107: colunas de snapshot existem e IPs foram limpos', async () => {
+      const columns = await app.get(DataSource).query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'proposals' 
+        AND column_name IN ('settings_snapshot', 'company_snapshot')
+      `);
+      expect(columns).toHaveLength(2);
+
+      const uncleanedTracking = await app.get(DataSource).query(`
+        SELECT COUNT(*)::int as count FROM proposal_tracking WHERE ip_address IS NOT NULL
+      `);
+      expect(uncleanedTracking[0].count).toBe(0);
+    });
+
+    it('ao gerar proposta, grava snapshot das configurações e da empresa, congelando o visual', async () => {
+      // 1. Configura cor distintiva na empresa A
+      await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          primaryColor: '#123456',
+          secondaryColor: '#654321',
+          contact: { whatsapp: '43999998888' },
+        })
+        .expect(200);
+
+      // 2. Cria projeto e gera proposta
+      const proj = await http()
+        .post('/solar-project')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({
+          clientName: 'Cliente Snapshot E2E',
+          clientCity: 'Londrina',
+          consumptionMonthlyKwh: 600,
+          sizingPowerKwp: 4.8,
+          sizingGenerationKwh: 620,
+        })
+        .expect(201);
+
+      const genRes = await http()
+        .post(`/proposals/generate/${proj.body.id}`)
+        .auth(sellerToken, { type: 'bearer' })
+        .expect(201);
+
+      const proposalId = genRes.body.id;
+      const publicToken = genRes.body.publicToken;
+
+      // 3. Altera a cor atual da empresa A para outra
+      await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          primaryColor: '#999999',
+          secondaryColor: '#888888',
+        })
+        .expect(200);
+
+      // 4. Renderiza a proposta gerada: deve manter a cor do snapshot (#123456), não a nova (#999999)
+      const renderRes = await http()
+        .get(`/proposals/${proposalId}?format=html`)
+        .auth(sellerToken, { type: 'bearer' })
+        .expect(200);
+
+      expect(renderRes.text).toContain('#123456');
+      expect(renderRes.text).not.toContain('#999999');
+    });
+
+    it('proposta expirada: rotas públicas retornam 410 Gone com dados de contato; rota autenticada abre normalmente', async () => {
+      const proj = await http()
+        .post('/solar-project')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({
+          clientName: 'Cliente Expirado',
+          clientCity: 'Maringá',
+          consumptionMonthlyKwh: 500,
+          sizingPowerKwp: 4.0,
+          sizingGenerationKwh: 500,
+        })
+        .expect(201);
+
+      const genRes = await http()
+        .post(`/proposals/generate/${proj.body.id}`)
+        .auth(sellerToken, { type: 'bearer' })
+        .expect(201);
+
+      const proposalId = genRes.body.id;
+      const publicToken = genRes.body.publicToken;
+
+      // Força expires_at no passado
+      await app.get(DataSource).query(`
+        UPDATE proposals 
+        SET expires_at = now() - INTERVAL '2 days' 
+        WHERE id = $1
+      `, [proposalId]);
+
+      // Rota pública retorna 410 Gone
+      const pubRes = await http()
+        .get(`/proposals/public/${publicToken}`)
+        .expect(410);
+
+      expect(pubRes.body.expired).toBe(true);
+      expect(pubRes.body.message).toContain('Esta proposta expirou');
+
+      // Rota pública de PDF retorna 410 Gone
+      await http()
+        .get(`/proposals/public/${publicToken}/pdf`)
+        .expect(410);
+
+      // Rota autenticada abre normalmente (200)
+      await http()
+        .get(`/proposals/${proposalId}`)
+        .auth(sellerToken, { type: 'bearer' })
+        .expect(200);
+    });
+
+    it('tracking unificado: rejeita accept, rejeita duration inválido e nunca grava IP em claro', async () => {
+      const proj = await http()
+        .post('/solar-project')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({
+          clientName: 'Cliente Tracking E2E',
+          clientCity: 'Curitiba',
+          consumptionMonthlyKwh: 400,
+          sizingPowerKwp: 3.2,
+          sizingGenerationKwh: 400,
+        })
+        .expect(201);
+
+      const genRes = await http()
+        .post(`/proposals/generate/${proj.body.id}`)
+        .auth(sellerToken, { type: 'bearer' })
+        .expect(201);
+
+      const publicToken = genRes.body.publicToken;
+
+      // 1. Rejeita accept na rota pública de tracking -> 400
+      await http()
+        .post(`/proposals/public/${publicToken}/tracking`)
+        .send({ eventType: 'accept' })
+        .expect(400);
+
+      // 2. Rejeita duration negativo -> 400
+      await http()
+        .post(`/proposals/public/${publicToken}/tracking`)
+        .send({ eventType: 'view', duration: -10 })
+        .expect(400);
+
+      // 3. Rejeita duration gigante -> 400
+      await http()
+        .post(`/proposals/public/${publicToken}/tracking`)
+        .send({ eventType: 'view', duration: 999999 })
+        .expect(400);
+
+      // 4. Envia evento válido: grava com hash de IP truncado ou null (nunca em claro)
+      process.env.IP_HASH_SALT = 'e2e-salt-123';
+      const fakeIp = '203.0.113.195';
+
+      await http()
+        .post(`/proposals/public/${publicToken}/tracking`)
+        .set('x-forwarded-for', fakeIp)
+        .send({ eventType: 'view', duration: 25 })
+        .expect(201);
+
+      const events = await app.get(DataSource).query(`
+        SELECT ip_address FROM proposal_tracking WHERE proposal_id = $1
+      `, [genRes.body.id]);
+
+      expect(events.length).toBeGreaterThan(0);
+      const savedIp = events[0].ip_address;
+      expect(savedIp).not.toBe(fakeIp);
+      expect(savedIp).toHaveLength(32);
     });
   });
 });

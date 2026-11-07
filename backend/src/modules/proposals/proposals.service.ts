@@ -5,6 +5,7 @@ import {
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
@@ -41,12 +42,21 @@ import { paginate, PaginatedResult } from '../../common/dto/pagination.dto';
 import { ProposalHtmlRenderer } from './renderers/proposal-html.renderer';
 import { ProposalWebRenderer } from './renderers/proposal-web.renderer';
 import { ProposalPdfRenderer } from './renderers/proposal-pdf.renderer';
-import { ProposalAssembledData } from './renderers/proposal-renderer.interface';
+import {
+  ProposalAssembledData,
+  RenderOutput,
+} from './renderers/proposal-renderer.interface';
+import { ProposalSettings } from '../proposal-settings/entities/proposal-settings.entity';
+import { Company } from '../companies/entities/company.entity';
+import { SupabaseService } from '../../supabase/supabase.service';
 
 import * as crypto from 'crypto';
 
+export const TEMPLATE_VERSION = 'v1.0';
+
 @Injectable()
 export class ProposalsService {
+  private readonly logger = new Logger(ProposalsService.name);
   private readonly htmlRenderer = new ProposalHtmlRenderer();
   private readonly webRenderer = new ProposalWebRenderer();
   private readonly pdfRenderer = new ProposalPdfRenderer(this.htmlRenderer);
@@ -65,30 +75,22 @@ export class ProposalsService {
     private leadsService: LeadsService,
     private proposalSettingsService: ProposalSettingsService,
     private inventoryService: InventoryService,
+    @Optional() private supabaseService?: SupabaseService,
     @Optional() private configService?: ConfigService,
   ) {}
 
   // ────────── TRACKING ──────────
-  
-  async trackEvent(token: string, eventType: string, durationSeconds: number, ipAddress?: string, userAgent?: string) {
-    const proposal = await this.proposalsRepository.findOne({ where: { publicToken: token } });
-    if (!proposal) throw new NotFoundException('Proposal not found');
-
-    const event = this.proposalEventsRepository.create({
-      proposalId: proposal.id,
-      eventType,
-      durationSeconds,
-      ipAddress,
-      userAgent,
-    });
-    return this.proposalEventsRepository.save(event);
-  }
 
   async getEvents(proposalId: string) {
     return this.proposalEventsRepository.find({
       where: { proposalId },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  isExpired(proposal: Proposal): boolean {
+    if (!proposal.expiresAt) return false;
+    return new Date(proposal.expiresAt).getTime() < Date.now();
   }
 
   async getPublicView(proposal: Proposal): Promise<PublicProposalView> {
@@ -110,6 +112,7 @@ export class ProposalsService {
     if (!proposal) throw new NotFoundException('Proposal not found');
 
     const company =
+      (proposal.companySnapshot as Company) ??
       proposal.company ??
       (proposal.companyId
         ? await this.companiesService.findOne(proposal.companyId)
@@ -140,9 +143,11 @@ export class ProposalsService {
       }
     }
 
-    const proposalSettings = proposal.companyId
-      ? await this.proposalSettingsService.findByCompanyId(proposal.companyId)
-      : undefined;
+    const proposalSettings =
+      (proposal.settingsSnapshot as ProposalSettings) ??
+      (proposal.companyId
+        ? await this.proposalSettingsService.findByCompanyId(proposal.companyId)
+        : undefined);
 
     const options = await this.proposalOptionsRepository.find({
       where: { proposalId: proposal.id, companyId },
@@ -163,17 +168,71 @@ export class ProposalsService {
 
   // ────────── RENDERER ──────────
 
-  render(proposalId: string, companyId: string, format: 'html' | 'pdf' | 'web' = 'html') {
-    return this.assemble(proposalId, companyId).then((data) => {
-      switch (format) {
-        case 'pdf':
-          return this.pdfRenderer.render(data);
-        case 'web':
-          return this.webRenderer.render(data);
-        default:
-          return this.htmlRenderer.render(data);
+  async render(
+    proposalId: string,
+    companyId: string,
+    format: 'html' | 'pdf' | 'web' = 'html',
+  ): Promise<RenderOutput> {
+    const data = await this.assemble(proposalId, companyId);
+
+    if (format === 'pdf') {
+      const updatedAtStr =
+        data.proposal.updatedAt instanceof Date
+          ? data.proposal.updatedAt.toISOString()
+          : data.proposal.createdAt instanceof Date
+            ? data.proposal.createdAt.toISOString()
+            : '';
+      const key = crypto
+        .createHash('sha256')
+        .update(`${updatedAtStr}-${TEMPLATE_VERSION}`)
+        .digest('hex')
+        .slice(0, 16);
+      const cachePath = `${companyId}/${proposalId}-${key}.pdf`;
+
+      if (this.supabaseService) {
+        try {
+          const cached = await this.supabaseService.downloadFile(
+            'proposal-pdfs',
+            cachePath,
+          );
+          if (cached) {
+            return {
+              content: cached,
+              filename: `proposal-${proposalId}.pdf`,
+              mimeType: 'application/pdf',
+            };
+          }
+        } catch {
+          // ignore cache read failure
+        }
       }
-    });
+
+      const result = await this.pdfRenderer.render(data);
+
+      if (this.supabaseService && Buffer.isBuffer(result.content)) {
+        try {
+          await this.supabaseService.uploadFile(
+            'proposal-pdfs',
+            cachePath,
+            result.content,
+            'application/pdf',
+          );
+        } catch (err: any) {
+          this.logger.warn(
+            `PDF cache upload skipped/failed: ${err?.message || err}`,
+          );
+        }
+      }
+
+      return result;
+    }
+
+    switch (format) {
+      case 'web':
+        return this.webRenderer.render(data);
+      default:
+        return this.htmlRenderer.render(data);
+    }
   }
 
   // ────────── NEW GENERATE (no calculations) ──────────
@@ -226,9 +285,50 @@ export class ProposalsService {
     const paybackYears =
       annualSavings > 0 ? pricingResult.finalPrice / annualSavings : 5;
 
-    // 5. Load company for defaults
+    // 5. Load company and proposal_settings for defaults and snapshots
     const company =
       (await this.companiesService.findOne(companyId)) ?? undefined;
+    const settings = await this.proposalSettingsService.findByCompanyId(companyId);
+
+    const companyPaymentDefaults = settings?.paymentDefaults;
+    const resolvedPaymentConfig = {
+      cashDiscountPct:
+        dto?.payment?.cashDiscountPct ??
+        companyPaymentDefaults?.cashDiscountPct ??
+        (company?.cashDiscount != null && Number(company.cashDiscount) > 0
+          ? Number(company.cashDiscount)
+          : undefined),
+      card:
+        dto?.payment?.card ??
+        companyPaymentDefaults?.card ??
+        (company?.cardTax != null
+          ? { installments: 12, totalMarkupPct: Number(company.cardTax) }
+          : undefined),
+      finance:
+        dto?.payment?.finance ??
+        companyPaymentDefaults?.finance ??
+        (company?.financeTax != null
+          ? [{ n: 60, totalMarkupPct: Number(company.financeTax) }]
+          : undefined),
+      own: dto?.payment?.own ?? companyPaymentDefaults?.own ?? undefined,
+    };
+
+    const companySnapshot = company
+      ? {
+          id: company.id,
+          name: company.name,
+          logoUrl: company.logoUrl,
+          baseCity: company.baseCity,
+          cardTax: company.cardTax,
+          financeTax: company.financeTax,
+          cashDiscount: company.cashDiscount,
+          contact: settings?.contact,
+        }
+      : null;
+
+    const settingsSnapshot = settings
+      ? JSON.parse(JSON.stringify(settings))
+      : null;
 
     // 5.5 Advance and link lead if project has leadId within company
     let validLeadId: string | undefined = undefined;
@@ -267,10 +367,13 @@ export class ProposalsService {
       quoteId: selectedQuote?.id,
       leadId: validLeadId,
       templateName: 'default',
+      settingsSnapshot,
+      companySnapshot,
       settings: {
         pricingInput,
         pricingOutput: pricingResult,
-        payment: dto?.payment,
+        payment: dto?.payment ?? resolvedPaymentConfig,
+        paymentConfig: resolvedPaymentConfig,
         companyDefaults: company
           ? {
               cashDiscount: company.cashDiscount,
@@ -323,7 +426,6 @@ export class ProposalsService {
       throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
     }
 
-    const settings = await this.proposalSettingsService.findByCompanyId(companyId);
     const futureLoadsInput =
       dto?.futureLoads ||
       dto?.options?.find((o) => o.futureLoads?.length)?.futureLoads;

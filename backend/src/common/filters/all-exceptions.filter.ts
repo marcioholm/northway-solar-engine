@@ -30,8 +30,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof Error ? exception.stack : '',
     );
 
+    const extra =
+      typeof message === 'object' && message !== null ? message : {};
+
     response.status(status).json({
       statusCode: status,
+      ...extra,
       message:
         typeof message === 'string' ? message : message.message || message,
       // Detalhe interno de erro 500 não sai em produção.

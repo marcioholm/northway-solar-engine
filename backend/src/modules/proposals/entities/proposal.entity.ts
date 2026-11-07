@@ -43,6 +43,12 @@ export class Proposal {
   @Column({ type: 'jsonb', default: {} })
   settings: Record<string, any>;
 
+  @Column({ name: 'settings_snapshot', type: 'jsonb', nullable: true })
+  settingsSnapshot?: Record<string, any> | null;
+
+  @Column({ name: 'company_snapshot', type: 'jsonb', nullable: true })
+  companySnapshot?: Record<string, any> | null;
+
   @OneToMany(() => ProposalOption, (opt) => opt.proposal, { cascade: true })
   options: ProposalOption[];
 

@@ -47,8 +47,8 @@ export function useProposalTracking(publicToken: string | undefined) {
   };
 
   const trackAccept = () => {
-    if (!publicToken) return;
-    track(publicToken, 'accept');
+    // Aceite de proposta é fluxo específico com assinatura/confirmação,
+    // não um simples evento de analytics na rota pública de tracking.
   };
 
   const trackChangeRequest = (message?: string) => {

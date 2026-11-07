@@ -1,21 +1,26 @@
-import { IsString, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsIn, IsInt, Min, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import type { TrackEventType } from '../entities/proposal-tracking.entity';
+
+export const PUBLIC_TRACK_EVENT_TYPES = [
+  'view',
+  'download',
+  'whatsapp_click',
+  'change_request',
+  'section_view',
+  'qr_scan',
+] as const;
+
+export type PublicTrackEventType = (typeof PUBLIC_TRACK_EVENT_TYPES)[number];
 
 export class TrackEventDto {
   @ApiProperty({
-    enum: [
-      'view',
-      'download',
-      'whatsapp_click',
-      'accept',
-      'change_request',
-      'section_view',
-      'qr_scan',
-    ],
+    enum: PUBLIC_TRACK_EVENT_TYPES,
   })
   @IsString()
-  eventType!: TrackEventType;
+  @IsIn(PUBLIC_TRACK_EVENT_TYPES, {
+    message: 'eventType inválido ou não permitido na rota pública de tracking',
+  })
+  eventType!: PublicTrackEventType;
 
   @ApiProperty({ required: false })
   @IsObject()
@@ -29,5 +34,15 @@ export class TrackEventDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(86400)
   duration?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(86400)
+  durationSeconds?: number;
 }

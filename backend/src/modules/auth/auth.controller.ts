@@ -16,7 +16,6 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 @ApiTags('auth')
@@ -34,13 +33,6 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
     return this.authService.login(user);
-  }
-
-  @UseGuards(ThrottlerGuard)
-  @Post('register')
-  @ApiOperation({ summary: 'Register new user' })
-  async register(@Body() createUserDto: RegisterDto) {
-    return this.authService.register(createUserDto);
   }
 
   @UseGuards(AuthGuard('jwt'))

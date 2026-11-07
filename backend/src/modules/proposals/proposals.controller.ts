@@ -10,6 +10,8 @@ import {
   Header,
   Query,
   NotFoundException,
+  HttpException,
+  HttpStatus,
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -23,11 +25,18 @@ import {
 } from './dto/proposal-option.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags, ApiQuery } from '@nestjs/swagger';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+import { CompaniesService } from '../companies/companies.service';
+import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
 
 @ApiTags('proposals')
 @Controller('proposals')
 export class ProposalsController {
-  constructor(private readonly proposalsService: ProposalsService) {}
+  constructor(
+    private readonly proposalsService: ProposalsService,
+    private readonly companiesService: CompaniesService,
+    private readonly proposalSettingsService: ProposalSettingsService,
+  ) {}
 
   @Post()
   @ApiBearerAuth()
@@ -128,7 +137,34 @@ export class ProposalsController {
   async findOnePublic(@Param('token') token: string, @Query('format') format?: string) {
     const proposal = await this.proposalsService.findByToken(token);
     if (!proposal) throw new NotFoundException('Proposal not found');
-    
+
+    if (this.proposalsService.isExpired(proposal)) {
+      const companyName =
+        proposal.companySnapshot?.name ||
+        (proposal.companyId
+          ? (await this.companiesService.findOne(proposal.companyId))?.name
+          : 'Empresa');
+      const settings =
+        proposal.settingsSnapshot ||
+        (proposal.companyId
+          ? await this.proposalSettingsService.findByCompanyId(proposal.companyId)
+          : null);
+      const whatsapp = settings?.contact?.whatsapp || '';
+      const formattedDate = proposal.expiresAt
+        ? new Date(proposal.expiresAt).toLocaleDateString('pt-BR')
+        : '';
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.GONE,
+          message: `Esta proposta expirou${formattedDate ? ' em ' + formattedDate : ''}. Entre em contato para uma versão atualizada.`,
+          expired: true,
+          companyName,
+          whatsapp,
+        },
+        HttpStatus.GONE,
+      );
+    }
+
     if (format === 'html') {
       const result = await this.proposalsService.render(proposal.id, proposal.companyId, 'html');
       return result.content;
@@ -148,31 +184,43 @@ export class ProposalsController {
   }
 
   @Get('public/:token/pdf')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async downloadPdfPublic(@Param('token') token: string, @Res() res: Response) {
     const proposal = await this.proposalsService.findByToken(token);
     if (!proposal) throw new NotFoundException('Proposal not found');
+
+    if (this.proposalsService.isExpired(proposal)) {
+      const companyName =
+        proposal.companySnapshot?.name ||
+        (proposal.companyId
+          ? (await this.companiesService.findOne(proposal.companyId))?.name
+          : 'Empresa');
+      const settings =
+        proposal.settingsSnapshot ||
+        (proposal.companyId
+          ? await this.proposalSettingsService.findByCompanyId(proposal.companyId)
+          : null);
+      const whatsapp = settings?.contact?.whatsapp || '';
+      const formattedDate = proposal.expiresAt
+        ? new Date(proposal.expiresAt).toLocaleDateString('pt-BR')
+        : '';
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.GONE,
+          message: `Esta proposta expirou${formattedDate ? ' em ' + formattedDate : ''}. Entre em contato para uma versão atualizada.`,
+          expired: true,
+          companyName,
+          whatsapp,
+        },
+        HttpStatus.GONE,
+      );
+    }
+
     const { content, filename } = await this.proposalsService.render(proposal.id, proposal.companyId, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(content);
-  }
-
-  @Post('public/:token/track')
-  async trackEvent(
-    @Param('token') token: string,
-    @Body() body: { eventType: string; durationSeconds?: number },
-    @Request() req,
-  ) {
-    const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-    await this.proposalsService.trackEvent(
-      token,
-      body.eventType,
-      body.durationSeconds || 0,
-      ip,
-      userAgent,
-    );
-    return { success: true };
   }
 
   @Get(':id/events')
