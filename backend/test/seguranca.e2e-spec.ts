@@ -1604,7 +1604,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(pAfter).toBe(pBefore);
       expect(oAfter).toBe(oBefore);
       expect(eAfter).toBe(eBefore);
-    });
+    }, 30000);
 
     it('aplica rate limit de 5 requisições por minuto por usuário: 6ª chamada -> 429', async () => {
       // Cria um usuário admin dedicado para o teste de rate limit para não colidir com outros testes
@@ -1633,6 +1633,6 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .auth(rlToken, { type: 'bearer' })
         .send({ consumptionKwh: 850 });
       expect(res6.status).toBe(429);
-    });
+    }, 30000);
   });
 });

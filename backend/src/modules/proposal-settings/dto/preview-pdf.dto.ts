@@ -23,3 +23,4 @@ export class PreviewPdfDto {
   @Type(() => SelectedFutureLoadDto)
   futureLoads?: SelectedFutureLoadDto[];
 }
+
