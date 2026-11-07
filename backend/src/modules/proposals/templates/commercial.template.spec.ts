@@ -194,4 +194,48 @@ describe('commercialTemplate', () => {
     expect(html).toContain('class="qrb"');
     expect(html).toContain('Fale com seu consultor');
   });
+
+  describe('paginação automática e rodapé', () => {
+    const settings = {
+      warrantiesText: 'Garantia A\nGarantia B',
+      exclusionsText: 'Exclusão A',
+      contact: { phone: '(43) 99999-0000', website: 'www.exemplo.com.br' },
+    };
+
+    it('gera capa fixa + fluxo de blocos paginado por script, sem páginas fixas por seção', async () => {
+      const html = await commercialTemplate({ ...baseProposal, settings } as any);
+      expect((html.match(/<section class="page"/g) || []).length).toBe(1); // só a capa
+      expect(html).toContain('<div id="flow">');
+      expect(html).toContain('window.__paged=true');
+      expect(html).toContain('<template id="tpl-ftr">');
+      expect((html.match(/class="blk/g) || []).length).toBeGreaterThan(5);
+    });
+
+    it('rodapé traz contatos e numeração "Página X de Y"', async () => {
+      const html = await commercialTemplate({ ...baseProposal, settings } as any);
+      const ftr = html.slice(html.indexOf('<template id="tpl-ftr">'), html.indexOf('</template>', html.indexOf('<template id="tpl-ftr">')));
+      expect(ftr).toContain('(43) 99999-0000');
+      expect(ftr).toContain('www.exemplo.com.br');
+      expect(ftr).toContain('class="pn"');
+      expect(ftr).toContain('class="pt"');
+    });
+
+    it('ordem: garantias e condições antes do investimento; aceite por último', async () => {
+      const html = await commercialTemplate({ ...baseProposal, settings } as any);
+      const flow = html.slice(html.indexOf('<div id="flow">'));
+      const iG = flow.indexOf('Garantias e serviços');
+      const iC = flow.indexOf('Não faz parte desta proposta');
+      const iI = flow.indexOf('Investimento');
+      const iA = flow.indexOf('Aceite da proposta');
+      expect(iG).toBeGreaterThan(-1);
+      expect(iG).toBeLessThan(iC);
+      expect(iC).toBeLessThan(iI);
+      expect(iI).toBeLessThan(iA);
+    });
+
+    it('cada item de lista é um bloco próprio (listas longas quebram entre páginas)', async () => {
+      const html = await commercialTemplate({ ...baseProposal, settings } as any);
+      expect((html.match(/class="blk it"/g) || []).length).toBe(3);
+    });
+  });
 });
