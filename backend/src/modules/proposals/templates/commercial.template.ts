@@ -28,6 +28,7 @@ export interface CommercialTemplateData {
   annualSavings?: number;
   equipment?: any[];
   options?: any[];
+  footnote?: string;
   company: {
     name: string;
     logoUrl?: string;
@@ -528,8 +529,11 @@ function invest(d: any, n = 4, total = 5, step = 3) {
       )}</div><div class="kw">${num(o.systemPowerKwp, 2)} kWp${
         o.moduleQty ? ` · ${o.moduleQty} módulos` : ''
       }</div></div>
+      ${o.scenarioText ? `<div style="padding:1mm 4mm 0 4mm;font-size:7.2pt;font-weight:600;color:var(--sec);line-height:1.2">${esc(o.scenarioText)}</div>` : ''}
       <div style="padding:0 4mm">${
-        s.kitImageUrl ? `<img src="${s.kitImageUrl}">` : kitArt()
+        o.imageUrl || s.kitImageUrl
+          ? `<img src="${o.imageUrl || s.kitImageUrl}">`
+          : kitArt()
       }</div>
       <div class="rows">
         ${o.inverter ? `<div class="row"><span>Inversor</span><span>${esc(o.inverter)}</span></div>` : ''}
@@ -581,7 +585,9 @@ function invest(d: any, n = 4, total = 5, step = 3) {
       }</div>`;
     })
     .join('')}</div>
-  <p class="note" style="margin-top:5mm">* Estimativas, mesmas premissas da página anterior. Parcelas de cartão e financiamento já incluem o acréscimo total e estão sujeitas à aprovação de crédito.</p>
+  <p class="note" style="margin-top:5mm">* Estimativas, mesmas premissas da página anterior. Parcelas de cartão e financiamento já incluem o acréscimo total e estão sujeitas à aprovação de crédito.${
+    d.footnote ? `<br>${esc(d.footnote)}` : ''
+  }</p>
   </div>${ftr(d, n, total)}</section>`;
 }
 
@@ -749,7 +755,7 @@ export function normalizeProposalData(data: CommercialTemplateData): any {
         moduleQty: Number(d.moduleQty || 0),
         module: moduleName,
         inverter: inverterName,
-        structure: 'Estrutura completa em alumínio',
+        structure: undefined,
         generationMonthlyKwh,
         finalPrice,
         coverage,

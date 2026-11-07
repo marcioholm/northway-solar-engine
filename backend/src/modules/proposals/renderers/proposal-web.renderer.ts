@@ -3,6 +3,7 @@ import {
   ProposalAssembledData,
   RenderOutput,
 } from './proposal-renderer.interface';
+import { calculateOptionPayment } from '../utils/payment-calculator';
 
 export class ProposalWebRenderer implements ProposalRenderer {
   readonly name = 'web';
@@ -98,6 +99,92 @@ export class ProposalWebRenderer implements ProposalRenderer {
         }
       : {};
 
+    const proposalPayment = proposal.settings?.payment;
+    const companyPaymentDefaults = data.proposalSettings?.paymentDefaults;
+
+    const paymentConfig = {
+      cashDiscountPct:
+        proposalPayment?.cashDiscountPct ??
+        companyPaymentDefaults?.cashDiscountPct ??
+        (pd.paymentCashDiscount != null ? Number(pd.paymentCashDiscount) : undefined),
+      card:
+        proposalPayment?.card ??
+        companyPaymentDefaults?.card ??
+        (pd.paymentCardInstallments && pd.paymentCardTax != null
+          ? {
+              installments: Number(pd.paymentCardInstallments),
+              totalMarkupPct: Number(pd.paymentCardTax),
+            }
+          : undefined),
+      finance:
+        proposalPayment?.finance ??
+        companyPaymentDefaults?.finance ??
+        (pd.paymentFinanceInstallments && pd.paymentFinanceTax != null
+          ? [
+              {
+                n: Number(pd.paymentFinanceInstallments),
+                totalMarkupPct: Number(pd.paymentFinanceTax),
+              },
+            ]
+          : undefined),
+      own: proposalPayment?.own ?? companyPaymentDefaults?.own ?? undefined,
+    };
+
+    let fallbackModuleName: string | undefined;
+    let fallbackInverterName: string | undefined;
+    if (pd.equipmentModules?.length) {
+      const m = pd.equipmentModules[0];
+      fallbackModuleName =
+        `${m.brand || ''} ${m.model || ''} ${m.power ? m.power + 'W' : ''}`.trim() ||
+        undefined;
+    }
+    if (pd.equipmentInverters?.length) {
+      const inv = pd.equipmentInverters[0];
+      fallbackInverterName =
+        `${inv.brand || ''} ${inv.model || ''} ${inv.powerKw ? inv.powerKw + 'kW' : inv.power ? inv.power + 'kW' : ''}`.trim() ||
+        undefined;
+    }
+
+    const optionsList = Array.isArray(proposal.options)
+      ? proposal.options
+          .slice()
+          .sort((a, b) => (a.position || 0) - (b.position || 0))
+          .map((opt) => {
+            const optPrice = Number(opt.finalPrice || 0);
+            const optGen =
+              opt.generationMonthlyKwh != null &&
+              Number(opt.generationMonthlyKwh) > 0
+                ? Number(opt.generationMonthlyKwh)
+                : undefined;
+            const optPayment = calculateOptionPayment(optPrice, paymentConfig);
+
+            return {
+              id: opt.id,
+              position: opt.position,
+              name: opt.name,
+              recommended: Boolean(opt.recommended),
+              scenarioType: opt.scenarioType,
+              scenarioText: opt.scenarioText,
+              isManualPrice: Boolean(opt.isManualPrice),
+              targetConsumptionKwh: opt.targetConsumptionKwh,
+              systemPowerKwp: Number(opt.systemPowerKwp || 0),
+              moduleQty: Number(opt.moduleQty || 0),
+              moduleDesc:
+                opt.moduleDesc ||
+                (opt.position === 1 ? fallbackModuleName : undefined),
+              inverterDesc:
+                opt.inverterDesc ||
+                (opt.position === 1 ? fallbackInverterName : undefined),
+              structureDesc: opt.structureDesc || null,
+              generationMonthlyKwh: optGen,
+              finalPrice: optPrice,
+              imageUrl: opt.imageUrl,
+              payment: optPayment,
+              futureLoads: (opt as any).futureLoads,
+            };
+          })
+      : [];
+
     const content = {
       id: proposal.id,
       clientName: proposal.clientName,
@@ -138,6 +225,8 @@ export class ProposalWebRenderer implements ProposalRenderer {
           power: i.powerKw ? `${i.powerKw}kW` : undefined,
         })),
       ],
+      options: optionsList,
+      paymentConfig,
       finalPrice: proposal.finalPrice || pd.pricingFinalPrice,
       marginPct: proposal.marginPct || pd.pricingMarginPct,
       profit: pd.pricingProfit,

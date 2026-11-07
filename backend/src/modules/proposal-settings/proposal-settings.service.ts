@@ -2,7 +2,11 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ProposalSettings } from './entities/proposal-settings.entity';
+import {
+  DEFAULT_FUTURE_LOADS,
+  DEFAULT_SIZING_RULES,
+  ProposalSettings,
+} from './entities/proposal-settings.entity';
 import { UpdateProposalSettingsDto } from './dto/update-proposal-settings.dto';
 
 const DEFAULT_ABOUT_TEXT =
@@ -102,8 +106,17 @@ export class ProposalSettingsService {
           whatsapp: '',
         },
         sectionsEnabled: DEFAULT_SECTIONS_ENABLED,
+        sizingRules: DEFAULT_SIZING_RULES,
+        futureLoads: DEFAULT_FUTURE_LOADS,
       });
       settings = await this.repo.save(settings);
+    } else {
+      if (!settings.sizingRules || Object.keys(settings.sizingRules).length === 0) {
+        settings.sizingRules = DEFAULT_SIZING_RULES;
+      }
+      if (!settings.futureLoads || settings.futureLoads.length === 0) {
+        settings.futureLoads = DEFAULT_FUTURE_LOADS;
+      }
     }
     return settings;
   }
@@ -262,6 +275,18 @@ export class ProposalSettingsService {
         ...settings.sectionsEnabled,
         ...dto.sectionsEnabled,
       };
+    }
+    if (dto.paymentDefaults !== undefined) {
+      settings.paymentDefaults = dto.paymentDefaults as any;
+    }
+    if (dto.sizingRules !== undefined) {
+      settings.sizingRules = {
+        ...settings.sizingRules,
+        ...dto.sizingRules,
+      } as any;
+    }
+    if (dto.futureLoads !== undefined) {
+      settings.futureLoads = dto.futureLoads as any;
     }
 
     return this.repo.save(settings);

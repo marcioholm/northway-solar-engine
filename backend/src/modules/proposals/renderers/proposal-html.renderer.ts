@@ -4,6 +4,8 @@ import {
   RenderOutput,
 } from './proposal-renderer.interface';
 import { commercialTemplate } from '../templates/commercial.template';
+import { calculateOptionPayment } from '../utils/payment-calculator';
+import { formatLoadsFootnote } from '../utils/scenario-calculator';
 
 export class ProposalHtmlRenderer implements ProposalRenderer {
   readonly name = 'html';
@@ -119,6 +121,19 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       });
     }
 
+    let fallbackModuleName: string | undefined;
+    let fallbackInverterName: string | undefined;
+    if (equipmentList.length) {
+      const mod = equipmentList.find((e: any) => e.type === 'module');
+      const inv = equipmentList.find((e: any) => e.type === 'inverter');
+      if (mod) {
+        fallbackModuleName = `${mod.brand || ''} ${mod.model || ''} ${mod.power || ''}`.trim() || undefined;
+      }
+      if (inv) {
+        fallbackInverterName = `${inv.brand || ''} ${inv.model || ''} ${inv.power || ''}`.trim() || undefined;
+      }
+    }
+
     const effectiveSettings = proposalSettings || {
       template: 'moderno',
       primaryColor: '#1F2937',
@@ -180,7 +195,104 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       },
     };
 
+    const proposalPayment = proposal.settings?.payment;
+    const companyPaymentDefaults = (effectiveSettings as any)?.paymentDefaults;
+
+    const paymentConfig = {
+      cashDiscountPct:
+        proposalPayment?.cashDiscountPct ??
+        companyPaymentDefaults?.cashDiscountPct ??
+        (cashDiscount != null && cashDiscount > 0 ? cashDiscount : undefined),
+      card:
+        proposalPayment?.card ??
+        companyPaymentDefaults?.card ??
+        (cardInstallments && cardTax != null
+          ? { installments: cardInstallments, totalMarkupPct: cardTax }
+          : undefined),
+      finance:
+        proposalPayment?.finance ??
+        companyPaymentDefaults?.finance ??
+        (financeInstallments && financeTax != null
+          ? [{ n: financeInstallments, totalMarkupPct: financeTax }]
+          : undefined),
+      own: proposalPayment?.own ?? companyPaymentDefaults?.own ?? undefined,
+    };
+
+    const hasOptions =
+      Array.isArray(proposal.options) && proposal.options.length > 0;
+    const consumptionKwh = Number(
+      proposal.consumptionKwh || projectData.consumptionMonthlyKwh || 0,
+    );
+    const averageBill = Number(projectData.consumptionMonthlyBill || 0);
+
+    const templateOptions = hasOptions
+      ? proposal.options
+          .slice()
+          .sort((a, b) => (a.position || 0) - (b.position || 0))
+          .map((opt) => {
+            const optPrice = Number(opt.finalPrice || 0);
+            const optGen =
+              opt.generationMonthlyKwh != null &&
+              Number(opt.generationMonthlyKwh) > 0
+                ? Number(opt.generationMonthlyKwh)
+                : undefined;
+            const coverage =
+              consumptionKwh > 0 && optGen
+                ? Math.min(optGen / consumptionKwh, 1)
+                : 0;
+            const monthlySavings = averageBill
+              ? averageBill * 0.9 * coverage
+              : annualSavings
+              ? (annualSavings / 12) * coverage
+              : 0;
+            const optPayback =
+              monthlySavings > 0
+                ? Math.round((optPrice / (monthlySavings * 12)) * 10) / 10
+                : 0;
+
+            const optPayment = calculateOptionPayment(optPrice, paymentConfig);
+
+            return {
+              id: opt.id,
+              name: opt.name,
+              recommended: Boolean(opt.recommended),
+              scenarioType: opt.scenarioType,
+              scenarioText: opt.scenarioText,
+              isManualPrice: Boolean(opt.isManualPrice),
+              targetConsumptionKwh: opt.targetConsumptionKwh,
+              systemPowerKwp: Number(opt.systemPowerKwp || 0),
+              moduleQty: Number(opt.moduleQty || 0),
+              module:
+                opt.moduleDesc ||
+                (opt.position === 1 ? fallbackModuleName : undefined),
+              inverter:
+                opt.inverterDesc ||
+                (opt.position === 1 ? fallbackInverterName : undefined),
+              structure: opt.structureDesc || undefined,
+              generationMonthlyKwh: optGen,
+              finalPrice: optPrice,
+              imageUrl: opt.imageUrl,
+              coverage,
+              monthlySavings,
+              paybackYears: optPayback,
+              payment: optPayment,
+              futureLoads: (opt as any).futureLoads,
+            };
+          })
+      : undefined;
+
+    let footnote: string | undefined = undefined;
+    if (templateOptions && templateOptions.length > 0) {
+      const expOpt = templateOptions.find(
+        (o) => (o as any).scenarioType === 'expansion' || (o as any).futureLoads?.length > 0,
+      );
+      if (expOpt && (expOpt as any).futureLoads?.length > 0) {
+        footnote = formatLoadsFootnote((expOpt as any).futureLoads);
+      }
+    }
+
     const html = await commercialTemplate({
+      footnote,
       clientName: proposal.clientName,
       clientCity: proposal.clientCity,
       clientState: projectData.clientState,
@@ -201,6 +313,7 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       paybackYears: paybackYears,
       annualSavings: annualSavings,
       equipment: equipmentList,
+      options: templateOptions,
       company: {
         name: companyData.name,
         logoUrl: companyData.logoUrl,

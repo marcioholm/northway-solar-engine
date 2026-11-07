@@ -13,22 +13,50 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ProposalsService } from './proposals.service';
 import { Proposal } from './entities/proposal.entity';
 import { ProposalEvent } from './entities/proposal-event.entity';
+import { ProposalOption } from './entities/proposal-option.entity';
 import { SolarEngineService } from '../solar-engine/solar-engine.service';
 import { SolarProjectService } from '../solar-project/solar-project.service';
 import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
 import { LeadsService } from '../leads/leads.service';
 import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 describe('ProposalsService (equipamentos e cotações)', () => {
   let service: ProposalsService;
   let mockProposalsRepo: any;
+  let mockOptionsRepo: any;
+  let mockSolarProjectService: any;
 
   beforeEach(async () => {
+    mockSolarProjectService = {
+      findOne: jest.fn(),
+    };
+
     mockProposalsRepo = {
       findOne: jest.fn(),
-      save: jest.fn(),
-      create: jest.fn(),
+      save: jest.fn().mockImplementation((p) => Promise.resolve({ id: 'p1', ...p })),
+      create: jest.fn().mockImplementation((p) => p),
+      manager: {
+        transaction: jest.fn(async (cb) =>
+          cb({
+            getRepository: (entity: any) => {
+              if (entity === ProposalOption || entity?.name === 'ProposalOption') {
+                return mockOptionsRepo;
+              }
+              return mockProposalsRepo;
+            },
+          }),
+        ),
+      },
+    };
+
+    mockOptionsRepo = {
+      find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn(),
+      save: jest.fn().mockImplementation((o) => Promise.resolve({ id: 'opt1', ...o })),
+      create: jest.fn().mockImplementation((o) => o),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -43,12 +71,16 @@ describe('ProposalsService (equipamentos e cotações)', () => {
           useValue: {},
         },
         {
+          provide: getRepositoryToken(ProposalOption),
+          useValue: mockOptionsRepo,
+        },
+        {
           provide: SolarEngineService,
           useValue: {},
         },
         {
           provide: SolarProjectService,
-          useValue: {},
+          useValue: mockSolarProjectService,
         },
         {
           provide: PricingEngineService,
@@ -87,6 +119,12 @@ describe('ProposalsService (equipamentos e cotações)', () => {
                 contact: true,
               },
             }),
+          },
+        },
+        {
+          provide: InventoryService,
+          useValue: {
+            findAllInverters: jest.fn().mockResolvedValue([]),
           },
         },
       ],
@@ -289,5 +327,137 @@ describe('ProposalsService (equipamentos e cotações)', () => {
     expect(html).not.toContain('marginPct');
     expect(html).not.toContain('pricingProfit');
     expect(html).not.toContain('totalCost');
+  });
+
+  describe('Validação de Opções e Isolamento Multi-tenant (Fase 2)', () => {
+    it('bloqueia criação ou atualização com mais de 3 opções (limite de 3 opções)', async () => {
+      mockProposalsRepo.findOne.mockResolvedValue({ id: 'p1', companyId: 'c1' });
+
+      const fourOptions: any = [
+        { name: 'Kit 1', position: 1, recommended: true, finalPrice: 10000, systemPowerKwp: 3 },
+        { name: 'Kit 2', position: 2, recommended: false, finalPrice: 15000, systemPowerKwp: 4 },
+        { name: 'Kit 3', position: 3, recommended: false, finalPrice: 20000, systemPowerKwp: 5 },
+        { name: 'Kit 4', position: 4, recommended: false, finalPrice: 25000, systemPowerKwp: 6 },
+      ];
+
+      await expect(service.updateOptions('p1', 'c1', fourOptions)).rejects.toThrow(
+        'A proposta pode ter no máximo 3 opções de kit',
+      );
+    });
+
+    it('bloqueia imageUrl fora do bucket da empresa (logos/proposals/<companyId>/)', async () => {
+      mockProposalsRepo.findOne.mockResolvedValue({
+        id: 'p1',
+        companyId: 'c1',
+        solarProjectId: 'proj-1',
+      });
+      mockSolarProjectService.findOne.mockResolvedValue({
+        id: 'proj-1',
+        sizingPowerKwp: 5,
+        sizingGenerationKwh: 650,
+      });
+
+      const invalidUrlOptions: any = {
+        options: [
+          {
+            name: 'Kit 1',
+            imageUrl: 'https://attacker.com/evil.png',
+          },
+        ],
+      };
+
+      await expect(service.updateOptions('p1', 'c1', invalidUrlOptions)).rejects.toThrow(
+        'A URL da imagem deve pertencer ao Supabase da aplicação',
+      );
+
+      const otherCompanyUrl: any = {
+        options: [
+          {
+            name: 'Kit 1',
+            imageUrl:
+              'https://vwyywxckjusuogwkpjjs.supabase.co/storage/v1/object/public/logos/proposals/other-company/photo.png',
+          },
+        ],
+      };
+
+      await expect(service.updateOptions('p1', 'c1', otherCompanyUrl)).rejects.toThrow(
+        'A URL da imagem deve ser do bucket logos no caminho proposals/c1/',
+      );
+    });
+
+    it('proposta antiga migrada gera PDF com módulo e inversor do projeto como fallback', async () => {
+      const oldProposalWithFallback = {
+        id: 'old-p1',
+        companyId: 'c1',
+        clientName: 'Cliente Antigo',
+        finalPrice: 25000,
+        systemPowerKwp: 5.5,
+        moduleQty: 10,
+        createdAt: new Date(),
+        options: [
+          {
+            id: 'opt-1',
+            position: 1,
+            name: 'Sistema Proposto',
+            recommended: true,
+            moduleDesc: null, // Proposta antiga com descrição nula
+            inverterDesc: null,
+            structureDesc: null,
+            finalPrice: 25000,
+            systemPowerKwp: 5.5,
+            moduleQty: 10,
+          },
+        ],
+        solarProject: {
+          id: 'proj-old',
+          sizingPowerKwp: 5.5,
+          sizingGenerationKwh: 700,
+          equipmentModules: [
+            { brand: 'Canadian', model: 'CS6W-550MS', power: 550, qty: 10 },
+          ],
+          equipmentInverters: [
+            { brand: 'Growatt', model: 'MIN 5000TL-X', powerKw: 5, qty: 1 },
+          ],
+        },
+      };
+
+      mockProposalsRepo.findOne.mockResolvedValue(oldProposalWithFallback);
+
+      const htmlResult = await service.render('old-p1', 'c1', 'html');
+      const html = htmlResult.content as string;
+
+      // O PDF gerado deve conter o módulo e inversor do projeto
+      expect(html).toContain('Canadian CS6W-550MS 550W');
+      expect(html).toContain('Growatt MIN 5000TL-X 5kW');
+      // Não deve conter a linha de estrutura pois é NULL
+      expect(html).not.toContain('<tr><td>Estrutura</td>');
+    });
+
+    it('isola opções por empresa: empresa A não lê nem acessa opções da empresa B', async () => {
+      mockProposalsRepo.findOne.mockImplementation(async ({ where }: any) => {
+        if (where.companyId === 'company-A' && where.id === 'prop-1') {
+          return { id: 'prop-1', companyId: 'company-A' };
+        }
+        return null; // Empresa B não acha proposta da Empresa A
+      });
+
+      // Tentativa da Empresa B acessar opções da proposta da Empresa A
+      await expect(service.getOptions('prop-1', 'company-B')).rejects.toThrow(
+        'Proposta não encontrada',
+      );
+
+      // Empresa A acessa com isolamento garantido no repository query
+      mockOptionsRepo.find.mockResolvedValue([
+        { id: 'opt-1', proposalId: 'prop-1', companyId: 'company-A', name: 'Kit 1' },
+      ]);
+
+      const result = await service.getOptions('prop-1', 'company-A');
+      expect(mockOptionsRepo.find).toHaveBeenCalledWith({
+        where: { proposalId: 'prop-1', companyId: 'company-A' },
+        order: { position: 'ASC' },
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].companyId).toBe('company-A');
+    });
   });
 });

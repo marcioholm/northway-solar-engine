@@ -19,6 +19,9 @@ import {
   SparklesIcon,
   QrCodeIcon,
   WrenchScrewdriverIcon,
+  CreditCardIcon,
+  BoltIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';
 
 const BRAZIL_UFS = [
@@ -47,6 +50,24 @@ interface ProposalQrConfig {
   value?: string;
   message?: string;
   label?: string;
+}
+
+interface ProposalPaymentFinanceOption {
+  n: number;
+  totalMarkupPct: number;
+}
+
+interface ProposalPaymentDefaults {
+  cashDiscountPct?: number;
+  card?: {
+    installments?: number;
+    totalMarkupPct?: number;
+  };
+  finance?: ProposalPaymentFinanceOption[];
+  own?: {
+    downPaymentPct?: number;
+    installments?: number;
+  };
 }
 
 interface ProposalSettingsData {
@@ -94,6 +115,12 @@ interface ProposalSettingsData {
     partners?: boolean;
     contact?: boolean;
   };
+  paymentDefaults?: ProposalPaymentDefaults;
+  sizingRules?: {
+    folgaPct?: number;
+    expansaoPct?: number;
+  };
+  futureLoads?: any[];
 }
 
 const DEFAULT_SETTINGS: ProposalSettingsData = {
@@ -147,6 +174,31 @@ const DEFAULT_SETTINGS: ProposalSettingsData = {
     partners: true,
     contact: true,
   },
+  paymentDefaults: {
+    cashDiscountPct: 5,
+    card: { installments: 12, totalMarkupPct: 15 },
+    finance: [
+      { n: 24, totalMarkupPct: 18 },
+      { n: 36, totalMarkupPct: 28 },
+      { n: 48, totalMarkupPct: 38 },
+      { n: 60, totalMarkupPct: 48 },
+    ],
+    own: { downPaymentPct: 30, installments: 6 },
+  },
+  sizingRules: {
+    folgaPct: 10,
+    expansaoPct: 25,
+  },
+  futureLoads: [
+    { id: 'ac_inv_9000', name: 'Ar-condicionado inverter 9.000 BTU', category: 'Climatização', powerKw: 0.50, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_inv_12000', name: 'Ar-condicionado inverter 12.000 BTU', category: 'Climatização', powerKw: 0.65, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_inv_18000', name: 'Ar-condicionado inverter 18.000 BTU', category: 'Climatização', powerKw: 1.00, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_inv_24000', name: 'Ar-condicionado inverter 24.000 BTU', category: 'Climatização', powerKw: 1.30, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_conv_12000', name: 'Ar-condicionado convencional 12.000 BTU', category: 'Climatização', powerKw: 1.10, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'carro_eletrico', name: 'Carro elétrico', category: 'Mobilidade', fixedKwh: 180, defaultHoursPerDay: 0, defaultDaysPerMonth: 30 },
+    { id: 'chuveiro_5500', name: 'Chuveiro elétrico 5,5 kW', category: 'Eletrodomésticos', powerKw: 5.50, defaultHoursPerDay: 0.5, defaultDaysPerMonth: 30 },
+    { id: 'bomba_piscina_750', name: 'Bomba de piscina 0,75 kW', category: 'Lazer', powerKw: 0.75, defaultHoursPerDay: 6, defaultDaysPerMonth: 30 },
+  ],
 };
 
 const DEFAULT_QR_LABELS: Record<string, string> = {
@@ -1707,7 +1759,455 @@ export function ProposalSettingsTab() {
             />
           </SectionContainer>
 
-          {/* 13. Canais de Contato */}
+          {/* 13. Condições de Pagamento Padrão */}
+          <SectionContainer icon={<CreditCardIcon style={{ width: 20, height: 20 }} />} title="Condições de Pagamento Padrão">
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              Defina os padrões de pagamento para novas propostas. O vendedor poderá personalizar por proposta no Wizard.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
+              {/* À Vista */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>💵</span> Pagamento À Vista
+                </div>
+                <div style={{ maxWidth: 300 }}>
+                  <label style={labelStyle}>Desconto à Vista (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={data.paymentDefaults?.cashDiscountPct ?? ''}
+                    onChange={e => {
+                      const val = e.target.value === '' ? undefined : Number(e.target.value);
+                      setData(prev => ({
+                        ...prev,
+                        paymentDefaults: { ...prev.paymentDefaults, cashDiscountPct: val },
+                      }));
+                    }}
+                    style={inputStyle}
+                    placeholder="Ex: 5"
+                  />
+                </div>
+              </div>
+
+              {/* Cartão de Crédito */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>💳</span> Cartão de Crédito
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Número de Parcelas</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="36"
+                      value={data.paymentDefaults?.card?.installments ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            card: { ...prev.paymentDefaults?.card, installments: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 12"
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Acréscimo Total (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={data.paymentDefaults?.card?.totalMarkupPct ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            card: { ...prev.paymentDefaults?.card, totalMarkupPct: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 15"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Financiamento Solar */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🏦</span> Financiamento Solar (Lista de Prazos)
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = data.paymentDefaults?.finance || [];
+                      const nextN = cur.length > 0 ? (cur[cur.length - 1].n || 60) + 12 : 60;
+                      const nextMarkup = cur.length > 0 ? (cur[cur.length - 1].totalMarkupPct || 40) + 10 : 45;
+                      setData(prev => ({
+                        ...prev,
+                        paymentDefaults: {
+                          ...prev.paymentDefaults,
+                          finance: [...cur, { n: nextN, totalMarkupPct: nextMarkup }],
+                        },
+                      }));
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '6px 12px',
+                      background: 'var(--primary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <PlusIcon style={{ width: 14, height: 14 }} /> Adicionar Prazo
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(data.paymentDefaults?.finance || []).map((f, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max="120"
+                          value={f.n ?? ''}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            const updated = [...(data.paymentDefaults?.finance || [])];
+                            updated[idx] = { ...updated[idx], n: val };
+                            setData(prev => ({
+                              ...prev,
+                              paymentDefaults: { ...prev.paymentDefaults, finance: updated },
+                            }));
+                          }}
+                          style={inputStyle}
+                          placeholder="Prazo (meses / parcelas)"
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={f.totalMarkupPct ?? ''}
+                          onChange={e => {
+                            const val = Number(e.target.value);
+                            const updated = [...(data.paymentDefaults?.finance || [])];
+                            updated[idx] = { ...updated[idx], totalMarkupPct: val };
+                            setData(prev => ({
+                              ...prev,
+                              paymentDefaults: { ...prev.paymentDefaults, finance: updated },
+                            }));
+                          }}
+                          style={inputStyle}
+                          placeholder="Acréscimo Total (%)"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (data.paymentDefaults?.finance || []).filter((_, i) => i !== idx);
+                          setData(prev => ({
+                            ...prev,
+                            paymentDefaults: { ...prev.paymentDefaults, finance: updated },
+                          }));
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#EF4444',
+                          cursor: 'pointer',
+                          padding: 6,
+                          borderRadius: 'var(--radius-md)',
+                        }}
+                        title="Remover prazo"
+                      >
+                        <TrashIcon style={{ width: 18, height: 18 }} />
+                      </button>
+                    </div>
+                  ))}
+                  {(!data.paymentDefaults?.finance || data.paymentDefaults.finance.length === 0) && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                      Nenhum prazo cadastrado. Clique em &quot;Adicionar Prazo&quot; para configurar.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Parcelamento Próprio */}
+              <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>📑</span> Parcelamento Próprio (Boletos)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={labelStyle}>Entrada Mínima (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={data.paymentDefaults?.own?.downPaymentPct ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            own: { ...prev.paymentDefaults?.own, downPaymentPct: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 30"
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Número de Boletos (Parcelas)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="24"
+                      value={data.paymentDefaults?.own?.installments ?? ''}
+                      onChange={e => {
+                        const val = e.target.value === '' ? undefined : Number(e.target.value);
+                        setData(prev => ({
+                          ...prev,
+                          paymentDefaults: {
+                            ...prev.paymentDefaults,
+                            own: { ...prev.paymentDefaults?.own, installments: val },
+                          },
+                        }));
+                      }}
+                      style={inputStyle}
+                      placeholder="Ex: 6"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SectionContainer>
+
+          {/* 14. Regras de Dimensionamento dos Cenários (Fase 2) */}
+          <SectionContainer icon={<AdjustmentsHorizontalIcon style={{ width: 20, height: 20 }} />} title="Regras de Dimensionamento dos Cenários de Consumo">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+              <div>
+                <label style={labelStyle}>Folga para Perda Natural (folgaPct)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={data.sizingRules?.folgaPct ?? 10}
+                    onChange={e => {
+                      const val = Math.min(30, Math.max(0, Number(e.target.value) || 0));
+                      setData(prev => ({
+                        ...prev,
+                        sizingRules: { ...prev.sizingRules, folgaPct: val },
+                      }));
+                    }}
+                    style={inputStyle}
+                  />
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>%</span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                  Painéis perdem cerca de 0,5–0,8% de potência por ano; 10% cobre aproximadamente os primeiros 10 anos.
+                </p>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Expansão Padrão sem Cargas (expansaoPct)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={data.sizingRules?.expansaoPct ?? 25}
+                    onChange={e => {
+                      const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                      setData(prev => ({
+                        ...prev,
+                        sizingRules: { ...prev.sizingRules, expansaoPct: val },
+                      }));
+                    }}
+                    style={inputStyle}
+                  />
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>%</span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                  Percentual de acréscimo estimado no consumo caso nenhuma carga específica seja selecionada no wizard.
+                </p>
+              </div>
+            </div>
+          </SectionContainer>
+
+          {/* 15. Catálogo de Cargas Futuras */}
+          <SectionContainer icon={<BoltIcon style={{ width: 20, height: 20 }} />} title="Catálogo de Cargas Futuras (Cenário Expansão)">
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: 14 }}>
+              Cadastre e gerencie as cargas elétricas disponíveis no wizard para simulação automática no Cenário Expansão.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(data.futureLoads || []).map((load: any, idx: number) => (
+                <div
+                  key={load.id || idx}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr 1fr 36px',
+                    gap: 10,
+                    alignItems: 'center',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    padding: '8px 12px',
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={load.name || ''}
+                    onChange={e => {
+                      const updated = [...(data.futureLoads || [])];
+                      updated[idx] = { ...updated[idx], name: e.target.value };
+                      setData(prev => ({ ...prev, futureLoads: updated }));
+                    }}
+                    style={inputStyle}
+                    placeholder="Nome da carga"
+                  />
+                  <div>
+                    {load.fixedKwh != null && load.fixedKwh > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          value={load.fixedKwh}
+                          onChange={e => {
+                            const updated = [...(data.futureLoads || [])];
+                            updated[idx] = { ...updated[idx], fixedKwh: Number(e.target.value) || 0 };
+                            setData(prev => ({ ...prev, futureLoads: updated }));
+                          }}
+                          style={inputStyle}
+                          placeholder="kWh/mês"
+                        />
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>kWh/mês</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          step="0.05"
+                          value={load.powerKw ?? ''}
+                          onChange={e => {
+                            const updated = [...(data.futureLoads || [])];
+                            updated[idx] = { ...updated[idx], powerKw: Number(e.target.value) || 0 };
+                            setData(prev => ({ ...prev, futureLoads: updated }));
+                          }}
+                          style={inputStyle}
+                          placeholder="Potência kW"
+                        />
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>kW</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    {load.fixedKwh != null && load.fixedKwh > 0 ? (
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Fixo</span>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={load.defaultHoursPerDay ?? 8}
+                          onChange={e => {
+                            const updated = [...(data.futureLoads || [])];
+                            updated[idx] = { ...updated[idx], defaultHoursPerDay: Number(e.target.value) || 0 };
+                            setData(prev => ({ ...prev, futureLoads: updated }));
+                          }}
+                          style={inputStyle}
+                          placeholder="h/dia"
+                        />
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>h/dia</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                    {load.category || 'Geral'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = (data.futureLoads || []).filter((_: any, i: number) => i !== idx);
+                      setData(prev => ({ ...prev, futureLoads: updated }));
+                    }}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--danger, #ef4444)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <TrashIcon style={{ width: 16, height: 16 }} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const newId = `carga_${Date.now()}`;
+                  const newItem = {
+                    id: newId,
+                    name: 'Nova carga futura',
+                    category: 'Geral',
+                    powerKw: 1.0,
+                    defaultHoursPerDay: 8,
+                    defaultDaysPerMonth: 30,
+                  };
+                  setData(prev => ({
+                    ...prev,
+                    futureLoads: [...(prev.futureLoads || []), newItem],
+                  }));
+                }}
+                style={{
+                  alignSelf: 'flex-start',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius)',
+                  border: '1px dashed var(--border)',
+                  background: 'transparent',
+                  color: 'var(--sec)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: 4,
+                }}
+              >
+                <PlusIcon style={{ width: 14, height: 14 }} /> Adicionar Carga ao Catálogo
+              </button>
+            </div>
+          </SectionContainer>
+
+          {/* 16. Canais de Contato */}
           <SectionContainer icon={<PhoneIcon style={{ width: 20, height: 20 }} />} title="Canais de Contato na Proposta">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>

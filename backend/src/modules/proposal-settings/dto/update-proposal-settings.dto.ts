@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsInt,
   IsNumber,
   IsObject,
   IsOptional,
@@ -10,6 +11,8 @@ import {
   MaxLength,
   ArrayMaxSize,
   ValidateNested,
+  Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -138,6 +141,127 @@ export class ProposalSectionsEnabledDto {
   @IsOptional() warranties?: boolean;
   @IsOptional() partners?: boolean;
   @IsOptional() contact?: boolean;
+}
+
+export class ProposalPaymentCardDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(240)
+  installments?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(300)
+  totalMarkupPct?: number;
+}
+
+export class ProposalPaymentFinanceOptionDto {
+  @IsInt()
+  @Min(1)
+  @Max(240)
+  n: number;
+
+  @IsNumber()
+  @Min(0)
+  @Max(300)
+  totalMarkupPct: number;
+}
+
+export class ProposalPaymentOwnPlanDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  downPaymentPct?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  entradaPct?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  installments?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  boletos?: number;
+}
+
+export class ProposalPaymentDefaultsDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(300)
+  cashDiscountPct?: number;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalPaymentCardDto)
+  card?: ProposalPaymentCardDto;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ProposalPaymentFinanceOptionDto)
+  finance?: ProposalPaymentFinanceOptionDto[];
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalPaymentOwnPlanDto)
+  own?: ProposalPaymentOwnPlanDto;
+}
+
+export class ProposalSizingRulesDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(30)
+  folgaPct?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  expansaoPct?: number;
+}
+
+export class FutureLoadCatalogItemDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsNumber()
+  powerKw?: number;
+
+  @IsOptional()
+  @IsNumber()
+  fixedKwh?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultHoursPerDay?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultDaysPerMonth?: number;
 }
 
 export class UpdateProposalSettingsDto {
@@ -270,4 +394,22 @@ export class UpdateProposalSettingsDto {
   @ValidateNested()
   @Type(() => ProposalSectionsEnabledDto)
   sectionsEnabled?: ProposalSectionsEnabledDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalPaymentDefaultsDto)
+  paymentDefaults?: ProposalPaymentDefaultsDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalSizingRulesDto)
+  sizingRules?: ProposalSizingRulesDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FutureLoadCatalogItemDto)
+  futureLoads?: FutureLoadCatalogItemDto[];
 }
