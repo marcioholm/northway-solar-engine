@@ -1,4 +1,5 @@
 import { commercialTemplate } from './commercial.template';
+import { KIT_3D_PNG_BASE64 } from './kit-art.data';
 
 describe('commercialTemplate', () => {
   const baseProposal = {
@@ -87,24 +88,55 @@ describe('commercialTemplate', () => {
     verifyPaletteInRootOnly(html2, palette2.primaryColor, palette2.secondaryColor);
   });
 
-  it('renders SVG kitArt fallback when kitImageUrl is absent', async () => {
+  it('sem o.imageUrl e sem s.kitImageUrl → HTML contém class="kit3d" e "Imagem ilustrativa", e o base64 aparece exatamente 1 vez mesmo com 3 opções', async () => {
     const html = await commercialTemplate({
       ...baseProposal,
       settings: { kitImageUrl: undefined },
+      options: [
+        { ...baseProposal.options[0], id: 'opt-1', imageUrl: undefined },
+        { ...baseProposal.options[0], id: 'opt-2', name: 'Opção 2', recommended: false, imageUrl: undefined },
+        { ...baseProposal.options[0], id: 'opt-3', name: 'Opção 3', recommended: false, imageUrl: undefined },
+      ],
     });
 
-    // Check SVG fallback elements
-    expect(html).toContain('<svg class="kitart" viewBox="0 0 200 120"');
-    expect(html).not.toContain('<img src="undefined"');
+    expect(html).toContain('class="kit3d"');
+    expect(html).toContain('Imagem ilustrativa');
+    const matches = html.split(KIT_3D_PNG_BASE64).length - 1;
+    expect(matches).toBe(1);
   });
 
-  it('renders img tag when kitImageUrl is provided', async () => {
+  it('com s.kitImageUrl → <img src> com essa URL, sem kit3d e sem a legenda', async () => {
+    const kitUrl = 'https://storage.supabase.com/kit.png';
     const html = await commercialTemplate({
       ...baseProposal,
-      settings: { kitImageUrl: 'https://storage.supabase.com/kit.png' },
+      settings: { kitImageUrl: kitUrl },
+      options: [
+        { ...baseProposal.options[0], id: 'opt-1', imageUrl: undefined },
+      ],
     });
 
-    expect(html).toContain('<img src="https://storage.supabase.com/kit.png">');
+    expect(html).toContain(`<img src="${kitUrl}">`);
+    expect(html).not.toContain('class="kit3d"');
+    expect(html).not.toContain('Imagem ilustrativa');
+    expect(html).not.toContain(KIT_3D_PNG_BASE64);
+  });
+
+  it('com o.imageUrl e s.kitImageUrl → vale o o.imageUrl', async () => {
+    const optionUrl = 'https://storage.supabase.com/opt-custom.png';
+    const settingsUrl = 'https://storage.supabase.com/kit-global.png';
+    const html = await commercialTemplate({
+      ...baseProposal,
+      settings: { kitImageUrl: settingsUrl },
+      options: [
+        { ...baseProposal.options[0], id: 'opt-1', imageUrl: optionUrl },
+      ],
+    });
+
+    expect(html).toContain(`<img src="${optionUrl}">`);
+    expect(html).not.toContain(`<img src="${settingsUrl}">`);
+    expect(html).not.toContain('class="kit3d"');
+    expect(html).not.toContain('Imagem ilustrativa');
+    expect(html).not.toContain(KIT_3D_PNG_BASE64);
   });
 
   it('single kit card is wider (has "single" class) and has no "Recomendado" badge', async () => {

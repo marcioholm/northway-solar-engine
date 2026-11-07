@@ -1048,7 +1048,7 @@ export function ProposalSettingsTab() {
             <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
               <label style={labelStyle}>Imagem Padrão do Kit (Opcional • Proporção 3:2)</label>
               <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: 12 }}>
-                Recomendado: 1200×800 px (mínimo 650×430 px) • Formato: PNG transparente • Se não for enviada, o sistema gera automaticamente a ilustração técnica em SVG com as cores da sua empresa.
+                Recomendado: 1200×800 px (mínimo 650×430 px) • Formato: PNG transparente • Se não for enviada, o sistema usa a imagem 3D padrão com a legenda &quot;Imagem ilustrativa&quot;.
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -1069,7 +1069,7 @@ export function ProposalSettingsTab() {
                     <img src={data.kitImageUrl} alt="Kit" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: 6 }}>
-                      Ilustração SVG automática
+                      Imagem 3D padrão
                     </span>
                   )}
                 </div>
@@ -1094,7 +1094,7 @@ export function ProposalSettingsTab() {
                       onClick={() => setData(prev => ({ ...prev, kitImageUrl: '' }))}
                       style={{ color: 'var(--danger)', fontSize: '12px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                     >
-                      Restaurar ilustração SVG
+                      Restaurar imagem 3D padrão
                     </button>
                   )}
                 </div>
