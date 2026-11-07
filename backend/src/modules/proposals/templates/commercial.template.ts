@@ -65,12 +65,34 @@ body{font-family:'Barlow',sans-serif;color:var(--ink);font-size:9pt;line-height:
 .cd{font-family:'Barlow Condensed',sans-serif}
 .hdr{position:absolute;left:14mm;right:14mm;top:9mm;display:flex;justify-content:space-between;align-items:center;font-size:7.4pt;color:var(--mut);padding-bottom:2.6mm;border-bottom:.3mm solid var(--line)}
 .hdr img{height:7mm}
-.ftr{position:absolute;left:14mm;right:14mm;bottom:8mm;display:flex;justify-content:space-between;font-size:7pt;color:var(--mut);border-top:.3mm solid var(--line);padding-top:2.4mm}
-.ftr b{color:var(--ink);font-weight:600}
-.body{position:absolute;left:14mm;right:14mm;top:24mm}
+/* rodapé: faixa fixa com contatos e numeração */
+.ftr{position:absolute;left:0;right:0;bottom:0;height:17mm;padding:0 14mm;display:flex;justify-content:space-between;align-items:center;gap:6mm;border-top:.3mm solid var(--line);font-size:7.6pt;color:var(--mut)}
+.ftr:before{content:'';position:absolute;left:14mm;top:-.7mm;width:16mm;height:1.4mm;background:var(--pri)}
+.ftr .co{display:flex;flex-direction:column;gap:.6mm;min-width:0}
+.ftr .co b{font-family:'Barlow Condensed';font-weight:700;font-size:10pt;letter-spacing:.4px;text-transform:uppercase;color:var(--sec)}
+.ftr .ct{display:flex;align-items:center;flex-wrap:wrap;gap:0 2.4mm}.ftr .ct i{width:.8mm;height:.8mm;border-radius:50%;background:var(--mut);opacity:.6}
+.ftr .ad{font-size:7pt;opacity:.85}
+.ftr .pg{flex:none;font-family:'Barlow Condensed';font-weight:600;font-size:9pt;letter-spacing:.8px;text-transform:uppercase;color:var(--mut)}
+.ftr .pg span{color:var(--sec);font-weight:800}
+/* área de conteúdo de cada página (entre cabeçalho e rodapé) */
+.body{position:absolute;left:14mm;right:14mm;top:24mm;height:249mm}
+.blk{position:relative}
+.blk+.blk{margin-top:5mm}
+.blk[data-keep="next"]+.blk{margin-top:0}
+#flow{position:absolute;left:-10000mm;top:0;width:182mm}
+@media screen{body{background:#d9dcd9}.page{margin:0 auto 8mm;box-shadow:0 2mm 6mm rgba(0,0,0,.15)}}
+.cond2{display:grid;grid-template-columns:1fr 1fr;gap:9mm}
+.cond2 ul{list-style:none;font-size:8.4pt;line-height:1.45}
+.cond2 li{position:relative;padding-left:3.4mm;margin-bottom:1.1mm}
+.cond2 li:before{content:'';position:absolute;left:0;top:2mm;width:1.5mm;height:.5mm;background:var(--sec)}
+.blk.it{position:relative;padding-left:3.6mm;font-size:8.6pt;line-height:1.45}
+.blk.it:before{content:'';position:absolute;left:0;top:2.1mm;width:1.6mm;height:.5mm;background:var(--sec)}
+.blk.it+.blk.it{margin-top:1.2mm}.blk[data-keep="next"]+.blk.it{margin-top:2.2mm}
+.blk.it+.blk:not(.it){margin-top:5mm}
+.blk .h3{margin-bottom:0}
 .kick{font-family:'Barlow Condensed';font-weight:600;font-size:9pt;letter-spacing:2.4px;text-transform:uppercase;color:var(--mut);display:flex;align-items:center;gap:2.4mm}
 .kick:before{content:'';width:7mm;height:1.4mm;background:var(--pri)}
-.h1{font-family:'Barlow Condensed';font-weight:800;font-size:40pt;line-height:.95;text-transform:uppercase;color:var(--sec);margin:1.6mm 0 5mm}
+.h1{font-family:'Barlow Condensed';font-weight:800;font-size:36pt;line-height:.95;text-transform:uppercase;color:var(--sec);margin:1.4mm 0 4.4mm}
 .h3{font-family:'Barlow Condensed';font-weight:700;font-size:12pt;text-transform:uppercase;letter-spacing:.6px;color:var(--sec);margin-bottom:2.4mm}
 .lab{font-size:6.8pt;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);font-weight:600}
 /* capa */
@@ -141,22 +163,22 @@ table.spec td:last-child{font-weight:600}
 .cmp.single{grid-template-columns:1fr;width:66.7%;max-width:125mm;margin:4mm auto 0}
 .opt{border:.3mm solid var(--line);border-radius:2mm;overflow:hidden;display:flex;flex-direction:column}
 .opt.rec{border:.6mm solid var(--sec);box-shadow:0 0 0 .1mm var(--sec)}
-.opt .top{padding:4mm 4mm 3.4mm;background:var(--soft)}
+.opt .top{padding:3.4mm 4mm 3mm;background:var(--soft)}
 .opt.rec .top{background:var(--sec);color:var(--on-sec)}
 .opt .tag{font-family:'Barlow Condensed';font-weight:700;font-size:8pt;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);height:4mm}
 .opt.rec .tag{color:var(--pri)}
 .opt .nm{font-family:'Barlow Condensed';font-weight:800;font-size:24pt;line-height:1;text-transform:uppercase}
 .opt .kw{font-size:9pt;font-weight:600;color:var(--mut)}.opt.rec .kw{color:rgba(255,255,255,.8)}
-.opt img,.opt .kitart{width:100%;height:30mm;object-fit:contain;margin:3mm 0 0;display:block}
+.opt img,.opt .kitart{width:100%;height:19mm;object-fit:contain;margin:2.4mm 0 0;display:block}
 .opt .rows{padding:1mm 4mm}
-.opt .row{display:flex;justify-content:space-between;gap:2mm;font-size:8.2pt;padding:1.6mm 0;border-bottom:.3mm solid var(--line)}
+.opt .row{display:flex;justify-content:space-between;gap:2mm;font-size:8.2pt;padding:1.3mm 0;border-bottom:.3mm solid var(--line)}
 .opt .row span:first-child{color:var(--mut)}.opt .row span:last-child{font-weight:600;text-align:right}
 .opt .price{margin:3mm 4mm 0;padding:3mm;border-radius:1.4mm;background:var(--soft)}
 .opt.rec .price{background:var(--pri);color:var(--on-pri)}
 .opt .price .v{font-family:'Barlow Condensed';font-weight:800;font-size:22pt;line-height:1.05;white-space:nowrap}
 .opt .price small{font-size:7.4pt;font-weight:600}
-.opt .pay{padding:2.4mm 4mm 4mm;font-size:8pt}
-.opt .pay .g{font-size:6.6pt;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);font-weight:600;margin-top:2.2mm}
+.opt .pay{padding:2mm 4mm 3.4mm;font-size:8pt}
+.opt .pay .g{font-size:6.6pt;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);font-weight:600;margin-top:1.8mm}
 .opt .pay .r{display:flex;justify-content:space-between;white-space:nowrap;margin-top:.6mm}
 .opt .pay .r b{font-weight:600}
 /* condições */
@@ -165,17 +187,16 @@ table.spec td:last-child{font-weight:600}
 .cond ul{list-style:none;font-size:8.2pt;line-height:1.42}
 .cond li{position:relative;padding-left:3.4mm;margin-bottom:1mm}
 .cond li:before{content:'';position:absolute;left:0;top:1.9mm;width:1.5mm;height:.5mm;background:var(--sec)}
-.acc{border:.6mm solid var(--sec);border-radius:2mm;padding:6mm;margin-top:2mm}
-.acc .choice{display:flex;gap:6mm;margin:4mm 0 2mm}
-.acc .choice div{flex:1;border:.3mm solid var(--line);border-radius:1.4mm;padding:3mm;display:flex;align-items:center;gap:2.4mm;font-family:'Barlow Condensed';font-weight:700;font-size:12pt;text-transform:uppercase}
+.acc{border:.6mm solid var(--sec);border-radius:2mm;padding:3.6mm 5mm}
+.acc .choice{display:flex;gap:4mm;margin:2.4mm 0 0}
+.acc .choice div{flex:1;border:.3mm solid var(--line);border-radius:1.4mm;padding:2mm 3mm;display:flex;align-items:center;gap:2.4mm;font-family:'Barlow Condensed';font-weight:700;font-size:12pt;text-transform:uppercase}
 .box{width:4.4mm;height:4.4mm;border:.45mm solid var(--sec);border-radius:.8mm;flex:none}
-.sig{display:flex;gap:10mm;margin-top:15mm}
+.sig{display:flex;gap:10mm;margin-top:7mm}
 .sig div{flex:1;border-top:.35mm solid var(--ink);padding-top:1.6mm;font-size:8pt}
 .sig b{display:block;font-weight:600;font-size:9pt}
 `;
 };
 
-const total = 5;
 function hdr(d: any) {
   return `<div class="hdr">${
     d.company?.logoUrl
@@ -184,15 +205,22 @@ function hdr(d: any) {
   }<span>Proposta ${esc(d.code || '')} · ${esc(d.client?.name || '')}</span></div>`;
 }
 
-function ftr(d: any, n: number, total = 5) {
+function ftr(d: any) {
   const c = d.settings?.contact || {};
-  const contacts = [esc(c.phone), esc(c.website), esc(c.instagram)]
+  const contacts = [c.phone, c.website, c.instagram]
     .filter(Boolean)
-    .join(' · ');
-  return `<div class="ftr"><span><b>${esc(d.company?.name || '')}</b>${
-    contacts ? ' · ' + contacts : ''
-  }</span><span>${String(n).padStart(2, '0')} / ${String(total).padStart(2, '0')}</span></div>`;
+    .map((x: string) => `<span>${esc(x)}</span>`)
+    .join('<i></i>');
+  return `<div class="ftr"><div class="co"><b>${esc(d.company?.name || '')}</b>${
+    contacts ? `<div class="ct">${contacts}</div>` : ''
+  }${c.address ? `<div class="ad">${esc(c.address)}</div>` : ''}</div><div class="pg">Página <span class="pn"></span> de <span class="pt"></span></div></div>`;
 }
+
+/** Bloco paginável: o paginador nunca quebra dentro de um bloco. keep = fica junto do próximo. */
+const B = (html: string, keep = false) =>
+  html && html.trim()
+    ? `<div class="blk"${keep ? ' data-keep="next"' : ''}>${html}</div>`
+    : '';
 
 const head = (n: number, t: string) =>
   `<div class="kick">${String(n).padStart(2, '0')} · ${esc(t)}</div><div class="h1">${esc(t)}</div>`;
@@ -337,10 +365,9 @@ function areaBlock(d: any) {
 function about(d: any, n = 2, total = 5, step = 1) {
   const s = d.settings || {};
   const sec = s.sectionsEnabled || s.sections_enabled || {};
-  return `<section class="page">${hdr(d)}<div class="body">
-  ${head(step, 'Quem somos')}
-  ${areaBlock(d)}
-  ${
+  return `${B(head(step, 'Quem somos'), true)}
+  ${B(areaBlock(d))}
+  ${B(
     (s.stats || []).length
       ? `<div class="stat-band" style="grid-template-columns:repeat(${Math.min(
           s.stats.length,
@@ -355,8 +382,8 @@ function about(d: any, n = 2, total = 5, step = 1) {
           )
           .join('')}</div>`
       : ''
-  }
-  ${
+  )}
+  ${B(
     (s.highlights || []).length
       ? `<div class="hls">${(s.highlights || [])
           .slice(0, 4)
@@ -373,8 +400,8 @@ function about(d: any, n = 2, total = 5, step = 1) {
           )
           .join('')}</div>`
       : ''
-  }
-  ${
+  )}
+  ${B(
     sec.partners !== false && (s.partnerLogos || []).length
       ? `<div class="h3" style="margin-top:8mm">Parceiros e clientes</div>
   <div class="logos" style="grid-template-columns:repeat(5,1fr);row-gap:4mm;column-gap:6mm;margin-top:3mm">${(
@@ -383,8 +410,8 @@ function about(d: any, n = 2, total = 5, step = 1) {
     .map((u: string) => `<img src="${u}" style="height:9.5mm">`)
     .join('')}</div>`
       : ''
-  }
-  </div>${ftr(d, n, total)}</section>`;
+  )}
+`;
 }
 
 function project(d: any, n = 3, total = 5, step = 2) {
@@ -400,9 +427,8 @@ function project(d: any, n = 3, total = 5, step = 2) {
   const hasGeneration = generationMonthlyKwh > 0;
   const hasConsumption = consumptionKwh > 0;
 
-  return `<section class="page">${hdr(d)}<div class="body">
-  ${head(step, 'Seu projeto')}
-  <div class="kpis">
+  return `${B(head(step, 'Seu projeto'), true)}
+  <div class="blk"><div class="kpis">
     <div class="kpi"><div class="lab">Consumo médio</div><div class="v">${
       hasConsumption ? `${num(consumptionKwh)}<small>kWh/mês</small>` : '—'
     }</div></div>
@@ -418,8 +444,8 @@ function project(d: any, n = 3, total = 5, step = 2) {
         ? `${num(r.coverage ? r.coverage * 100 : (generationMonthlyKwh / consumptionKwh) * 100)}<small>%</small>`
         : '—'
     }</div></div>
-  </div>
-  <div class="two">
+  </div></div>
+  <div class="blk"><div class="two">
     <div><div class="h3">${
       d.options?.length > 1 ? `Kit recomendado · ${esc(r.name)}` : 'Equipamentos do sistema'
     }</div>
@@ -459,7 +485,7 @@ function project(d: any, n = 3, total = 5, step = 2) {
               d.averageBill,
               0,
             )}</div></div><div style="border-color:var(--sec)"><div class="lab">Economia estimada*</div><div class="v" style="color:var(--sec)">${money(
-              r.monthlySavings || d.annualSavings ? (d.annualSavings / 12) : 0,
+              r.monthlySavings || (d.annualSavings ? d.annualSavings / 12 : 0),
               0,
             )}<span style="font-size:9pt;font-weight:600">/mês</span></div></div></div>
       ${
@@ -479,7 +505,7 @@ function project(d: any, n = 3, total = 5, step = 2) {
         d.averageBill,
         0,
       )}</div></div><div style="border-color:var(--sec)"><div class="lab">Economia estimada*</div><div class="v" style="color:var(--sec)">${money(
-        r.monthlySavings || d.annualSavings ? (d.annualSavings / 12) : 0,
+        r.monthlySavings || (d.annualSavings ? d.annualSavings / 12 : 0),
         0,
       )}<span style="font-size:9pt;font-weight:600">/mês</span></div></div></div>
       ${
@@ -493,8 +519,8 @@ function project(d: any, n = 3, total = 5, step = 2) {
     </div>`
         : `<div></div>`
     }
-  </div>
-  ${
+  </div></div>
+  ${B(
     sec.partners !== false && (s.brandLogos || []).length
       ? `<div class="h3" style="margin-top:9mm">Marcas que trabalhamos</div>
   <div class="logos" style="grid-template-columns:repeat(5,1fr);row-gap:4mm;column-gap:6mm;margin-top:3mm">${(
@@ -503,18 +529,17 @@ function project(d: any, n = 3, total = 5, step = 2) {
     .map((u: string) => `<img src="${u}" style="height:7.5mm">`)
     .join('')}</div>`
       : ''
-  }
-  <p class="note" style="margin-top:7mm">* Estimativas. Geração conforme dimensionamento; economia considera 90% da fatura média atual, sem reajuste tarifário, degradação, custo de disponibilidade ou Fio B.</p>
-  </div>${ftr(d, n, total)}</section>`;
+  )}
+  <p class="note blk" style="margin-top:6mm">* Estimativas. Geração conforme dimensionamento; economia considera 90% da fatura média atual, sem reajuste tarifário, degradação, custo de disponibilidade ou Fio B.</p>
+`;
 }
 
 function invest(d: any, n = 4, total = 5, step = 3) {
   const s = d.settings || {};
   const isSingle = !d.options || d.options.length <= 1;
 
-  return `<section class="page">${hdr(d)}<div class="body">
-  ${head(step, 'Investimento')}
-  <div class="cmp${isSingle ? ' single' : ''}">${(d.options || [])
+  return `${B(head(step, 'Investimento'), true)}
+  <div class="blk"><div class="cmp${isSingle ? ' single' : ''}">${(d.options || [])
     .map((o: any) => {
       const p = o.payment || {};
       const isRec = !isSingle && Boolean(o.recommended);
@@ -585,33 +610,47 @@ function invest(d: any, n = 4, total = 5, step = 3) {
       }</div>`;
     })
     .join('')}</div>
-  <p class="note" style="margin-top:5mm">* Estimativas, mesmas premissas da página anterior. Parcelas de cartão e financiamento já incluem o acréscimo total e estão sujeitas à aprovação de crédito.${
+  <p class="note" style="margin-top:3mm">* Estimativas, mesmas premissas de “Seu projeto”. Parcelas de cartão e financiamento já incluem o acréscimo total e estão sujeitas à aprovação de crédito.${
     d.footnote ? `<br>${esc(d.footnote)}` : ''
-  }</p>
-  </div>${ftr(d, n, total)}</section>`;
+  }</p></div>`;
 }
 
-function terms(d: any, n = 5, total = 5, step = 4) {
+/** Lista paginável: título preso ao 1º item; cada item é um bloco, então listas longas quebram entre páginas. */
+function listBlocks(title: string, text: string) {
+  const items = lines(text);
+  if (!items.length) return '';
+  return (
+    B(`<div class="h3">${esc(title)}</div>`, true) +
+    items.map((l) => `<div class="blk it">${esc(l)}</div>`).join('')
+  );
+}
+
+/** O que o cliente recebe além do kit: garantias e serviços (vem antes do investimento). */
+function guarantees(d: any, step: number) {
   const s = d.settings || {};
-  const L = (t: string) =>
-    `<ul>${lines(t)
-      .map((l) => `<li>${esc(l)}</li>`)
-      .join('')}</ul>`;
+  if (!s.warrantiesText && !s.servicesText) return '';
+  return (
+    B(head(step, 'Garantias e serviços'), true) +
+    listBlocks('Garantias e prazos', s.warrantiesText) +
+    listBlocks('Serviços inclusos', s.servicesText)
+  );
+}
 
-  const hasWarranties = Boolean(s.warrantiesText);
-  const hasServices = Boolean(s.servicesText);
-  const hasExclusions = Boolean(s.exclusionsText);
-  const hasNotes = Boolean(s.notesText);
+/** Condições: o que não está incluso e observações (antes do investimento). */
+function terms(d: any, _n = 0, _total = 0, step = 4) {
+  const s = d.settings || {};
+  if (!s.exclusionsText && !s.notesText) return '';
+  return (
+    B(head(step, 'Condições'), true) +
+    listBlocks('Não faz parte desta proposta', s.exclusionsText) +
+    listBlocks('Observações importantes', s.notesText)
+  );
+}
 
-  return `<section class="page">${hdr(d)}<div class="body">
-  ${head(step, 'Condições')}
-  <div class="cond">
-    ${hasWarranties ? `<section><div class="h3">Garantias e prazos</div>${L(s.warrantiesText)}</section>` : ''}
-    ${hasServices ? `<section><div class="h3">Serviços inclusos</div>${L(s.servicesText)}</section>` : ''}
-    ${hasExclusions ? `<section><div class="h3">Não faz parte desta proposta</div>${L(s.exclusionsText)}</section>` : ''}
-    ${hasNotes ? `<section><div class="h3">Observações importantes</div><ul><li>${esc(s.notesText)}</li></ul></section>` : ''}
-  </div>
-  <div class="acc"><div class="h3" style="margin:0">Aceite da proposta</div>
+/** Aceite: bloco final, sem título de seção, logo após o investimento. */
+function acceptance(d: any) {
+  const s = d.settings || {};
+  return `<div class="blk"><div class="acc"><div class="h3" style="margin:0">Aceite da proposta</div>
     <p style="font-size:8.6pt">${esc(
       s.acceptanceText ||
         'Declaro concordar com os valores e condições apresentadas.',
@@ -632,22 +671,45 @@ function terms(d: any, n = 5, total = 5, step = 4) {
     )}</b>Cliente</div><div><b>${esc(
     d.consultant?.name || 'Consultor',
   )}</b>Consultor</div><div><b>____ / ____ / ______</b>Data do fechamento</div></div>
-  </div>
-  </div>${ftr(d, n, total)}</section>`;
+  </div></div>`;
 }
+
+/**
+ * Paginação automática: o conteúdo é uma sequência de blocos (.blk) que o script abaixo
+ * distribui em páginas A4 dentro do Chromium, preenchendo cada página antes de quebrar.
+ * Nunca quebra dentro de um bloco; blocos com data-keep="next" (títulos) seguem o próximo.
+ * Ao terminar, numera "Página X de Y" e sinaliza window.__paged = true para o renderer de PDF.
+ */
+const PAGINATE_SCRIPT = `(function(){
+function run(){
+  var flow=document.getElementById('flow'); if(!flow){window.__paged=true;return;}
+  var hdr=document.getElementById('tpl-hdr').innerHTML, ftr=document.getElementById('tpl-ftr').innerHTML;
+  var blocks=Array.prototype.slice.call(flow.children);
+  function newPage(){var p=document.createElement('section');p.className='page cnt';p.innerHTML=hdr+'<div class="body"></div>'+ftr;flow.parentNode.insertBefore(p,flow);return p.querySelector('.body');}
+  function used(b){var last=b.lastElementChild;if(!last)return 0;var mb=parseFloat(getComputedStyle(last).marginBottom)||0;return last.getBoundingClientRect().bottom+mb-b.getBoundingClientRect().top;}
+  var body=newPage();
+  for(var i=0;i<blocks.length;i++){
+    var b=blocks[i]; body.appendChild(b);
+    if(used(body)>body.clientHeight+3 && body.children.length>1){
+      var moved=[b], prev=b.previousElementSibling;
+      while(prev && prev.getAttribute('data-keep')==='next'){moved.unshift(prev);prev=prev.previousElementSibling;}
+      if(moved.length<body.children.length){body=newPage();for(var k=0;k<moved.length;k++)body.appendChild(moved[k]);}
+    }
+  }
+  flow.parentNode.removeChild(flow);
+  var pages=document.querySelectorAll('.page'), total=pages.length;
+  for(var j=0;j<pages.length;j++){var pn=pages[j].querySelector('.pn'),pt=pages[j].querySelector('.pt');if(pn)pn.textContent=j+1;if(pt)pt.textContent=total;}
+  window.__paged=true;
+}
+// mede só depois de fontes e imagens carregadas, para as alturas serem as finais
+function go(){(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(run,run);}
+if(document.readyState==='complete'){go();}else{window.addEventListener('load',go);}
+})();`;
 
 export function buildPagesHtml(d: any, qr: any) {
   const s = d.settings || {};
   const sec = s.sectionsEnabled || s.sections_enabled || {};
 
-  const pages: ((pageNum: number, totalPages: number, stepNum: number) => string)[] = [];
-
-  // Capa
-  if (sec.cover !== false) {
-    pages.push((n, total, step) => cover(d, qr));
-  }
-
-  // Quem somos (about)
   const hasAboutData =
     Boolean(s.aboutText) ||
     Boolean(s.aboutImageUrl) ||
@@ -658,35 +720,25 @@ export function buildPagesHtml(d: any, qr: any) {
     (s.highlights && s.highlights.length > 0) ||
     Boolean(s.servicesText);
 
-  if (sec.about !== false && hasAboutData) {
-    pages.push((n, total, step) => about(d, n, total, step));
-  }
+  const sections: ((step: number) => string)[] = [];
+  if (sec.about !== false && hasAboutData) sections.push((step) => about(d, 0, 0, step));
+  if (sec.system !== false || sec.kit !== false) sections.push((step) => project(d, 0, 0, step));
+  if (sec.terms !== false && (s.warrantiesText || s.servicesText))
+    sections.push((step) => guarantees(d, step));
+  if (sec.terms !== false && (s.exclusionsText || s.notesText))
+    sections.push((step) => terms(d, 0, 0, step));
+  if (sec.investment !== false) sections.push((step) => invest(d, 0, 0, step));
 
-  // Seu projeto (system + kit)
-  if (sec.system !== false || sec.kit !== false) {
-    pages.push((n, total, step) => project(d, n, total, step));
-  }
+  const coverHtml = sec.cover !== false ? cover(d, qr) : '';
+  const flowHtml =
+    sections.map((fn, idx) => fn(idx + 1)).join('') +
+    (sec.acceptance !== false ? acceptance(d) : '');
 
-  // Investimento (investment)
-  if (sec.investment !== false) {
-    pages.push((n, total, step) => invest(d, n, total, step));
-  }
-
-  // Condições e Aceite (terms / acceptance)
-  if (sec.terms !== false || sec.acceptance !== false) {
-    pages.push((n, total, step) => terms(d, n, total, step));
-  }
-
-  const totalPages = pages.length;
-  let currentStep = 1;
-  return pages
-    .map((fn, idx) => {
-      const pageNum = idx + 1;
-      const isCover = idx === 0 && sec.cover !== false;
-      const stepNum = isCover ? 0 : currentStep++;
-      return fn(pageNum, totalPages, stepNum);
-    })
-    .join('');
+  return `${coverHtml}
+<template id="tpl-hdr">${hdr(d)}</template>
+<template id="tpl-ftr">${ftr(d)}</template>
+<div id="flow">${flowHtml}</div>
+<script>${PAGINATE_SCRIPT}</script>`;
 }
 
 export function normalizeProposalData(data: CommercialTemplateData): any {
