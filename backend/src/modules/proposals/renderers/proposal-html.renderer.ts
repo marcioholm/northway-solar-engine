@@ -121,6 +121,19 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
       });
     }
 
+    let fallbackModuleName: string | undefined;
+    let fallbackInverterName: string | undefined;
+    if (equipmentList.length) {
+      const mod = equipmentList.find((e: any) => e.type === 'module');
+      const inv = equipmentList.find((e: any) => e.type === 'inverter');
+      if (mod) {
+        fallbackModuleName = `${mod.brand || ''} ${mod.model || ''} ${mod.power || ''}`.trim() || undefined;
+      }
+      if (inv) {
+        fallbackInverterName = `${inv.brand || ''} ${inv.model || ''} ${inv.power || ''}`.trim() || undefined;
+      }
+    }
+
     const effectiveSettings = proposalSettings || {
       template: 'moderno',
       primaryColor: '#1F2937',
@@ -249,9 +262,13 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
               targetConsumptionKwh: opt.targetConsumptionKwh,
               systemPowerKwp: Number(opt.systemPowerKwp || 0),
               moduleQty: Number(opt.moduleQty || 0),
-              module: opt.moduleDesc,
-              inverter: opt.inverterDesc,
-              structure: opt.structureDesc,
+              module:
+                opt.moduleDesc ||
+                (opt.position === 1 ? fallbackModuleName : undefined),
+              inverter:
+                opt.inverterDesc ||
+                (opt.position === 1 ? fallbackInverterName : undefined),
+              structure: opt.structureDesc || undefined,
               generationMonthlyKwh: optGen,
               finalPrice: optPrice,
               imageUrl: opt.imageUrl,

@@ -6,7 +6,9 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Proposal } from './entities/proposal.entity';
@@ -15,6 +17,7 @@ import { ProposalOption } from './entities/proposal-option.entity';
 import {
   GenerateProposalDto,
   ProposalOptionDto,
+  UpdateProposalOptionsDto,
 } from './dto/proposal-option.dto';
 import { calculateProportionalGeneration } from './utils/payment-calculator';
 import { SolarEngineService } from '../solar-engine/solar-engine.service';
@@ -26,6 +29,7 @@ import { ProposalSettingsService } from '../proposal-settings/proposal-settings.
 import { InventoryService } from '../inventory/inventory.service';
 import {
   calculateScenarios,
+  DEFAULT_FUTURE_LOADS,
   normalizeSizingRules,
   SelectedFutureLoad,
   SizingRules,
@@ -61,6 +65,7 @@ export class ProposalsService {
     private leadsService: LeadsService,
     private proposalSettingsService: ProposalSettingsService,
     private inventoryService: InventoryService,
+    @Optional() private configService?: ConfigService,
   ) {}
 
   // ────────── TRACKING ──────────
@@ -179,14 +184,8 @@ export class ProposalsService {
     userId: string,
     dto?: GenerateProposalDto,
   ): Promise<Proposal> {
-    if (dto?.options && dto.options.length > 0) {
-      if (dto.options.length > 3) {
-        throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
-      }
-      const recCount = dto.options.filter((o) => o.recommended).length;
-      if (recCount > 1) {
-        throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
-      }
+    if (dto?.options && dto.options.length > 3) {
+      throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
     }
 
     // 1. Load project with quotes
@@ -319,144 +318,307 @@ export class ProposalsService {
       stage: 'proposal_sent',
     });
 
-    const savedProposal = await this.proposalsRepository.save(proposal);
-
-    // 7. Save kit options (up to 3 options, exactly 1 recommended)
-    if (dto?.options && dto.options.length > 0) {
-      if (dto.options.length > 3) {
-        throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
-      }
-      const recCount = dto.options.filter((o) => o.recommended).length;
-      if (recCount === 0) {
-        throw new BadRequestException('Exatamente 1 opção deve ser marcada como recomendada');
-      }
-      if (recCount > 1) {
-        throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
-      }
+    // 7. Save kit options (up to 3 options, server calculated)
+    if (dto?.options && dto.options.length > 3) {
+      throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
     }
+
+    const settings = await this.proposalSettingsService.findByCompanyId(companyId);
+    const futureLoadsInput =
+      dto?.futureLoads ||
+      dto?.options?.find((o) => o.futureLoads?.length)?.futureLoads;
+    const validatedFutureLoads = this.validateAndEnrichFutureLoads(
+      futureLoadsInput,
+      settings?.futureLoads || [],
+    );
+
+    const hasSizing =
+      project.sizingPowerKwp != null &&
+      Number(project.sizingPowerKwp) > 0 &&
+      project.sizingGenerationKwh != null &&
+      Number(project.sizingGenerationKwh) > 0;
 
     return await this.proposalsRepository.manager.transaction(async (manager) => {
       const savedProposal = await manager.getRepository(Proposal).save(proposal);
 
-      if (dto?.options && dto.options.length > 0) {
-        const savedOptions: ProposalOption[] = [];
-        for (let i = 0; i < dto.options.length; i++) {
-          const opt = dto.options[i];
-          const position = opt.position || i + 1;
-          const gen =
-            opt.generationMonthlyKwh !== undefined
-              ? opt.generationMonthlyKwh
-              : calculateProportionalGeneration(
-                  opt.systemPowerKwp,
-                  project.sizingPowerKwp,
-                  project.sizingGenerationKwh,
-                );
+      if (hasSizing) {
+        const calculated = await this.calculateProjectScenarios(
+          projectId,
+          companyId,
+          validatedFutureLoads,
+        );
 
-          const optEntity = manager.getRepository(ProposalOption).create({
-            proposalId: savedProposal.id,
-            companyId,
-            position,
-            name: opt.name || `Kit ${position}`,
-            recommended: Boolean(opt.recommended),
-            scenarioType: opt.scenarioType,
-            scenarioText: opt.scenarioText,
-            isManualPrice: Boolean(opt.isManualPrice),
-            targetConsumptionKwh: opt.targetConsumptionKwh,
-            futureLoads: opt.futureLoads || dto.futureLoads || [],
-            systemPowerKwp: Number(opt.systemPowerKwp || 0),
-            moduleQty: Number(opt.moduleQty || 0),
-            moduleDesc: opt.moduleDesc,
-            inverterDesc: opt.inverterDesc,
-            structureDesc:
-              opt.structureDesc || 'Estrutura de fixação completa em alumínio',
-            generationMonthlyKwh: gen,
-            finalPrice: Number(opt.finalPrice || 0),
-            imageUrl: opt.imageUrl,
-          });
+        const optionEntities = this.buildScenarioOptionEntities(
+          savedProposal.id,
+          companyId,
+          calculated.scenarios,
+          dto?.options,
+          validatedFutureLoads,
+        );
+
+        const savedOptions: ProposalOption[] = [];
+        for (const optData of optionEntities) {
+          const optEntity = manager.getRepository(ProposalOption).create(optData);
           savedOptions.push(await manager.getRepository(ProposalOption).save(optEntity));
         }
         savedProposal.options = savedOptions;
       } else {
-        const hasSizing =
-          project.sizingPowerKwp != null &&
-          Number(project.sizingPowerKwp) > 0 &&
-          project.sizingGenerationKwh != null &&
-          Number(project.sizingGenerationKwh) > 0;
-
-        if (hasSizing) {
-          const calculated = await this.calculateProjectScenarios(
-            projectId,
-            companyId,
-            dto?.futureLoads,
-            dto?.sizingRules,
-          );
-
-          const savedOptions: ProposalOption[] = [];
-          for (const sc of calculated.scenarios) {
-            const optEntity = manager.getRepository(ProposalOption).create({
-              proposalId: savedProposal.id,
-              companyId,
-              position: sc.position,
-              name: sc.name,
-              recommended: sc.recommended,
-              scenarioType: sc.scenarioType,
-              scenarioText: sc.scenarioText,
-              isManualPrice: false,
-              targetConsumptionKwh: sc.targetConsumptionKwh,
-              futureLoads:
-                sc.scenarioType === 'expansion' ? dto?.futureLoads || [] : [],
-              systemPowerKwp: sc.systemPowerKwp,
-              moduleQty: sc.moduleQty,
-              moduleDesc: sc.moduleDesc,
-              inverterDesc: sc.inverterDesc,
-              structureDesc: sc.structureDesc,
-              generationMonthlyKwh: sc.generationMonthlyKwh,
-              finalPrice: sc.finalPrice,
-            });
-            savedOptions.push(await manager.getRepository(ProposalOption).save(optEntity));
-          }
-          savedProposal.options = savedOptions;
-        } else {
-          let moduleName = 'Módulos Fotovoltaicos';
-          let inverterName = 'Inversor Solar';
-          if (project.equipmentModules?.length) {
-            const m = project.equipmentModules[0];
-            moduleName = `${m.brand || ''} ${m.model || ''}`.trim() || moduleName;
-          }
-          if (project.equipmentInverters?.length) {
-            const inv = project.equipmentInverters[0];
-            inverterName = `${inv.brand || ''} ${inv.model || ''}`.trim() || inverterName;
-          }
-
-          const defaultOpt = manager.getRepository(ProposalOption).create({
-            proposalId: savedProposal.id,
-            companyId,
-            position: 1,
-            name: 'Kit 1',
-            recommended: true,
-            scenarioType: 'recommended',
-            scenarioText: 'Sistema dimensionado conforme consumo',
-            systemPowerKwp: project.sizingPowerKwp || 0,
-            moduleQty: project.sizingModuleQty || 0,
-            moduleDesc: moduleName,
-            inverterDesc: inverterName,
-            structureDesc: 'Estrutura de fixação completa em alumínio',
-            generationMonthlyKwh: null,
-            finalPrice: pricingResult.finalPrice,
-          });
-          savedProposal.options = [await manager.getRepository(ProposalOption).save(defaultOpt)];
+        let moduleName: string | null = null;
+        let inverterName: string | null = null;
+        if (project.equipmentModules?.length) {
+          const m = project.equipmentModules[0];
+          moduleName =
+            `${m.brand || ''} ${m.model || ''} ${m.power ? m.power + 'W' : ''}`.trim() ||
+            null;
         }
+        if (project.equipmentInverters?.length) {
+          const inv = project.equipmentInverters[0];
+          inverterName =
+            `${inv.brand || ''} ${inv.model || ''} ${inv.powerKw ? inv.powerKw + 'kW' : ''}`.trim() ||
+            null;
+        }
+
+        const clientOpt = dto?.options?.[0];
+        const isManual = Boolean(
+          clientOpt?.isManualPrice &&
+            clientOpt?.finalPrice != null &&
+            Number(clientOpt.finalPrice) >= 0,
+        );
+        const finalPrice = isManual
+          ? Number(clientOpt!.finalPrice)
+          : pricingResult.finalPrice;
+        const imageUrl = this.validateImageUrl(clientOpt?.imageUrl, companyId);
+
+        const defaultOpt = manager.getRepository(ProposalOption).create({
+          proposalId: savedProposal.id,
+          companyId,
+          position: 1,
+          name:
+            clientOpt?.name && clientOpt.name.trim()
+              ? clientOpt.name.trim().slice(0, 60)
+              : 'Kit 1',
+          recommended: true,
+          scenarioType: 'recommended',
+          scenarioText: 'Sistema dimensionado conforme consumo',
+          systemPowerKwp: project.sizingPowerKwp || 0,
+          moduleQty: project.sizingModuleQty || 0,
+          moduleDesc: moduleName || undefined,
+          inverterDesc: inverterName || undefined,
+          structureDesc: undefined,
+          generationMonthlyKwh: null,
+          finalPrice,
+          isManualPrice: isManual,
+          imageUrl: imageUrl || undefined,
+        });
+        savedProposal.options = [
+          await manager.getRepository(ProposalOption).save(defaultOpt),
+        ];
       }
 
       return savedProposal;
     });
   }
 
+  private validateImageUrl(
+    url: string | undefined | null,
+    companyId: string,
+  ): string | null {
+    if (!url || typeof url !== 'string' || url.trim() === '') return null;
+    const trimmed = url.trim();
+
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      throw new BadRequestException('A URL da imagem é inválida');
+    }
+
+    if (parsed.protocol !== 'https:') {
+      throw new BadRequestException('A URL da imagem deve utilizar o protocolo HTTPS');
+    }
+
+    const supabaseUrl =
+      this.configService?.get<string>('SUPABASE_URL') || process.env.SUPABASE_URL;
+    if (supabaseUrl) {
+      try {
+        const expectedHost = new URL(supabaseUrl).hostname.toLowerCase();
+        if (parsed.hostname.toLowerCase() !== expectedHost) {
+          throw new BadRequestException(
+            'A URL da imagem deve pertencer ao Supabase da aplicação',
+          );
+        }
+      } catch {
+        if (!parsed.hostname.toLowerCase().endsWith('supabase.co')) {
+          throw new BadRequestException(
+            'A URL da imagem deve pertencer ao Supabase da aplicação',
+          );
+        }
+      }
+    } else {
+      if (!parsed.hostname.toLowerCase().endsWith('supabase.co')) {
+        throw new BadRequestException(
+          'A URL da imagem deve pertencer ao Supabase da aplicação',
+        );
+      }
+    }
+
+    const expectedPrefix = `/storage/v1/object/public/logos/proposals/${companyId}/`;
+    if (!parsed.pathname.startsWith(expectedPrefix)) {
+      throw new BadRequestException(
+        `A URL da imagem deve ser do bucket logos no caminho proposals/${companyId}/`,
+      );
+    }
+
+    const filename = parsed.pathname.slice(expectedPrefix.length);
+    if (!filename || filename.trim().length === 0) {
+      throw new BadRequestException(
+        `A URL da imagem deve conter o arquivo no caminho proposals/${companyId}/`,
+      );
+    }
+
+    return trimmed;
+  }
+
+  private validateAndEnrichFutureLoads(
+    loads: any[] | undefined,
+    catalog: any[],
+  ): SelectedFutureLoad[] {
+    if (!loads || loads.length === 0) return [];
+
+    const effectiveCatalog =
+      catalog && catalog.length > 0 ? catalog : DEFAULT_FUTURE_LOADS;
+
+    const enriched: SelectedFutureLoad[] = [];
+    for (const load of loads) {
+      if (!load || !load.id) {
+        throw new BadRequestException('Carga futura deve conter id');
+      }
+      const catalogItem = effectiveCatalog.find((c: any) => c.id === load.id);
+      if (!catalogItem) {
+        throw new BadRequestException(
+          `Carga futura '${load.id}' não encontrada no catálogo da empresa`,
+        );
+      }
+      const qty = Number(load.quantity);
+      if (!Number.isInteger(qty) || qty < 1 || qty > 20) {
+        throw new BadRequestException(
+          'A quantidade de cada carga futura deve ser um número inteiro entre 1 e 20',
+        );
+      }
+      let hours = load.hoursPerDay;
+      if (catalogItem.fixedKwh != null && Number(catalogItem.fixedKwh) > 0) {
+        hours = undefined;
+      } else {
+        hours = hours != null ? Number(hours) : (catalogItem.defaultHoursPerDay ?? 8);
+        if (typeof hours !== 'number' || isNaN(hours) || hours < 0.5 || hours > 24) {
+          throw new BadRequestException(
+            'As horas de uso por dia devem estar entre 0.5 e 24',
+          );
+        }
+      }
+
+      enriched.push({
+        id: catalogItem.id,
+        name: catalogItem.name,
+        category: catalogItem.category,
+        powerKw: catalogItem.powerKw,
+        fixedKwh: catalogItem.fixedKwh,
+        quantity: qty,
+        hoursPerDay: hours,
+        daysPerMonth: catalogItem.defaultDaysPerMonth ?? 30,
+      });
+    }
+    return enriched;
+  }
+
+  private buildScenarioOptionEntities(
+    proposalId: string,
+    companyId: string,
+    scenarios: any[],
+    clientOptions: ProposalOptionDto[] | undefined,
+    validatedFutureLoads: SelectedFutureLoad[],
+  ): Partial<ProposalOption>[] {
+    const count =
+      clientOptions && clientOptions.length > 0
+        ? clientOptions.length
+        : scenarios.length;
+
+    const optionEntities: Partial<ProposalOption>[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const clientOpt = clientOptions?.[i];
+      let sc: any;
+      let pos = i + 1;
+
+      if (count === 1) {
+        sc = scenarios.find((s) => s.scenarioType === 'recommended') || scenarios[0];
+        pos = 1;
+      } else {
+        if (clientOpt?.position === 1) {
+          sc = scenarios.find((s) => s.scenarioType === 'essential') || scenarios[0];
+          pos = 1;
+        } else if (clientOpt?.position === 2) {
+          sc =
+            scenarios.find((s) => s.scenarioType === 'recommended') ||
+            scenarios[1] ||
+            scenarios[0];
+          pos = 2;
+        } else if (clientOpt?.position === 3) {
+          sc =
+            scenarios.find((s) => s.scenarioType === 'expansion') ||
+            scenarios[2] ||
+            scenarios[0];
+          pos = 3;
+        } else {
+          sc = scenarios[i] || scenarios[scenarios.length - 1];
+          pos = i + 1;
+        }
+      }
+
+      const name =
+        clientOpt?.name && typeof clientOpt.name === 'string' && clientOpt.name.trim()
+          ? clientOpt.name.trim().slice(0, 60)
+          : sc.name;
+
+      const isManualPrice = Boolean(
+        clientOpt?.isManualPrice &&
+          clientOpt?.finalPrice != null &&
+          Number(clientOpt.finalPrice) >= 0,
+      );
+      const finalPrice = isManualPrice ? Number(clientOpt!.finalPrice) : sc.finalPrice;
+      const imageUrl = this.validateImageUrl(clientOpt?.imageUrl, companyId);
+
+      const isRecommended = count === 1 ? true : sc.scenarioType === 'recommended';
+
+      optionEntities.push({
+        proposalId,
+        companyId,
+        position: pos,
+        name,
+        recommended: isRecommended,
+        scenarioType: sc.scenarioType,
+        scenarioText: sc.scenarioText,
+        isManualPrice,
+        targetConsumptionKwh: sc.targetConsumptionKwh,
+        futureLoads: sc.scenarioType === 'expansion' ? validatedFutureLoads : [],
+        systemPowerKwp: sc.systemPowerKwp,
+        moduleQty: sc.moduleQty,
+        moduleDesc: sc.moduleDesc || undefined,
+        inverterDesc: sc.inverterDesc || undefined,
+        structureDesc: undefined,
+        generationMonthlyKwh: sc.generationMonthlyKwh,
+        finalPrice,
+        imageUrl: imageUrl || undefined,
+      });
+    }
+
+    return optionEntities;
+  }
+
   async calculateProjectScenarios(
     projectId: string,
     companyId: string,
-    futureLoads?: SelectedFutureLoad[],
-    sizingRules?: Partial<SizingRules>,
+    futureLoads?: any[],
   ) {
     const project = await this.solarProjectService.findOne(projectId, companyId);
     if (!project) throw new NotFoundException('Projeto não encontrado');
@@ -473,15 +635,23 @@ export class ProposalsService {
     }
 
     const settings = await this.proposalSettingsService.findByCompanyId(companyId);
-    const effectiveRules = normalizeSizingRules({
-      ...settings?.sizingRules,
-      ...sizingRules,
-    });
+    const effectiveRules = normalizeSizingRules(settings?.sizingRules);
+
+    const validatedFutureLoads = this.validateAndEnrichFutureLoads(
+      futureLoads,
+      settings?.futureLoads || [],
+    );
 
     const modulePowerWatt =
       project.equipmentModules?.[0]?.power ||
-      Math.round(((project.sizingPowerKwp || 0) * 1000) / (project.sizingModuleQty || 1)) ||
-      550;
+      (project.sizingPowerKwp &&
+      project.sizingModuleQty &&
+      Number(project.sizingModuleQty) > 0
+        ? Math.round(
+            (Number(project.sizingPowerKwp) * 1000) /
+              Number(project.sizingModuleQty),
+          )
+        : 550);
 
     const moduleUnitPrice =
       project.equipmentModules?.[0]?.unitPrice ||
@@ -525,7 +695,7 @@ export class ProposalsService {
       sizingGenerationKwh: project.sizingGenerationKwh,
       modulePowerWatt,
       sizingRules: effectiveRules,
-      futureLoads,
+      futureLoads: validatedFutureLoads,
     });
 
     const enrichedScenarios = calcResult.scenarios.map((sc) => {
@@ -580,7 +750,7 @@ export class ProposalsService {
         ...sc,
         moduleDesc,
         inverterDesc,
-        structureDesc: 'Estrutura de fixação completa em alumínio',
+        structureDesc: null,
         calculatedPrice: finalPrice,
         finalPrice,
         isManualPrice: false,
@@ -611,59 +781,124 @@ export class ProposalsService {
   async updateOptions(
     proposalId: string,
     companyId: string,
-    options: ProposalOptionDto[],
+    dto: UpdateProposalOptionsDto,
   ): Promise<ProposalOption[]> {
     const proposal = await this.proposalsRepository.findOne({
       where: { id: proposalId, companyId },
     });
     if (!proposal) throw new NotFoundException('Proposta não encontrada');
 
-    if (!options || options.length === 0) {
+    const optionsArray = Array.isArray(dto) ? dto : dto?.options;
+    if (!optionsArray || optionsArray.length === 0) {
       throw new BadRequestException('A proposta deve ter pelo menos uma opção');
     }
-    if (options.length > 3) {
+    if (optionsArray.length > 3) {
       throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
     }
-    const recCount = options.filter((o) => o.recommended).length;
-    if (recCount === 0) {
-      throw new BadRequestException('Exatamente 1 opção deve ser marcada como recomendada');
-    }
-    if (recCount > 1) {
-      throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
-    }
-    const optionsToSave = [...options];
 
-    // Remover opções existentes desta proposta
-    await this.proposalOptionsRepository.delete({ proposalId, companyId });
+    if (!proposal.solarProjectId) {
+      throw new BadRequestException('Proposta sem projeto vinculado');
+    }
 
-    const saved: ProposalOption[] = [];
-    for (let i = 0; i < optionsToSave.length; i++) {
-      const opt = optionsToSave[i];
-      const position = i + 1;
-      const optEntity = this.proposalOptionsRepository.create({
+    const project = await this.solarProjectService.findOne(
+      proposal.solarProjectId,
+      companyId,
+    );
+    if (!project) throw new NotFoundException('Projeto vinculado não encontrado');
+
+    const settings = await this.proposalSettingsService.findByCompanyId(companyId);
+
+    const futureLoadsInput =
+      (!Array.isArray(dto) && dto?.futureLoads) ||
+      optionsArray.find((o: any) => o.futureLoads?.length)?.futureLoads;
+    const validatedFutureLoads = this.validateAndEnrichFutureLoads(
+      futureLoadsInput,
+      settings?.futureLoads || [],
+    );
+
+    const hasSizing =
+      project.sizingPowerKwp != null &&
+      Number(project.sizingPowerKwp) > 0 &&
+      project.sizingGenerationKwh != null &&
+      Number(project.sizingGenerationKwh) > 0;
+
+    let optionEntities: Partial<ProposalOption>[] = [];
+
+    if (hasSizing) {
+      const calculated = await this.calculateProjectScenarios(
+        proposal.solarProjectId,
+        companyId,
+        validatedFutureLoads,
+      );
+
+      optionEntities = this.buildScenarioOptionEntities(
         proposalId,
         companyId,
-        position,
-        name: opt.name || `Kit ${position}`,
-        recommended: Boolean(opt.recommended),
-        scenarioType: opt.scenarioType,
-        scenarioText: opt.scenarioText,
-        isManualPrice: Boolean(opt.isManualPrice),
-        targetConsumptionKwh: opt.targetConsumptionKwh,
-        futureLoads: opt.futureLoads || [],
-        systemPowerKwp: Number(opt.systemPowerKwp || 0),
-        moduleQty: Number(opt.moduleQty || 0),
-        moduleDesc: opt.moduleDesc,
-        inverterDesc: opt.inverterDesc,
-        structureDesc:
-          opt.structureDesc || 'Estrutura de fixação completa em alumínio',
-        generationMonthlyKwh: opt.generationMonthlyKwh ?? null,
-        finalPrice: Number(opt.finalPrice || 0),
-        imageUrl: opt.imageUrl,
-      });
-      saved.push(await this.proposalOptionsRepository.save(optEntity));
+        calculated.scenarios,
+        optionsArray,
+        validatedFutureLoads,
+      );
+    } else {
+      let moduleName: string | null = null;
+      let inverterName: string | null = null;
+      if (project.equipmentModules?.length) {
+        const m = project.equipmentModules[0];
+        moduleName =
+          `${m.brand || ''} ${m.model || ''} ${m.power ? m.power + 'W' : ''}`.trim() ||
+          null;
+      }
+      if (project.equipmentInverters?.length) {
+        const inv = project.equipmentInverters[0];
+        inverterName =
+          `${inv.brand || ''} ${inv.model || ''} ${inv.powerKw ? inv.powerKw + 'kW' : ''}`.trim() ||
+          null;
+      }
+
+      const clientOpt = optionsArray[0];
+      const isManual = Boolean(
+        clientOpt?.isManualPrice &&
+          clientOpt?.finalPrice != null &&
+          Number(clientOpt.finalPrice) >= 0,
+      );
+      const finalPrice = isManual
+        ? Number(clientOpt!.finalPrice)
+        : Number(proposal.finalPrice || 0);
+      const imageUrl = this.validateImageUrl(clientOpt?.imageUrl, companyId);
+
+      optionEntities = [
+        {
+          proposalId,
+          companyId,
+          position: 1,
+          name:
+            clientOpt?.name && clientOpt.name.trim()
+              ? clientOpt.name.trim().slice(0, 60)
+              : 'Kit 1',
+          recommended: true,
+          scenarioType: 'recommended',
+          scenarioText: 'Sistema dimensionado conforme consumo',
+          systemPowerKwp: project.sizingPowerKwp || 0,
+          moduleQty: project.sizingModuleQty || 0,
+          moduleDesc: moduleName || undefined,
+          inverterDesc: inverterName || undefined,
+          structureDesc: undefined,
+          generationMonthlyKwh: null,
+          finalPrice,
+          isManualPrice: isManual,
+          imageUrl: imageUrl || undefined,
+        },
+      ];
     }
-    return saved;
+
+    return await this.proposalsRepository.manager.transaction(async (manager) => {
+      await manager.getRepository(ProposalOption).delete({ proposalId, companyId });
+      const saved: ProposalOption[] = [];
+      for (const optData of optionEntities) {
+        const optEntity = manager.getRepository(ProposalOption).create(optData);
+        saved.push(await manager.getRepository(ProposalOption).save(optEntity));
+      }
+      return saved;
+    });
   }
 
   // ────────── LEGACY create (kept for backward compatibility) ──────────

@@ -150,7 +150,7 @@ export function ProposalStep({
             moduleQty: Number(data.sizingModuleQty || 0),
             moduleDesc: moduleName,
             inverterDesc: inverterName,
-            structureDesc: 'Estrutura completa em alumínio',
+            structureDesc: '',
             generationMonthlyKwh: sizingGen > 0 ? sizingGen : null,
             finalPrice: baseFinalPrice,
             isCustomPrice: false,
@@ -240,7 +240,7 @@ export function ProposalStep({
           moduleQty: modQtyEssencial,
           moduleDesc: moduleName,
           inverterDesc: inverterName,
-          structureDesc: 'Estrutura completa em alumínio',
+          structureDesc: '',
           generationMonthlyKwh: genEssencial,
           finalPrice: opt1Prev?.isCustomPrice ? opt1Prev.finalPrice : priceEssencial,
           isCustomPrice: opt1Prev?.isCustomPrice || false,
@@ -256,7 +256,7 @@ export function ProposalStep({
           moduleQty: modQtyRecomendado,
           moduleDesc: moduleName,
           inverterDesc: inverterName,
-          structureDesc: 'Estrutura completa em alumínio',
+          structureDesc: '',
           generationMonthlyKwh: genRecomendado,
           finalPrice: opt2Prev?.isCustomPrice ? opt2Prev.finalPrice : priceRecomendado,
           isCustomPrice: opt2Prev?.isCustomPrice || false,
@@ -272,7 +272,7 @@ export function ProposalStep({
           moduleQty: modQtyExpansao,
           moduleDesc: moduleName,
           inverterDesc: inverterName,
-          structureDesc: 'Estrutura completa em alumínio',
+          structureDesc: '',
           generationMonthlyKwh: genExpansao,
           finalPrice: opt3Prev?.isCustomPrice ? opt3Prev.finalPrice : priceExpansao,
           isCustomPrice: opt3Prev?.isCustomPrice || false,
@@ -659,8 +659,8 @@ export function ProposalStep({
               options.length === 1
                 ? '1fr'
                 : options.length === 2
-                ? '1fr 1fr'
-                : '1fr 1fr 1fr',
+                  ? '1fr 1fr'
+                  : '1fr 1fr 1fr',
             gap: '16px',
           }}
         >

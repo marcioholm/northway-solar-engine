@@ -19,6 +19,7 @@ import {
   CalculateScenariosDto,
   GenerateProposalDto,
   ProposalOptionDto,
+  UpdateProposalOptionsDto,
 } from './dto/proposal-option.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags, ApiQuery } from '@nestjs/swagger';
@@ -67,7 +68,6 @@ export class ProposalsController {
       projectId,
       req.user.companyId,
       dto?.futureLoads,
-      dto?.sizingRules,
     );
   }
 
@@ -84,9 +84,9 @@ export class ProposalsController {
   updateOptions(
     @Param('id') id: string,
     @Request() req,
-    @Body() options: ProposalOptionDto[],
+    @Body() dto: UpdateProposalOptionsDto,
   ) {
-    return this.proposalsService.updateOptions(id, req.user.companyId, options);
+    return this.proposalsService.updateOptions(id, req.user.companyId, dto);
   }
 
   @Get()

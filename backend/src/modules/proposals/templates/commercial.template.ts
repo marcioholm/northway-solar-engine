@@ -755,7 +755,7 @@ export function normalizeProposalData(data: CommercialTemplateData): any {
         moduleQty: Number(d.moduleQty || 0),
         module: moduleName,
         inverter: inverterName,
-        structure: 'Estrutura completa em alumínio',
+        structure: undefined,
         generationMonthlyKwh,
         finalPrice,
         coverage,

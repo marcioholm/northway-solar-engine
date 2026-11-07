@@ -16,6 +16,7 @@ export interface FutureLoadCatalogItem {
 export interface SelectedFutureLoad {
   id: string;
   name: string;
+  category?: string;
   powerKw?: number;
   fixedKwh?: number;
   hoursPerDay?: number;
@@ -38,6 +39,8 @@ export const DEFAULT_FUTURE_LOADS_CATALOG: FutureLoadCatalogItem[] = [
   { id: 'chuveiro_5500', name: 'Chuveiro elétrico 5,5 kW', category: 'Eletrodomésticos', powerKw: 5.50, defaultHoursPerDay: 0.5, defaultDaysPerMonth: 30 },
   { id: 'bomba_piscina_750', name: 'Bomba de piscina 0,75 kW', category: 'Lazer', powerKw: 0.75, defaultHoursPerDay: 6, defaultDaysPerMonth: 30 },
 ];
+
+export const DEFAULT_FUTURE_LOADS = DEFAULT_FUTURE_LOADS_CATALOG;
 
 /**
  * Calcula os kWh/mês de uma carga futura selecionada.
@@ -292,3 +295,4 @@ export function calculateScenarios(
     maxPowerKwp,
   };
 }
+

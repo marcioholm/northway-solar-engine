@@ -26,8 +26,13 @@ describe('ProposalsService (equipamentos e cotações)', () => {
   let service: ProposalsService;
   let mockProposalsRepo: any;
   let mockOptionsRepo: any;
+  let mockSolarProjectService: any;
 
   beforeEach(async () => {
+    mockSolarProjectService = {
+      findOne: jest.fn(),
+    };
+
     mockProposalsRepo = {
       findOne: jest.fn(),
       save: jest.fn().mockImplementation((p) => Promise.resolve({ id: 'p1', ...p })),
@@ -75,7 +80,7 @@ describe('ProposalsService (equipamentos e cotações)', () => {
         },
         {
           provide: SolarProjectService,
-          useValue: {},
+          useValue: mockSolarProjectService,
         },
         {
           provide: PricingEngineService,
@@ -340,17 +345,92 @@ describe('ProposalsService (equipamentos e cotações)', () => {
       );
     });
 
-    it('bloqueia mais de 1 opção marcada como recomendada', async () => {
-      mockProposalsRepo.findOne.mockResolvedValue({ id: 'p1', companyId: 'c1' });
+    it('bloqueia imageUrl fora do bucket da empresa (logos/proposals/<companyId>/)', async () => {
+      mockProposalsRepo.findOne.mockResolvedValue({
+        id: 'p1',
+        companyId: 'c1',
+        solarProjectId: 'proj-1',
+      });
+      mockSolarProjectService.findOne.mockResolvedValue({
+        id: 'proj-1',
+        sizingPowerKwp: 5,
+        sizingGenerationKwh: 650,
+      });
 
-      const twoRecommended: any = [
-        { name: 'Kit 1', position: 1, recommended: true, finalPrice: 10000, systemPowerKwp: 3 },
-        { name: 'Kit 2', position: 2, recommended: true, finalPrice: 15000, systemPowerKwp: 4 },
-      ];
+      const invalidUrlOptions: any = {
+        options: [
+          {
+            name: 'Kit 1',
+            imageUrl: 'https://attacker.com/evil.png',
+          },
+        ],
+      };
 
-      await expect(service.updateOptions('p1', 'c1', twoRecommended)).rejects.toThrow(
-        'Apenas uma opção pode ser marcada como recomendada',
+      await expect(service.updateOptions('p1', 'c1', invalidUrlOptions)).rejects.toThrow(
+        'A URL da imagem deve pertencer ao Supabase da aplicação',
       );
+
+      const otherCompanyUrl: any = {
+        options: [
+          {
+            name: 'Kit 1',
+            imageUrl:
+              'https://vwyywxckjusuogwkpjjs.supabase.co/storage/v1/object/public/logos/proposals/other-company/photo.png',
+          },
+        ],
+      };
+
+      await expect(service.updateOptions('p1', 'c1', otherCompanyUrl)).rejects.toThrow(
+        'A URL da imagem deve ser do bucket logos no caminho proposals/c1/',
+      );
+    });
+
+    it('proposta antiga migrada gera PDF com módulo e inversor do projeto como fallback', async () => {
+      const oldProposalWithFallback = {
+        id: 'old-p1',
+        companyId: 'c1',
+        clientName: 'Cliente Antigo',
+        finalPrice: 25000,
+        systemPowerKwp: 5.5,
+        moduleQty: 10,
+        createdAt: new Date(),
+        options: [
+          {
+            id: 'opt-1',
+            position: 1,
+            name: 'Sistema Proposto',
+            recommended: true,
+            moduleDesc: null, // Proposta antiga com descrição nula
+            inverterDesc: null,
+            structureDesc: null,
+            finalPrice: 25000,
+            systemPowerKwp: 5.5,
+            moduleQty: 10,
+          },
+        ],
+        solarProject: {
+          id: 'proj-old',
+          sizingPowerKwp: 5.5,
+          sizingGenerationKwh: 700,
+          equipmentModules: [
+            { brand: 'Canadian', model: 'CS6W-550MS', power: 550, qty: 10 },
+          ],
+          equipmentInverters: [
+            { brand: 'Growatt', model: 'MIN 5000TL-X', powerKw: 5, qty: 1 },
+          ],
+        },
+      };
+
+      mockProposalsRepo.findOne.mockResolvedValue(oldProposalWithFallback);
+
+      const htmlResult = await service.render('old-p1', 'c1', 'html');
+      const html = htmlResult.content as string;
+
+      // O PDF gerado deve conter o módulo e inversor do projeto
+      expect(html).toContain('Canadian CS6W-550MS 550W');
+      expect(html).toContain('Growatt MIN 5000TL-X 5kW');
+      // Não deve conter a linha de estrutura pois é NULL
+      expect(html).not.toContain('<tr><td>Estrutura</td>');
     });
 
     it('isola opções por empresa: empresa A não lê nem acessa opções da empresa B', async () => {

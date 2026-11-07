@@ -1,12 +1,13 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsInt,
   IsNumber,
-  IsObject,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -16,28 +17,16 @@ export class SelectedFutureLoadDto {
   @IsString()
   id: string;
 
-  @IsString()
-  name: string;
-
-  @IsOptional()
-  @IsNumber()
-  powerKw?: number;
-
-  @IsOptional()
-  @IsNumber()
-  fixedKwh?: number;
-
-  @IsOptional()
-  @IsNumber()
-  hoursPerDay?: number;
-
-  @IsOptional()
-  @IsNumber()
-  daysPerMonth?: number;
-
   @IsInt()
   @Min(1)
+  @Max(20)
   quantity: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.5)
+  @Max(24)
+  hoursPerDay?: number;
 }
 
 export class ProposalOptionDto {
@@ -45,24 +34,16 @@ export class ProposalOptionDto {
   @IsString()
   id?: string;
 
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(3)
-  position: number;
-
-  @IsString()
-  name: string;
-
-  @IsBoolean()
-  recommended: boolean;
+  position?: number;
 
   @IsOptional()
   @IsString()
-  scenarioType?: string;
-
-  @IsOptional()
-  @IsString()
-  scenarioText?: string;
+  @MaxLength(60)
+  name?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -70,58 +51,108 @@ export class ProposalOptionDto {
 
   @IsOptional()
   @IsNumber()
-  targetConsumptionKwh?: number | null;
-
-  @IsOptional()
-  @IsArray()
-  futureLoads?: any[];
-
-  @IsNumber()
-  systemPowerKwp: number;
-
-  @IsInt()
-  moduleQty: number;
-
-  @IsOptional()
-  @IsString()
-  moduleDesc?: string;
-
-  @IsOptional()
-  @IsString()
-  inverterDesc?: string;
-
-  @IsOptional()
-  @IsString()
-  structureDesc?: string;
-
-  @IsOptional()
-  @IsNumber()
-  generationMonthlyKwh?: number | null;
-
-  @IsNumber()
-  finalPrice: number;
+  @Min(0)
+  finalPrice?: number;
 
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedFutureLoadDto)
+  futureLoads?: SelectedFutureLoadDto[];
+}
+
+export class ProposalPaymentCardDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(240)
+  installments?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(300)
+  totalMarkupPct?: number;
+}
+
+export class ProposalPaymentFinanceOptionDto {
+  @IsInt()
+  @Min(1)
+  @Max(240)
+  n: number;
+
+  @IsNumber()
+  @Min(0)
+  @Max(300)
+  totalMarkupPct: number;
+}
+
+export class ProposalPaymentOwnPlanDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  downPaymentPct?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  entradaPct?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  installments?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  boletos?: number;
 }
 
 export class ProposalPaymentCustomDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(300)
   cashDiscountPct?: number | null;
-  card?: { installments?: number; totalMarkupPct?: number } | null;
-  finance?: Array<{ n: number; totalMarkupPct: number }> | null;
-  own?: { downPaymentPct?: number; installments?: number } | null;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProposalPaymentCardDto)
+  card?: ProposalPaymentCardDto | null;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ValidateNested({ each: true })
+  @Type(() => ProposalPaymentFinanceOptionDto)
+  finance?: ProposalPaymentFinanceOptionDto[] | null;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProposalPaymentOwnPlanDto)
+  own?: ProposalPaymentOwnPlanDto | null;
 }
 
 export class GenerateProposalDto {
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(3)
   @ValidateNested({ each: true })
   @Type(() => ProposalOptionDto)
   options?: ProposalOptionDto[];
 
   @IsOptional()
-  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalPaymentCustomDto)
   payment?: ProposalPaymentCustomDto;
 
   @IsOptional()
@@ -129,10 +160,20 @@ export class GenerateProposalDto {
   @ValidateNested({ each: true })
   @Type(() => SelectedFutureLoadDto)
   futureLoads?: SelectedFutureLoadDto[];
+}
+
+export class UpdateProposalOptionsDto {
+  @IsArray()
+  @ArrayMaxSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => ProposalOptionDto)
+  options: ProposalOptionDto[];
 
   @IsOptional()
-  @IsObject()
-  sizingRules?: Record<string, any>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedFutureLoadDto)
+  futureLoads?: SelectedFutureLoadDto[];
 }
 
 export class CalculateScenariosDto {
@@ -141,8 +182,4 @@ export class CalculateScenariosDto {
   @ValidateNested({ each: true })
   @Type(() => SelectedFutureLoadDto)
   futureLoads?: SelectedFutureLoadDto[];
-
-  @IsOptional()
-  @IsObject()
-  sizingRules?: Record<string, any>;
 }

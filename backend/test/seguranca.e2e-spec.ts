@@ -1045,6 +1045,7 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .send({
           clientName: 'Cliente Três Opções',
           clientCity: 'Curitiba',
+          consumptionMonthlyKwh: 500,
           sizingPowerKwp: 5.0,
           sizingGenerationKwh: 650,
           pricingEquipmentCost: 15000,
@@ -1061,25 +1062,53 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .auth(adminToken, { type: 'bearer' })
         .send({
           options: [
-            { position: 1, name: 'Opção 1', recommended: true, systemPowerKwp: 3, finalPrice: 15000, moduleQty: 6 },
-            { position: 2, name: 'Opção 2', recommended: false, systemPowerKwp: 4, finalPrice: 20000, moduleQty: 8 },
-            { position: 3, name: 'Opção 3', recommended: false, systemPowerKwp: 5, finalPrice: 25000, moduleQty: 10 },
-            { position: 4, name: 'Opção 4', recommended: false, systemPowerKwp: 6, finalPrice: 30000, moduleQty: 12 },
+            { position: 1, name: 'Opção 1', finalPrice: 15000 },
+            { position: 2, name: 'Opção 2', finalPrice: 20000 },
+            { position: 3, name: 'Opção 3', finalPrice: 25000 },
+            { position: 4, name: 'Opção 4', finalPrice: 30000 },
           ],
         })
         .expect(400);
 
-      // 3. Tentar gerar com 2 recomendadas deve falhar (400 - apenas 1 recomendada)
-      await http()
+      // 3. O servidor é a única fonte dos números:
+      // O cliente envia generationMonthlyKwh=99999, systemPowerKwp=500 e scenarioText="<b>x</b>";
+      // O banco grava os valores calculados e o texto gerado pelo sistema.
+      const forgeRes = await http()
         .post(`/proposals/generate/${projId}`)
         .auth(adminToken, { type: 'bearer' })
         .send({
           options: [
-            { position: 1, name: 'Opção 1', recommended: true, systemPowerKwp: 3, finalPrice: 15000, moduleQty: 6 },
-            { position: 2, name: 'Opção 2', recommended: true, systemPowerKwp: 4, finalPrice: 20000, moduleQty: 8 },
+            {
+              position: 1,
+              name: 'Kit 1',
+              systemPowerKwp: 500,
+              generationMonthlyKwh: 99999,
+              scenarioText: '<b>x</b>',
+              recommended: true,
+            },
+            {
+              position: 2,
+              name: 'Kit 2',
+              systemPowerKwp: 700,
+              generationMonthlyKwh: 88888,
+              scenarioText: '<script>alert(1)</script>',
+              recommended: false,
+            },
           ],
         })
-        .expect(400);
+        .expect(201);
+
+      const forgeOptionsRes = await http()
+        .get(`/proposals/${forgeRes.body.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .expect(200);
+
+      expect(forgeOptionsRes.body[0].systemPowerKwp).not.toBe(500);
+      expect(forgeOptionsRes.body[0].generationMonthlyKwh).not.toBe(99999);
+      expect(forgeOptionsRes.body[0].scenarioText).not.toBe('<b>x</b>');
+      expect(forgeOptionsRes.body[0].scenarioText).toContain('Cobre seu consumo atual');
+      expect(forgeOptionsRes.body[0].recommended).toBe(false);
+      expect(forgeOptionsRes.body[1].recommended).toBe(true);
 
       // 4. Gerar proposta com 3 opções válidas e condições de pagamento personalizadas
       const genRes = await http()
@@ -1090,32 +1119,20 @@ describe('Isolamento e rotas públicas (e2e)', () => {
             {
               position: 1,
               name: 'Kit Básico',
-              recommended: false,
-              systemPowerKwp: 4.0,
-              moduleQty: 8,
-              moduleDesc: 'Módulo 500W',
-              inverterDesc: 'Inversor 4kW',
               finalPrice: 18000,
+              isManualPrice: true,
             },
             {
               position: 2,
               name: 'Kit Recomendado',
-              recommended: true,
-              systemPowerKwp: 5.5,
-              moduleQty: 10,
-              moduleDesc: 'Módulo 550W TOPCon',
-              inverterDesc: 'Inversor 5kW Wi-Fi',
               finalPrice: 24000,
+              isManualPrice: true,
             },
             {
               position: 3,
               name: 'Kit Premium',
-              recommended: false,
-              systemPowerKwp: 7.0,
-              moduleQty: 14,
-              moduleDesc: 'Módulo 500W N-Type',
-              inverterDesc: 'Inversor 6kW Híbrido',
               finalPrice: 32000,
+              isManualPrice: true,
             },
           ],
           payment: {
@@ -1145,14 +1162,15 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(optionsRes.body[2].name).toBe('Kit Premium');
       expect(optionsRes.body[2].recommended).toBe(false);
 
-      // Geração proporcional calculada automaticamente sem inventar números
-      // fator = 650 / 5.0 = 130 kWh/kWp
-      // Kit Básico: 4.0 * 130 = 520 kWh
-      expect(Number(optionsRes.body[0].generationMonthlyKwh)).toBe(520);
-      // Kit Recomendado: 5.5 * 130 = 715 kWh
-      expect(Number(optionsRes.body[1].generationMonthlyKwh)).toBe(715);
-      // Kit Premium: 7.0 * 130 = 910 kWh
-      expect(Number(optionsRes.body[2].generationMonthlyKwh)).toBe(910);
+      // Geração calculada deterministicamente pelo servidor:
+      // Essencial (position 1): Math.round(3.85 * 130) = 501 kWh
+      expect(Number(optionsRes.body[0].generationMonthlyKwh)).toBe(501);
+      // Recomendado (position 2): Math.round(4.40 * 130) = 572 kWh
+      expect(Number(optionsRes.body[1].generationMonthlyKwh)).toBe(572);
+      // Expansão (position 3): Math.round(4.95 * 130) = 644 kWh
+      expect(Number(optionsRes.body[2].generationMonthlyKwh)).toBe(644);
+      // Sem estrutura definida: null
+      expect(optionsRes.body[0].structureDesc).toBeNull();
 
       // 6. Isolamento multi-tenant: Empresa B NÃO consegue consultar opções da proposta da Empresa A
       await http()
@@ -1222,6 +1240,147 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .auth(adminBToken, { type: 'bearer' })
         .send({})
         .expect(404);
+
+      // 9. Validações de payment e payment_defaults (Item 4)
+      await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ payment: { cashDiscountPct: 350 } })
+        .expect(400);
+
+      await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ payment: { card: { installments: 300 } } })
+        .expect(400);
+
+      await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ payment: { own: { downPaymentPct: 150 } } })
+        .expect(400);
+
+      await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ payment: { own: { installments: 80 } } })
+        .expect(400);
+
+      await http()
+        .post(`/proposals/generate/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          payment: {
+            finance: Array.from({ length: 11 }, (_, i) => ({
+              n: (i + 1) * 6,
+              totalMarkupPct: 10,
+            })),
+          },
+        })
+        .expect(400);
+
+      await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({ paymentDefaults: { cashDiscountPct: 350 } })
+        .expect(400);
+
+      await http()
+        .patch('/proposal-settings')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          paymentDefaults: {
+            finance: Array.from({ length: 11 }, (_, i) => ({
+              n: (i + 1) * 6,
+              totalMarkupPct: 10,
+            })),
+          },
+        })
+        .expect(400);
+
+      // 10. Validação de PUT /proposals/:id/options { options: [...] } e imageUrl (Itens 4, 5 e 6)
+      await http()
+        .put(`/proposals/${proposal.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [
+            { name: 'O1' },
+            { name: 'O2' },
+            { name: 'O3' },
+            { name: 'O4' },
+          ],
+        })
+        .expect(400);
+
+      await http()
+        .put(`/proposals/${proposal.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [
+            { name: 'Kit', imageUrl: 'https://attacker.com/evil.png' },
+          ],
+        })
+        .expect(400);
+
+      await http()
+        .put(`/proposals/${proposal.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [
+            {
+              name: 'Kit',
+              imageUrl:
+                'https://vwyywxckjusuogwkpjjs.supabase.co/storage/v1/object/public/logos/proposals/other-company-uuid/kit.png',
+            },
+          ],
+        })
+        .expect(400);
+
+      // Carga futura com id inexistente no catálogo -> 400
+      await http()
+        .put(`/proposals/${proposal.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [{ name: 'Kit Expansão' }],
+          futureLoads: [{ id: 'carga_fantasma', quantity: 1, hoursPerDay: 4 }],
+        })
+        .expect(400);
+
+      // Carga futura com quantidade > 20 -> 400
+      await http()
+        .put(`/proposals/${proposal.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [{ name: 'Kit Expansão' }],
+          futureLoads: [{ id: 'ac_inv_12000', quantity: 25, hoursPerDay: 4 }],
+        })
+        .expect(400);
+
+      // URL válida do bucket da própria empresa atualiza as opções com transação atômica (Item 5 e 6)
+      const validCompanyUrl = `https://vwyywxckjusuogwkpjjs.supabase.co/storage/v1/object/public/logos/proposals/${COMPANY_A}/kit-op1.png`;
+      const updateRes = await http()
+        .put(`/proposals/${proposal.id}/options`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          options: [
+            {
+              position: 1,
+              name: 'Kit Atualizado',
+              isManualPrice: true,
+              finalPrice: 21500,
+              imageUrl: validCompanyUrl,
+            },
+          ],
+        })
+        .expect(200);
+
+      expect(updateRes.body).toHaveLength(1);
+      expect(updateRes.body[0].name).toBe('Kit Atualizado');
+      expect(updateRes.body[0].finalPrice).toBe(21500);
+      expect(updateRes.body[0].isManualPrice).toBe(true);
+      expect(updateRes.body[0].imageUrl).toBe(validCompanyUrl);
+      // Sem estrutura definida: null
+      expect(updateRes.body[0].structureDesc).toBeNull();
     });
   });
 });

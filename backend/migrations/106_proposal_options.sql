@@ -104,9 +104,41 @@ SELECT
   'Sistema dimensionado conforme consumo' AS scenario_text,
   COALESCE(p.system_power_kwp, 0) AS system_power_kwp,
   COALESCE(p.module_qty, 0) AS module_qty,
-  NULL AS module_desc,
-  NULL AS inverter_desc,
-  'Estrutura de fixação completa em alumínio' AS structure_desc,
+  (
+    SELECT NULLIF(TRIM(CONCAT(
+      COALESCE(sp.equipment_modules->0->>'brand', ''),
+      ' ',
+      COALESCE(sp.equipment_modules->0->>'model', ''),
+      ' ',
+      CASE
+        WHEN sp.equipment_modules->0->>'power' IS NOT NULL AND sp.equipment_modules->0->>'power' != ''
+        THEN CONCAT(sp.equipment_modules->0->>'power', 'W')
+        ELSE ''
+      END
+    )), '')
+    FROM solar_project sp
+    WHERE sp.id = p.solar_project_id
+      AND jsonb_array_length(COALESCE(sp.equipment_modules, '[]'::jsonb)) > 0
+  ) AS module_desc,
+  (
+    SELECT NULLIF(TRIM(CONCAT(
+      COALESCE(sp.equipment_inverters->0->>'brand', ''),
+      ' ',
+      COALESCE(sp.equipment_inverters->0->>'model', ''),
+      ' ',
+      CASE
+        WHEN sp.equipment_inverters->0->>'powerKw' IS NOT NULL AND sp.equipment_inverters->0->>'powerKw' != ''
+        THEN CONCAT(sp.equipment_inverters->0->>'powerKw', 'kW')
+        WHEN sp.equipment_inverters->0->>'power' IS NOT NULL AND sp.equipment_inverters->0->>'power' != ''
+        THEN CONCAT(sp.equipment_inverters->0->>'power', 'kW')
+        ELSE ''
+      END
+    )), '')
+    FROM solar_project sp
+    WHERE sp.id = p.solar_project_id
+      AND jsonb_array_length(COALESCE(sp.equipment_inverters, '[]'::jsonb)) > 0
+  ) AS inverter_desc,
+  NULL AS structure_desc,
   (
     SELECT sp.sizing_generation_kwh
     FROM solar_project sp

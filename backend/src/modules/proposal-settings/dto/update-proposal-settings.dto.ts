@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsInt,
   IsNumber,
   IsObject,
   IsOptional,
@@ -144,35 +145,61 @@ export class ProposalSectionsEnabledDto {
 
 export class ProposalPaymentCardDto {
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @Min(1)
+  @Max(240)
   installments?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(300)
   totalMarkupPct?: number;
 }
 
 export class ProposalPaymentFinanceOptionDto {
-  @IsNumber()
+  @IsInt()
+  @Min(1)
+  @Max(240)
   n: number;
 
   @IsNumber()
+  @Min(0)
+  @Max(300)
   totalMarkupPct: number;
 }
 
 export class ProposalPaymentOwnPlanDto {
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(100)
   downPaymentPct?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(100)
+  entradaPct?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
   installments?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  boletos?: number;
 }
 
 export class ProposalPaymentDefaultsDto {
   @IsOptional()
   @IsNumber()
+  @Min(0)
+  @Max(300)
   cashDiscountPct?: number;
 
   @IsOptional()
@@ -183,6 +210,7 @@ export class ProposalPaymentDefaultsDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(10)
   @ValidateNested({ each: true })
   @Type(() => ProposalPaymentFinanceOptionDto)
   finance?: ProposalPaymentFinanceOptionDto[];

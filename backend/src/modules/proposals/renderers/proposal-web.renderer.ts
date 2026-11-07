@@ -130,6 +130,21 @@ export class ProposalWebRenderer implements ProposalRenderer {
       own: proposalPayment?.own ?? companyPaymentDefaults?.own ?? undefined,
     };
 
+    let fallbackModuleName: string | undefined;
+    let fallbackInverterName: string | undefined;
+    if (pd.equipmentModules?.length) {
+      const m = pd.equipmentModules[0];
+      fallbackModuleName =
+        `${m.brand || ''} ${m.model || ''} ${m.power ? m.power + 'W' : ''}`.trim() ||
+        undefined;
+    }
+    if (pd.equipmentInverters?.length) {
+      const inv = pd.equipmentInverters[0];
+      fallbackInverterName =
+        `${inv.brand || ''} ${inv.model || ''} ${inv.powerKw ? inv.powerKw + 'kW' : inv.power ? inv.power + 'kW' : ''}`.trim() ||
+        undefined;
+    }
+
     const optionsList = Array.isArray(proposal.options)
       ? proposal.options
           .slice()
@@ -154,9 +169,13 @@ export class ProposalWebRenderer implements ProposalRenderer {
               targetConsumptionKwh: opt.targetConsumptionKwh,
               systemPowerKwp: Number(opt.systemPowerKwp || 0),
               moduleQty: Number(opt.moduleQty || 0),
-              moduleDesc: opt.moduleDesc,
-              inverterDesc: opt.inverterDesc,
-              structureDesc: opt.structureDesc,
+              moduleDesc:
+                opt.moduleDesc ||
+                (opt.position === 1 ? fallbackModuleName : undefined),
+              inverterDesc:
+                opt.inverterDesc ||
+                (opt.position === 1 ? fallbackInverterName : undefined),
+              structureDesc: opt.structureDesc || null,
               generationMonthlyKwh: optGen,
               finalPrice: optPrice,
               imageUrl: opt.imageUrl,
