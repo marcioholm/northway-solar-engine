@@ -72,4 +72,4 @@ Mostre estes valores ao lado de cada campo de upload e mantenha o aviso no naveg
 - **Cores só em variáveis CSS.** Todas as cores do layout vêm de `--sec`, `--pri`, `--on-sec` e `--on-pri`, definidas uma única vez a partir de `proposal_settings`. Isso inclui o mapa, que usa `style="fill:var(--sec)"`. Não pode haver cor de empresa escrita direto no layout.
 - **Cores padrão de empresa nova.** Use cores neutras, **nunca** as de algum cliente.
 - **Pré-visualização das cores.** `referencia/demo-cores.html` mostra a troca ao vivo e o aviso de contraste. A tela de Configurações deve funcionar assim: o seletor de cor atualiza a pré-visualização na hora.
-- **Imagem padrão do kit.** Sem `kitImageUrl`, use a ilustração `kitArt()` (painel e inversor desenhados em SVG, com a cor da empresa). O kit nunca fica sem imagem.
+- **Imagem padrão do kit.** Sem imagem própria, usa a imagem 3D padrão (kit-art.data.ts) com a legenda 'Imagem ilustrativa'. O kit nunca fica sem imagem.
