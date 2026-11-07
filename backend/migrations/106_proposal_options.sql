@@ -1,10 +1,23 @@
--- Migration 106: Opções de Kit por Proposta Comercial (proposal_options) e Padrões de Pagamento
+-- Migration 106: Opções de Kit por Proposta Comercial (proposal_options) e Padrões de Pagamento/Cenários
 -- Idempotente. NÃO aplicar em produção manualmente (apenas em northway_test nos testes).
 
--- 1. Padrões de pagamento em proposal_settings
+-- 1. Padrões de pagamento, cargas futuras e regras de dimensionamento em proposal_settings
 ALTER TABLE proposal_settings ADD COLUMN IF NOT EXISTS payment_defaults JSONB NOT NULL DEFAULT '{}'::jsonb;
 
--- 2. Tabela de opções de kit por proposta
+ALTER TABLE proposal_settings ADD COLUMN IF NOT EXISTS sizing_rules JSONB NOT NULL DEFAULT '{"folgaPct": 10, "expansaoPct": 25}'::jsonb;
+
+ALTER TABLE proposal_settings ADD COLUMN IF NOT EXISTS future_loads JSONB NOT NULL DEFAULT '[
+  {"id":"ac_inv_9000","name":"Ar-condicionado inverter 9.000 BTU","category":"Climatização","powerKw":0.50,"defaultHoursPerDay":8,"defaultDaysPerMonth":30},
+  {"id":"ac_inv_12000","name":"Ar-condicionado inverter 12.000 BTU","category":"Climatização","powerKw":0.65,"defaultHoursPerDay":8,"defaultDaysPerMonth":30},
+  {"id":"ac_inv_18000","name":"Ar-condicionado inverter 18.000 BTU","category":"Climatização","powerKw":1.00,"defaultHoursPerDay":8,"defaultDaysPerMonth":30},
+  {"id":"ac_inv_24000","name":"Ar-condicionado inverter 24.000 BTU","category":"Climatização","powerKw":1.30,"defaultHoursPerDay":8,"defaultDaysPerMonth":30},
+  {"id":"ac_conv_12000","name":"Ar-condicionado convencional 12.000 BTU","category":"Climatização","powerKw":1.10,"defaultHoursPerDay":8,"defaultDaysPerMonth":30},
+  {"id":"carro_eletrico","name":"Carro elétrico","category":"Mobilidade","fixedKwh":180,"defaultHoursPerDay":0,"defaultDaysPerMonth":30},
+  {"id":"chuveiro_5500","name":"Chuveiro elétrico 5,5 kW","category":"Eletrodomésticos","powerKw":5.50,"defaultHoursPerDay":0.5,"defaultDaysPerMonth":30},
+  {"id":"bomba_piscina_750","name":"Bomba de piscina 0,75 kW","category":"Lazer","powerKw":0.75,"defaultHoursPerDay":6,"defaultDaysPerMonth":30}
+]'::jsonb;
+
+-- 2. Tabela de opções de kit / cenários por proposta
 CREATE TABLE IF NOT EXISTS proposal_options (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   proposal_id UUID NOT NULL REFERENCES proposals(id) ON DELETE CASCADE,
@@ -12,6 +25,11 @@ CREATE TABLE IF NOT EXISTS proposal_options (
   position INT NOT NULL CHECK (position >= 1 AND position <= 3),
   name VARCHAR(100) NOT NULL DEFAULT 'Kit 1',
   recommended BOOLEAN NOT NULL DEFAULT false,
+  scenario_type VARCHAR(30),
+  scenario_text TEXT,
+  is_manual_price BOOLEAN NOT NULL DEFAULT false,
+  target_consumption_kwh NUMERIC(10,2),
+  future_loads JSONB DEFAULT '[]'::jsonb,
   system_power_kwp NUMERIC(8,2) NOT NULL DEFAULT 0,
   module_qty INT NOT NULL DEFAULT 0,
   module_desc TEXT,
@@ -23,6 +41,13 @@ CREATE TABLE IF NOT EXISTS proposal_options (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Adiciona colunas se a tabela já existia sem elas
+ALTER TABLE proposal_options ADD COLUMN IF NOT EXISTS scenario_type VARCHAR(30);
+ALTER TABLE proposal_options ADD COLUMN IF NOT EXISTS scenario_text TEXT;
+ALTER TABLE proposal_options ADD COLUMN IF NOT EXISTS is_manual_price BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE proposal_options ADD COLUMN IF NOT EXISTS target_consumption_kwh NUMERIC(10,2);
+ALTER TABLE proposal_options ADD COLUMN IF NOT EXISTS future_loads JSONB DEFAULT '[]'::jsonb;
 
 -- Índices e constraints
 CREATE UNIQUE INDEX IF NOT EXISTS idx_proposal_options_proposal_position
@@ -57,6 +82,8 @@ INSERT INTO proposal_options (
   position,
   name,
   recommended,
+  scenario_type,
+  scenario_text,
   system_power_kwp,
   module_qty,
   module_desc,
@@ -73,6 +100,8 @@ SELECT
   1 AS position,
   'Sistema Proposto' AS name,
   true AS recommended,
+  'recommended' AS scenario_type,
+  'Sistema dimensionado conforme consumo' AS scenario_text,
   COALESCE(p.system_power_kwp, 0) AS system_power_kwp,
   COALESCE(p.module_qty, 0) AS module_qty,
   NULL AS module_desc,

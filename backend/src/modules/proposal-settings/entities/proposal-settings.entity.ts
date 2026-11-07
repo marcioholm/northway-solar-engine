@@ -19,6 +19,37 @@ export interface ProposalContact {
   whatsapp?: string;
 }
 
+export interface FutureLoadCatalogItem {
+  id: string;
+  name: string;
+  category?: string;
+  powerKw?: number;
+  fixedKwh?: number;
+  defaultHoursPerDay?: number;
+  defaultDaysPerMonth?: number;
+}
+
+export interface ProposalSizingRules {
+  folgaPct: number;
+  expansaoPct: number;
+}
+
+export const DEFAULT_SIZING_RULES: ProposalSizingRules = {
+  folgaPct: 10,
+  expansaoPct: 25,
+};
+
+export const DEFAULT_FUTURE_LOADS: FutureLoadCatalogItem[] = [
+  { id: 'ac_inv_9000', name: 'Ar-condicionado inverter 9.000 BTU', category: 'Climatização', powerKw: 0.50, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+  { id: 'ac_inv_12000', name: 'Ar-condicionado inverter 12.000 BTU', category: 'Climatização', powerKw: 0.65, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+  { id: 'ac_inv_18000', name: 'Ar-condicionado inverter 18.000 BTU', category: 'Climatização', powerKw: 1.00, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+  { id: 'ac_inv_24000', name: 'Ar-condicionado inverter 24.000 BTU', category: 'Climatização', powerKw: 1.30, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+  { id: 'ac_conv_12000', name: 'Ar-condicionado convencional 12.000 BTU', category: 'Climatização', powerKw: 1.10, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+  { id: 'carro_eletrico', name: 'Carro elétrico', category: 'Mobilidade', fixedKwh: 180, defaultHoursPerDay: 0, defaultDaysPerMonth: 30 },
+  { id: 'chuveiro_5500', name: 'Chuveiro elétrico 5,5 kW', category: 'Eletrodomésticos', powerKw: 5.50, defaultHoursPerDay: 0.5, defaultDaysPerMonth: 30 },
+  { id: 'bomba_piscina_750', name: 'Bomba de piscina 0,75 kW', category: 'Lazer', powerKw: 0.75, defaultHoursPerDay: 6, defaultDaysPerMonth: 30 },
+];
+
 export interface ProposalSectionsEnabled {
   cover?: boolean;
   about?: boolean;
@@ -161,6 +192,12 @@ export class ProposalSettings {
 
   @Column({ name: 'payment_defaults', type: 'jsonb', default: () => "'{}'" })
   paymentDefaults: ProposalPaymentDefaults;
+
+  @Column({ name: 'sizing_rules', type: 'jsonb', default: () => "'{\"folgaPct\": 10, \"expansaoPct\": 25}'" })
+  sizingRules: ProposalSizingRules;
+
+  @Column({ name: 'future_loads', type: 'jsonb', default: () => "'[]'" })
+  futureLoads: FutureLoadCatalogItem[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

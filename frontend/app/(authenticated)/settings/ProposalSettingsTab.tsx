@@ -20,6 +20,8 @@ import {
   QrCodeIcon,
   WrenchScrewdriverIcon,
   CreditCardIcon,
+  BoltIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';
 
 const BRAZIL_UFS = [
@@ -114,6 +116,11 @@ interface ProposalSettingsData {
     contact?: boolean;
   };
   paymentDefaults?: ProposalPaymentDefaults;
+  sizingRules?: {
+    folgaPct?: number;
+    expansaoPct?: number;
+  };
+  futureLoads?: any[];
 }
 
 const DEFAULT_SETTINGS: ProposalSettingsData = {
@@ -178,6 +185,20 @@ const DEFAULT_SETTINGS: ProposalSettingsData = {
     ],
     own: { downPaymentPct: 30, installments: 6 },
   },
+  sizingRules: {
+    folgaPct: 10,
+    expansaoPct: 25,
+  },
+  futureLoads: [
+    { id: 'ac_inv_9000', name: 'Ar-condicionado inverter 9.000 BTU', category: 'Climatização', powerKw: 0.50, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_inv_12000', name: 'Ar-condicionado inverter 12.000 BTU', category: 'Climatização', powerKw: 0.65, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_inv_18000', name: 'Ar-condicionado inverter 18.000 BTU', category: 'Climatização', powerKw: 1.00, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_inv_24000', name: 'Ar-condicionado inverter 24.000 BTU', category: 'Climatização', powerKw: 1.30, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'ac_conv_12000', name: 'Ar-condicionado convencional 12.000 BTU', category: 'Climatização', powerKw: 1.10, defaultHoursPerDay: 8, defaultDaysPerMonth: 30 },
+    { id: 'carro_eletrico', name: 'Carro elétrico', category: 'Mobilidade', fixedKwh: 180, defaultHoursPerDay: 0, defaultDaysPerMonth: 30 },
+    { id: 'chuveiro_5500', name: 'Chuveiro elétrico 5,5 kW', category: 'Eletrodomésticos', powerKw: 5.50, defaultHoursPerDay: 0.5, defaultDaysPerMonth: 30 },
+    { id: 'bomba_piscina_750', name: 'Bomba de piscina 0,75 kW', category: 'Lazer', powerKw: 0.75, defaultHoursPerDay: 6, defaultDaysPerMonth: 30 },
+  ],
 };
 
 const DEFAULT_QR_LABELS: Record<string, string> = {
@@ -1986,7 +2007,207 @@ export function ProposalSettingsTab() {
             </div>
           </SectionContainer>
 
-          {/* 14. Canais de Contato */}
+          {/* 14. Regras de Dimensionamento dos Cenários (Fase 2) */}
+          <SectionContainer icon={<AdjustmentsHorizontalIcon style={{ width: 20, height: 20 }} />} title="Regras de Dimensionamento dos Cenários de Consumo">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+              <div>
+                <label style={labelStyle}>Folga para Perda Natural (folgaPct)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={data.sizingRules?.folgaPct ?? 10}
+                    onChange={e => {
+                      const val = Math.min(30, Math.max(0, Number(e.target.value) || 0));
+                      setData(prev => ({
+                        ...prev,
+                        sizingRules: { ...prev.sizingRules, folgaPct: val },
+                      }));
+                    }}
+                    style={inputStyle}
+                  />
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>%</span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                  Painéis perdem cerca de 0,5–0,8% de potência por ano; 10% cobre aproximadamente os primeiros 10 anos.
+                </p>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Expansão Padrão sem Cargas (expansaoPct)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={data.sizingRules?.expansaoPct ?? 25}
+                    onChange={e => {
+                      const val = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                      setData(prev => ({
+                        ...prev,
+                        sizingRules: { ...prev.sizingRules, expansaoPct: val },
+                      }));
+                    }}
+                    style={inputStyle}
+                  />
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>%</span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.4 }}>
+                  Percentual de acréscimo estimado no consumo caso nenhuma carga específica seja selecionada no wizard.
+                </p>
+              </div>
+            </div>
+          </SectionContainer>
+
+          {/* 15. Catálogo de Cargas Futuras */}
+          <SectionContainer icon={<BoltIcon style={{ width: 20, height: 20 }} />} title="Catálogo de Cargas Futuras (Cenário Expansão)">
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: 14 }}>
+              Cadastre e gerencie as cargas elétricas disponíveis no wizard para simulação automática no Cenário Expansão.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(data.futureLoads || []).map((load: any, idx: number) => (
+                <div
+                  key={load.id || idx}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr 1fr 36px',
+                    gap: 10,
+                    alignItems: 'center',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius)',
+                    padding: '8px 12px',
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={load.name || ''}
+                    onChange={e => {
+                      const updated = [...(data.futureLoads || [])];
+                      updated[idx] = { ...updated[idx], name: e.target.value };
+                      setData(prev => ({ ...prev, futureLoads: updated }));
+                    }}
+                    style={inputStyle}
+                    placeholder="Nome da carga"
+                  />
+                  <div>
+                    {load.fixedKwh != null && load.fixedKwh > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          value={load.fixedKwh}
+                          onChange={e => {
+                            const updated = [...(data.futureLoads || [])];
+                            updated[idx] = { ...updated[idx], fixedKwh: Number(e.target.value) || 0 };
+                            setData(prev => ({ ...prev, futureLoads: updated }));
+                          }}
+                          style={inputStyle}
+                          placeholder="kWh/mês"
+                        />
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>kWh/mês</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          step="0.05"
+                          value={load.powerKw ?? ''}
+                          onChange={e => {
+                            const updated = [...(data.futureLoads || [])];
+                            updated[idx] = { ...updated[idx], powerKw: Number(e.target.value) || 0 };
+                            setData(prev => ({ ...prev, futureLoads: updated }));
+                          }}
+                          style={inputStyle}
+                          placeholder="Potência kW"
+                        />
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>kW</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    {load.fixedKwh != null && load.fixedKwh > 0 ? (
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Fixo</span>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={load.defaultHoursPerDay ?? 8}
+                          onChange={e => {
+                            const updated = [...(data.futureLoads || [])];
+                            updated[idx] = { ...updated[idx], defaultHoursPerDay: Number(e.target.value) || 0 };
+                            setData(prev => ({ ...prev, futureLoads: updated }));
+                          }}
+                          style={inputStyle}
+                          placeholder="h/dia"
+                        />
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>h/dia</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                    {load.category || 'Geral'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = (data.futureLoads || []).filter((_: any, i: number) => i !== idx);
+                      setData(prev => ({ ...prev, futureLoads: updated }));
+                    }}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--danger, #ef4444)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <TrashIcon style={{ width: 16, height: 16 }} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const newId = `carga_${Date.now()}`;
+                  const newItem = {
+                    id: newId,
+                    name: 'Nova carga futura',
+                    category: 'Geral',
+                    powerKw: 1.0,
+                    defaultHoursPerDay: 8,
+                    defaultDaysPerMonth: 30,
+                  };
+                  setData(prev => ({
+                    ...prev,
+                    futureLoads: [...(prev.futureLoads || []), newItem],
+                  }));
+                }}
+                style={{
+                  alignSelf: 'flex-start',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius)',
+                  border: '1px dashed var(--border)',
+                  background: 'transparent',
+                  color: 'var(--sec)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: 4,
+                }}
+              >
+                <PlusIcon style={{ width: 14, height: 14 }} /> Adicionar Carga ao Catálogo
+              </button>
+            </div>
+          </SectionContainer>
+
+          {/* 16. Canais de Contato */}
           <SectionContainer icon={<PhoneIcon style={{ width: 20, height: 20 }} />} title="Canais de Contato na Proposta">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>

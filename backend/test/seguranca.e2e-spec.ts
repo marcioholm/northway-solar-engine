@@ -1187,6 +1187,41 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(jsonStr).not.toContain('marginPct');
       expect(jsonStr).not.toContain('pricingProfit');
       expect(jsonStr).not.toContain('totalCost');
+
+      // 8. Cenários de consumo calculados pelo servidor via POST /proposals/scenarios/:projectId
+      const scRes = await http()
+        .post(`/proposals/scenarios/${projId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          futureLoads: [
+            {
+              id: 'ac_inv_12000',
+              name: 'Ar-condicionado inverter 12.000 BTU',
+              powerKw: 0.65,
+              hoursPerDay: 8,
+              daysPerMonth: 30,
+              quantity: 1, // 156 kWh
+            },
+          ],
+        })
+        .expect(201);
+
+      expect(scRes.body.scenarios).toHaveLength(3);
+      expect(scRes.body.scenarios[0].scenarioType).toBe('essential');
+      expect(scRes.body.scenarios[0].name).toBe('Essencial');
+      expect(scRes.body.scenarios[1].scenarioType).toBe('recommended');
+      expect(scRes.body.scenarios[1].name).toBe('Recomendado');
+      expect(scRes.body.scenarios[1].recommended).toBe(true);
+      expect(scRes.body.scenarios[2].scenarioType).toBe('expansion');
+      expect(scRes.body.scenarios[2].scenarioText).toContain('Prevê +156 kWh/mês');
+      expect(scRes.body.warnings.some((w: string) => w.includes('Confirme se o padrão de entrada'))).toBe(true);
+
+      // Isolamento de cenários: Empresa B não pode calcular cenários do projeto da Empresa A
+      await http()
+        .post(`/proposals/scenarios/${projId}`)
+        .auth(adminBToken, { type: 'bearer' })
+        .send({})
+        .expect(404);
     });
   });
 });

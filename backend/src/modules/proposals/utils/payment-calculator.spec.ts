@@ -101,3 +101,4 @@ describe('Payment & Proportional Generation Calculations', () => {
     });
   });
 });
+

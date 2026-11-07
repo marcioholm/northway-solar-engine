@@ -16,6 +16,7 @@ import type { Response } from 'express';
 import { ProposalsService } from './proposals.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import {
+  CalculateScenariosDto,
   GenerateProposalDto,
   ProposalOptionDto,
 } from './dto/proposal-option.dto';
@@ -51,6 +52,22 @@ export class ProposalsController {
       req.user.companyId,
       req.user.userId,
       dto,
+    );
+  }
+
+  @Post('scenarios/:projectId')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  calculateScenarios(
+    @Request() req,
+    @Param('projectId') projectId: string,
+    @Body() dto?: CalculateScenariosDto,
+  ) {
+    return this.proposalsService.calculateProjectScenarios(
+      projectId,
+      req.user.companyId,
+      dto?.futureLoads,
+      dto?.sizingRules,
     );
   }
 

@@ -23,6 +23,13 @@ import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
 import { LeadsService } from '../leads/leads.service';
 import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
+import { InventoryService } from '../inventory/inventory.service';
+import {
+  calculateScenarios,
+  normalizeSizingRules,
+  SelectedFutureLoad,
+  SizingRules,
+} from './utils/scenario-calculator';
 import { LeadStage } from '../leads/entities/lead.entity';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 import { PricingInputDto } from '../pricing-engine/dto/pricing-input.dto';
@@ -53,6 +60,7 @@ export class ProposalsService {
     private companiesService: CompaniesService,
     private leadsService: LeadsService,
     private proposalSettingsService: ProposalSettingsService,
+    private inventoryService: InventoryService,
   ) {}
 
   // ────────── TRACKING ──────────
@@ -319,80 +327,270 @@ export class ProposalsService {
         throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
       }
       const recCount = dto.options.filter((o) => o.recommended).length;
+      if (recCount === 0) {
+        throw new BadRequestException('Exatamente 1 opção deve ser marcada como recomendada');
+      }
       if (recCount > 1) {
         throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
       }
-      const optionsToSave = [...dto.options];
-      if (recCount === 0 && optionsToSave.length > 0) {
-        optionsToSave[0].recommended = true;
-      }
-
-      const savedOptions: ProposalOption[] = [];
-      for (let i = 0; i < optionsToSave.length; i++) {
-        const opt = optionsToSave[i];
-        const position = opt.position || i + 1;
-        const gen =
-          opt.generationMonthlyKwh !== undefined
-            ? opt.generationMonthlyKwh
-            : calculateProportionalGeneration(
-                opt.systemPowerKwp,
-                project.sizingPowerKwp,
-                project.sizingGenerationKwh,
-              );
-
-        const optEntity = this.proposalOptionsRepository.create({
-          proposalId: savedProposal.id,
-          companyId,
-          position,
-          name: opt.name || `Kit ${position}`,
-          recommended: Boolean(opt.recommended),
-          systemPowerKwp: Number(opt.systemPowerKwp || 0),
-          moduleQty: Number(opt.moduleQty || 0),
-          moduleDesc: opt.moduleDesc,
-          inverterDesc: opt.inverterDesc,
-          structureDesc:
-            opt.structureDesc || 'Estrutura de fixação completa em alumínio',
-          generationMonthlyKwh: gen,
-          finalPrice: Number(opt.finalPrice || 0),
-          imageUrl: opt.imageUrl,
-        });
-        savedOptions.push(await this.proposalOptionsRepository.save(optEntity));
-      }
-      savedProposal.options = savedOptions;
-    } else {
-      let moduleName = 'Módulos Fotovoltaicos';
-      let inverterName = 'Inversor Solar';
-      if (project.equipmentModules?.length) {
-        const m = project.equipmentModules[0];
-        moduleName = `${m.brand || ''} ${m.model || ''}`.trim() || moduleName;
-      }
-      if (project.equipmentInverters?.length) {
-        const inv = project.equipmentInverters[0];
-        inverterName = `${inv.brand || ''} ${inv.model || ''}`.trim() || inverterName;
-      }
-
-      const defaultOpt = this.proposalOptionsRepository.create({
-        proposalId: savedProposal.id,
-        companyId,
-        position: 1,
-        name: 'Kit 1',
-        recommended: true,
-        systemPowerKwp: project.sizingPowerKwp || 0,
-        moduleQty: project.sizingModuleQty || 0,
-        moduleDesc: moduleName,
-        inverterDesc: inverterName,
-        structureDesc: 'Estrutura de fixação completa em alumínio',
-        generationMonthlyKwh:
-          project.sizingGenerationKwh != null &&
-          Number(project.sizingGenerationKwh) > 0
-            ? Number(project.sizingGenerationKwh)
-            : null,
-        finalPrice: pricingResult.finalPrice,
-      });
-      savedProposal.options = [await this.proposalOptionsRepository.save(defaultOpt)];
     }
 
-    return savedProposal;
+    return await this.proposalsRepository.manager.transaction(async (manager) => {
+      const savedProposal = await manager.getRepository(Proposal).save(proposal);
+
+      if (dto?.options && dto.options.length > 0) {
+        const savedOptions: ProposalOption[] = [];
+        for (let i = 0; i < dto.options.length; i++) {
+          const opt = dto.options[i];
+          const position = opt.position || i + 1;
+          const gen =
+            opt.generationMonthlyKwh !== undefined
+              ? opt.generationMonthlyKwh
+              : calculateProportionalGeneration(
+                  opt.systemPowerKwp,
+                  project.sizingPowerKwp,
+                  project.sizingGenerationKwh,
+                );
+
+          const optEntity = manager.getRepository(ProposalOption).create({
+            proposalId: savedProposal.id,
+            companyId,
+            position,
+            name: opt.name || `Kit ${position}`,
+            recommended: Boolean(opt.recommended),
+            scenarioType: opt.scenarioType,
+            scenarioText: opt.scenarioText,
+            isManualPrice: Boolean(opt.isManualPrice),
+            targetConsumptionKwh: opt.targetConsumptionKwh,
+            futureLoads: opt.futureLoads || dto.futureLoads || [],
+            systemPowerKwp: Number(opt.systemPowerKwp || 0),
+            moduleQty: Number(opt.moduleQty || 0),
+            moduleDesc: opt.moduleDesc,
+            inverterDesc: opt.inverterDesc,
+            structureDesc:
+              opt.structureDesc || 'Estrutura de fixação completa em alumínio',
+            generationMonthlyKwh: gen,
+            finalPrice: Number(opt.finalPrice || 0),
+            imageUrl: opt.imageUrl,
+          });
+          savedOptions.push(await manager.getRepository(ProposalOption).save(optEntity));
+        }
+        savedProposal.options = savedOptions;
+      } else {
+        const hasSizing =
+          project.sizingPowerKwp != null &&
+          Number(project.sizingPowerKwp) > 0 &&
+          project.sizingGenerationKwh != null &&
+          Number(project.sizingGenerationKwh) > 0;
+
+        if (hasSizing) {
+          const calculated = await this.calculateProjectScenarios(
+            projectId,
+            companyId,
+            dto?.futureLoads,
+            dto?.sizingRules,
+          );
+
+          const savedOptions: ProposalOption[] = [];
+          for (const sc of calculated.scenarios) {
+            const optEntity = manager.getRepository(ProposalOption).create({
+              proposalId: savedProposal.id,
+              companyId,
+              position: sc.position,
+              name: sc.name,
+              recommended: sc.recommended,
+              scenarioType: sc.scenarioType,
+              scenarioText: sc.scenarioText,
+              isManualPrice: false,
+              targetConsumptionKwh: sc.targetConsumptionKwh,
+              futureLoads:
+                sc.scenarioType === 'expansion' ? dto?.futureLoads || [] : [],
+              systemPowerKwp: sc.systemPowerKwp,
+              moduleQty: sc.moduleQty,
+              moduleDesc: sc.moduleDesc,
+              inverterDesc: sc.inverterDesc,
+              structureDesc: sc.structureDesc,
+              generationMonthlyKwh: sc.generationMonthlyKwh,
+              finalPrice: sc.finalPrice,
+            });
+            savedOptions.push(await manager.getRepository(ProposalOption).save(optEntity));
+          }
+          savedProposal.options = savedOptions;
+        } else {
+          let moduleName = 'Módulos Fotovoltaicos';
+          let inverterName = 'Inversor Solar';
+          if (project.equipmentModules?.length) {
+            const m = project.equipmentModules[0];
+            moduleName = `${m.brand || ''} ${m.model || ''}`.trim() || moduleName;
+          }
+          if (project.equipmentInverters?.length) {
+            const inv = project.equipmentInverters[0];
+            inverterName = `${inv.brand || ''} ${inv.model || ''}`.trim() || inverterName;
+          }
+
+          const defaultOpt = manager.getRepository(ProposalOption).create({
+            proposalId: savedProposal.id,
+            companyId,
+            position: 1,
+            name: 'Kit 1',
+            recommended: true,
+            scenarioType: 'recommended',
+            scenarioText: 'Sistema dimensionado conforme consumo',
+            systemPowerKwp: project.sizingPowerKwp || 0,
+            moduleQty: project.sizingModuleQty || 0,
+            moduleDesc: moduleName,
+            inverterDesc: inverterName,
+            structureDesc: 'Estrutura de fixação completa em alumínio',
+            generationMonthlyKwh: null,
+            finalPrice: pricingResult.finalPrice,
+          });
+          savedProposal.options = [await manager.getRepository(ProposalOption).save(defaultOpt)];
+        }
+      }
+
+      return savedProposal;
+    });
+  }
+
+  async calculateProjectScenarios(
+    projectId: string,
+    companyId: string,
+    futureLoads?: SelectedFutureLoad[],
+    sizingRules?: Partial<SizingRules>,
+  ) {
+    const project = await this.solarProjectService.findOne(projectId, companyId);
+    if (!project) throw new NotFoundException('Projeto não encontrado');
+
+    if (
+      project.sizingPowerKwp == null ||
+      Number(project.sizingPowerKwp) <= 0 ||
+      project.sizingGenerationKwh == null ||
+      Number(project.sizingGenerationKwh) <= 0
+    ) {
+      throw new BadRequestException(
+        'Projeto sem dimensionamento. Realize o dimensionamento na etapa anterior para gerar os cenários.',
+      );
+    }
+
+    const settings = await this.proposalSettingsService.findByCompanyId(companyId);
+    const effectiveRules = normalizeSizingRules({
+      ...settings?.sizingRules,
+      ...sizingRules,
+    });
+
+    const modulePowerWatt =
+      project.equipmentModules?.[0]?.power ||
+      Math.round(((project.sizingPowerKwp || 0) * 1000) / (project.sizingModuleQty || 1)) ||
+      550;
+
+    const moduleUnitPrice =
+      project.equipmentModules?.[0]?.unitPrice ||
+      (project.pricingEquipmentCost && project.sizingModuleQty
+        ? (project.pricingEquipmentCost * 0.6) / project.sizingModuleQty
+        : 500);
+
+    const moduleDesc =
+      project.equipmentModules?.[0]?.model ||
+      (project.equipmentModules?.[0]?.brand
+        ? `${project.equipmentModules[0].brand} ${project.equipmentModules[0].model || ''}`.trim()
+        : 'Módulos Fotovoltaicos');
+
+    const inverters = await this.inventoryService.findAllInverters(companyId);
+
+    const basePricingInput = new PricingInputDto();
+    basePricingInput.costProject = project.pricingProjectCost || 0;
+    basePricingInput.costArt = project.pricingArtCost || 0;
+    basePricingInput.costInstallation =
+      project.pricingInstallationCost || project.pricingLaborCost || 0;
+    basePricingInput.costHotel = project.pricingHotelCost || 0;
+    basePricingInput.costFreight = project.pricingFreightCost || 0;
+    basePricingInput.costFood = project.pricingFoodCost || 0;
+    basePricingInput.costTravel = project.pricingTravelCost || 0;
+    basePricingInput.costToll = project.pricingTollCost || 0;
+    basePricingInput.costCommission = project.pricingCommission || 0;
+    basePricingInput.costCrane = project.pricingCraneCost || 0;
+    basePricingInput.costThirdParties = project.pricingThirdPartiesCost || 0;
+    basePricingInput.costAdmin = project.pricingAdminCost || 0;
+    basePricingInput.costTaxes = project.pricingTaxes || 0;
+    basePricingInput.costOther = project.pricingOtherCost || 0;
+    basePricingInput.marginPct = project.pricingMarginPct || 0;
+    basePricingInput.minMarginPct = project.pricingMinMarginPct || 15;
+    basePricingInput.recommendedMarginPct =
+      project.pricingRecommendedMarginPct || 25;
+    basePricingInput.commissionPct = project.pricingCommissionPct || 0;
+
+    const calcResult = calculateScenarios({
+      consumptionMonthlyKwh: project.consumptionMonthlyKwh || 0,
+      sizingPowerKwp: project.sizingPowerKwp,
+      sizingGenerationKwh: project.sizingGenerationKwh,
+      modulePowerWatt,
+      sizingRules: effectiveRules,
+      futureLoads,
+    });
+
+    const enrichedScenarios = calcResult.scenarios.map((sc) => {
+      let selectedInverter: any = undefined;
+      if (inverters && inverters.length > 0) {
+        const compatible = inverters.filter((inv) => {
+          const ratio = Number(inv.nominalPowerKw) / sc.systemPowerKwp;
+          return ratio >= 0.9 && ratio <= 1.25;
+        });
+        if (!compatible.length) {
+          const sorted = [...inverters].sort(
+            (a, b) =>
+              Math.abs(Number(a.nominalPowerKw) - sc.systemPowerKwp) -
+              Math.abs(Number(b.nominalPowerKw) - sc.systemPowerKwp),
+          );
+          compatible.push(sorted[0]);
+        }
+        compatible.sort((a, b) => Number(a.cost) - Number(b.cost));
+        selectedInverter = compatible[0];
+      }
+
+      let inverterDesc: string;
+      let inverterCost = 0;
+      if (selectedInverter) {
+        inverterDesc = `${selectedInverter.brand} ${selectedInverter.model || ''}`.trim();
+        inverterCost = Number(selectedInverter.cost) || 0;
+      } else if (project.equipmentInverters?.length) {
+        const inv = project.equipmentInverters[0];
+        inverterDesc =
+          `${inv.brand || ''} ${inv.model || ''}`.trim() ||
+          `Inversor Solar ${sc.systemPowerKwp.toFixed(1)} kW`;
+        inverterCost = Number(inv.unitPrice) || 0;
+      } else {
+        inverterDesc = `Inversor Solar ${sc.systemPowerKwp.toFixed(1)} kW`;
+        inverterCost = sc.systemPowerKwp * 800;
+      }
+
+      const costModules = sc.moduleQty * moduleUnitPrice;
+      const costStructure = sc.systemPowerKwp * 300;
+      const equipmentCost = costModules + inverterCost + costStructure;
+
+      const pricingInput = { ...basePricingInput, equipmentCost };
+      let finalPrice = 0;
+      try {
+        const pricingRes = this.pricingEngineService.calculate(pricingInput);
+        finalPrice = pricingRes.finalPrice;
+      } catch {
+        finalPrice = Math.round(equipmentCost * 1.35 * 100) / 100;
+      }
+
+      return {
+        ...sc,
+        moduleDesc,
+        inverterDesc,
+        structureDesc: 'Estrutura de fixação completa em alumínio',
+        calculatedPrice: finalPrice,
+        finalPrice,
+        isManualPrice: false,
+      };
+    });
+
+    return {
+      ...calcResult,
+      scenarios: enrichedScenarios,
+    };
   }
 
   async getOptions(
@@ -427,13 +625,13 @@ export class ProposalsService {
       throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
     }
     const recCount = options.filter((o) => o.recommended).length;
+    if (recCount === 0) {
+      throw new BadRequestException('Exatamente 1 opção deve ser marcada como recomendada');
+    }
     if (recCount > 1) {
       throw new BadRequestException('Apenas uma opção pode ser marcada como recomendada');
     }
     const optionsToSave = [...options];
-    if (recCount === 0) {
-      optionsToSave[0].recommended = true;
-    }
 
     // Remover opções existentes desta proposta
     await this.proposalOptionsRepository.delete({ proposalId, companyId });
@@ -448,6 +646,11 @@ export class ProposalsService {
         position,
         name: opt.name || `Kit ${position}`,
         recommended: Boolean(opt.recommended),
+        scenarioType: opt.scenarioType,
+        scenarioText: opt.scenarioText,
+        isManualPrice: Boolean(opt.isManualPrice),
+        targetConsumptionKwh: opt.targetConsumptionKwh,
+        futureLoads: opt.futureLoads || [],
         systemPowerKwp: Number(opt.systemPowerKwp || 0),
         moduleQty: Number(opt.moduleQty || 0),
         moduleDesc: opt.moduleDesc,

@@ -33,6 +33,32 @@ export class ProposalOption {
   @Column({ type: 'boolean', default: false })
   recommended: boolean;
 
+  @Column({ name: 'scenario_type', length: 30, nullable: true })
+  scenarioType?: string;
+
+  @Column({ name: 'scenario_text', type: 'text', nullable: true })
+  scenarioText?: string;
+
+  @Column({ name: 'is_manual_price', type: 'boolean', default: false })
+  isManualPrice: boolean;
+
+  @Column({
+    name: 'target_consumption_kwh',
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value?: number | null) => (value != null ? value : null),
+      from: (value: string | number | null) =>
+        value != null && value !== '' ? Number(value) : null,
+    },
+  })
+  targetConsumptionKwh?: number | null;
+
+  @Column({ name: 'future_loads', type: 'jsonb', default: () => "'[]'" })
+  futureLoads: any[];
+
   @Column({
     name: 'system_power_kwp',
     type: 'numeric',
@@ -94,3 +120,4 @@ export class ProposalOption {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
+

@@ -131,3 +131,4 @@ export function calculateProportionalGeneration(
   const factor = projectSizingGenerationKwh / projectSizingPowerKwp;
   return Math.round(systemPowerKwp * factor);
 }
+

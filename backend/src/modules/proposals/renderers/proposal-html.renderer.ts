@@ -5,6 +5,7 @@ import {
 } from './proposal-renderer.interface';
 import { commercialTemplate } from '../templates/commercial.template';
 import { calculateOptionPayment } from '../utils/payment-calculator';
+import { formatLoadsFootnote } from '../utils/scenario-calculator';
 
 export class ProposalHtmlRenderer implements ProposalRenderer {
   readonly name = 'html';
@@ -242,6 +243,10 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
               id: opt.id,
               name: opt.name,
               recommended: Boolean(opt.recommended),
+              scenarioType: opt.scenarioType,
+              scenarioText: opt.scenarioText,
+              isManualPrice: Boolean(opt.isManualPrice),
+              targetConsumptionKwh: opt.targetConsumptionKwh,
               systemPowerKwp: Number(opt.systemPowerKwp || 0),
               moduleQty: Number(opt.moduleQty || 0),
               module: opt.moduleDesc,
@@ -254,11 +259,23 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
               monthlySavings,
               paybackYears: optPayback,
               payment: optPayment,
+              futureLoads: (opt as any).futureLoads,
             };
           })
       : undefined;
 
+    let footnote: string | undefined = undefined;
+    if (templateOptions && templateOptions.length > 0) {
+      const expOpt = templateOptions.find(
+        (o) => (o as any).scenarioType === 'expansion' || (o as any).futureLoads?.length > 0,
+      );
+      if (expOpt && (expOpt as any).futureLoads?.length > 0) {
+        footnote = formatLoadsFootnote((expOpt as any).futureLoads);
+      }
+    }
+
     const html = await commercialTemplate({
+      footnote,
       clientName: proposal.clientName,
       clientCity: proposal.clientCity,
       clientState: projectData.clientState,

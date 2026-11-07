@@ -20,6 +20,7 @@ import { PricingEngineService } from '../pricing-engine/pricing-engine.service';
 import { CompaniesService } from '../companies/companies.service';
 import { LeadsService } from '../leads/leads.service';
 import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 describe('ProposalsService (equipamentos e cotações)', () => {
   let service: ProposalsService;
@@ -31,6 +32,18 @@ describe('ProposalsService (equipamentos e cotações)', () => {
       findOne: jest.fn(),
       save: jest.fn().mockImplementation((p) => Promise.resolve({ id: 'p1', ...p })),
       create: jest.fn().mockImplementation((p) => p),
+      manager: {
+        transaction: jest.fn(async (cb) =>
+          cb({
+            getRepository: (entity: any) => {
+              if (entity === ProposalOption || entity?.name === 'ProposalOption') {
+                return mockOptionsRepo;
+              }
+              return mockProposalsRepo;
+            },
+          }),
+        ),
+      },
     };
 
     mockOptionsRepo = {
@@ -101,6 +114,12 @@ describe('ProposalsService (equipamentos e cotações)', () => {
                 contact: true,
               },
             }),
+          },
+        },
+        {
+          provide: InventoryService,
+          useValue: {
+            findAllInverters: jest.fn().mockResolvedValue([]),
           },
         },
       ],

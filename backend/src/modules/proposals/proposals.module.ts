@@ -11,6 +11,7 @@ import { PricingEngineModule } from '../pricing-engine/pricing-engine.module';
 import { CompaniesModule } from '../companies/companies.module';
 import { LeadsModule } from '../leads/leads.module';
 import { ProposalSettingsModule } from '../proposal-settings/proposal-settings.module';
+import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ProposalSettingsModule } from '../proposal-settings/proposal-settings.m
     CompaniesModule,
     LeadsModule,
     ProposalSettingsModule,
+    InventoryModule,
   ],
   controllers: [ProposalsController],
   providers: [ProposalsService],

@@ -10,6 +10,8 @@ import {
   MaxLength,
   ArrayMaxSize,
   ValidateNested,
+  Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -192,6 +194,48 @@ export class ProposalPaymentDefaultsDto {
   own?: ProposalPaymentOwnPlanDto;
 }
 
+export class ProposalSizingRulesDto {
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(30)
+  folgaPct?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  expansaoPct?: number;
+}
+
+export class FutureLoadCatalogItemDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsNumber()
+  powerKw?: number;
+
+  @IsOptional()
+  @IsNumber()
+  fixedKwh?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultHoursPerDay?: number;
+
+  @IsOptional()
+  @IsNumber()
+  defaultDaysPerMonth?: number;
+}
+
 export class UpdateProposalSettingsDto {
   @IsOptional()
   @IsIn(['classico', 'moderno', 'minimalista'], {
@@ -328,4 +372,16 @@ export class UpdateProposalSettingsDto {
   @ValidateNested()
   @Type(() => ProposalPaymentDefaultsDto)
   paymentDefaults?: ProposalPaymentDefaultsDto;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => ProposalSizingRulesDto)
+  sizingRules?: ProposalSizingRulesDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FutureLoadCatalogItemDto)
+  futureLoads?: FutureLoadCatalogItemDto[];
 }

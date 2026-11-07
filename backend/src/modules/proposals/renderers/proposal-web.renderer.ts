@@ -148,6 +148,10 @@ export class ProposalWebRenderer implements ProposalRenderer {
               position: opt.position,
               name: opt.name,
               recommended: Boolean(opt.recommended),
+              scenarioType: opt.scenarioType,
+              scenarioText: opt.scenarioText,
+              isManualPrice: Boolean(opt.isManualPrice),
+              targetConsumptionKwh: opt.targetConsumptionKwh,
               systemPowerKwp: Number(opt.systemPowerKwp || 0),
               moduleQty: Number(opt.moduleQty || 0),
               moduleDesc: opt.moduleDesc,
@@ -157,6 +161,7 @@ export class ProposalWebRenderer implements ProposalRenderer {
               finalPrice: optPrice,
               imageUrl: opt.imageUrl,
               payment: optPayment,
+              futureLoads: (opt as any).futureLoads,
             };
           })
       : [];

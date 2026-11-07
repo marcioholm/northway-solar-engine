@@ -12,6 +12,34 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+export class SelectedFutureLoadDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsNumber()
+  powerKw?: number;
+
+  @IsOptional()
+  @IsNumber()
+  fixedKwh?: number;
+
+  @IsOptional()
+  @IsNumber()
+  hoursPerDay?: number;
+
+  @IsOptional()
+  @IsNumber()
+  daysPerMonth?: number;
+
+  @IsInt()
+  @Min(1)
+  quantity: number;
+}
+
 export class ProposalOptionDto {
   @IsOptional()
   @IsString()
@@ -27,6 +55,26 @@ export class ProposalOptionDto {
 
   @IsBoolean()
   recommended: boolean;
+
+  @IsOptional()
+  @IsString()
+  scenarioType?: string;
+
+  @IsOptional()
+  @IsString()
+  scenarioText?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isManualPrice?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  targetConsumptionKwh?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  futureLoads?: any[];
 
   @IsNumber()
   systemPowerKwp: number;
@@ -75,4 +123,26 @@ export class GenerateProposalDto {
   @IsOptional()
   @IsObject()
   payment?: ProposalPaymentCustomDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedFutureLoadDto)
+  futureLoads?: SelectedFutureLoadDto[];
+
+  @IsOptional()
+  @IsObject()
+  sizingRules?: Record<string, any>;
+}
+
+export class CalculateScenariosDto {
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SelectedFutureLoadDto)
+  futureLoads?: SelectedFutureLoadDto[];
+
+  @IsOptional()
+  @IsObject()
+  sizingRules?: Record<string, any>;
 }
