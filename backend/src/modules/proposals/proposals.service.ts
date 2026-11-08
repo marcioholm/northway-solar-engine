@@ -4,6 +4,8 @@ import {
 } from './renderers/public-proposal.view';
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -34,6 +36,7 @@ import {
   normalizeSizingRules,
   SelectedFutureLoad,
   SizingRules,
+  validateAndEnrichFutureLoads,
 } from './utils/scenario-calculator';
 import { LeadStage } from '../leads/entities/lead.entity';
 import { CreateProposalDto } from './dto/create-proposal.dto';
@@ -77,7 +80,7 @@ export class ProposalsService {
     private inventoryService: InventoryService,
     @Optional() private supabaseService?: SupabaseService,
     @Optional() private configService?: ConfigService,
-  ) {}
+  ) { }
 
   // ────────── TRACKING ──────────
 
@@ -91,6 +94,39 @@ export class ProposalsService {
   isExpired(proposal: Proposal): boolean {
     if (!proposal.expiresAt) return false;
     return new Date(proposal.expiresAt).getTime() < Date.now();
+  }
+
+  async getExpiredException(proposal: Proposal): Promise<HttpException> {
+    const companyName =
+      proposal.companySnapshot?.name ||
+      (proposal.companyId
+        ? (await this.companiesService.findOne(proposal.companyId))?.name
+        : 'Empresa');
+    const settings =
+      (proposal.settingsSnapshot as ProposalSettings) ||
+      (proposal.companyId
+        ? await this.proposalSettingsService.findByCompanyId(proposal.companyId)
+        : null);
+    const whatsapp = settings?.contact?.whatsapp || '';
+    const formattedDate = proposal.expiresAt
+      ? new Date(proposal.expiresAt).toLocaleDateString('pt-BR')
+      : '';
+    return new HttpException(
+      {
+        statusCode: HttpStatus.GONE,
+        message: `Esta proposta expirou${formattedDate ? ' em ' + formattedDate : ''}. Entre em contato para uma versão atualizada.`,
+        expired: true,
+        companyName,
+        whatsapp,
+      },
+      HttpStatus.GONE,
+    );
+  }
+
+  async assertNotExpired(proposal: Proposal): Promise<void> {
+    if (this.isExpired(proposal)) {
+      throw await this.getExpiredException(proposal);
+    }
   }
 
   async getPublicView(proposal: Proposal): Promise<PublicProposalView> {
@@ -182,9 +218,20 @@ export class ProposalsService {
           : data.proposal.createdAt instanceof Date
             ? data.proposal.createdAt.toISOString()
             : '';
+      const stage = data.proposal.stage || '';
+      const expiresAt = data.proposal.expiresAt
+        ? new Date(data.proposal.expiresAt).toISOString()
+        : '';
+      const optionsHash = (data.proposal.options || [])
+        .map(
+          (o) =>
+            `${o.id || o.position}:${o.finalPrice}:${o.name}:${o.imageUrl || ''}:${o.systemPowerKwp}:${o.isManualPrice}`,
+        )
+        .join('|');
+      const hashInput = `${updatedAtStr}-${stage}-${expiresAt}-${optionsHash}-${TEMPLATE_VERSION}`;
       const key = crypto
         .createHash('sha256')
-        .update(`${updatedAtStr}-${TEMPLATE_VERSION}`)
+        .update(hashInput)
         .digest('hex')
         .slice(0, 16);
       const cachePath = `${companyId}/${proposalId}-${key}.pdf`;
@@ -291,6 +338,17 @@ export class ProposalsService {
     const settings = await this.proposalSettingsService.findByCompanyId(companyId);
 
     const companyPaymentDefaults = settings?.paymentDefaults;
+    const cardInstallments =
+      project.paymentCardInstallments != null &&
+      Number(project.paymentCardInstallments) > 0
+        ? Number(project.paymentCardInstallments)
+        : undefined;
+    const financeInstallments =
+      project.paymentFinanceInstallments != null &&
+      Number(project.paymentFinanceInstallments) > 0
+        ? Number(project.paymentFinanceInstallments)
+        : undefined;
+
     const resolvedPaymentConfig = {
       cashDiscountPct:
         dto?.payment?.cashDiscountPct ??
@@ -301,14 +359,14 @@ export class ProposalsService {
       card:
         dto?.payment?.card ??
         companyPaymentDefaults?.card ??
-        (company?.cardTax != null
-          ? { installments: 12, totalMarkupPct: Number(company.cardTax) }
+        (cardInstallments && company?.cardTax != null
+          ? { installments: cardInstallments, totalMarkupPct: Number(company.cardTax) }
           : undefined),
       finance:
         dto?.payment?.finance ??
         companyPaymentDefaults?.finance ??
-        (company?.financeTax != null
-          ? [{ n: 60, totalMarkupPct: Number(company.financeTax) }]
+        (financeInstallments && company?.financeTax != null
+          ? [{ n: financeInstallments, totalMarkupPct: Number(company.financeTax) }]
           : undefined),
       own: dto?.payment?.own ?? companyPaymentDefaults?.own ?? undefined,
     };
@@ -319,15 +377,21 @@ export class ProposalsService {
           name: company.name,
           logoUrl: company.logoUrl,
           baseCity: company.baseCity,
+          state: (company as any).state || '',
+          address: (company as any).address || '',
+          phone: (company as any).phone || '',
+          email: (company as any).email || '',
           cardTax: company.cardTax,
           financeTax: company.financeTax,
           cashDiscount: company.cashDiscount,
-          contact: settings?.contact,
         }
       : null;
 
     const settingsSnapshot = settings
-      ? JSON.parse(JSON.stringify(settings))
+      ? {
+          ...settings,
+          paymentDefaults: settings.paymentDefaults || resolvedPaymentConfig,
+        }
       : null;
 
     // 5.5 Advance and link lead if project has leadId within company
@@ -367,21 +431,21 @@ export class ProposalsService {
       quoteId: selectedQuote?.id,
       leadId: validLeadId,
       templateName: 'default',
-      settingsSnapshot,
-      companySnapshot,
       settings: {
         pricingInput,
         pricingOutput: pricingResult,
-        payment: dto?.payment ?? resolvedPaymentConfig,
+        payment: resolvedPaymentConfig,
         paymentConfig: resolvedPaymentConfig,
         companyDefaults: company
           ? {
-              cashDiscount: company.cashDiscount,
-              cardTax: company.cardTax,
-              financeTax: company.financeTax,
-            }
+            cashDiscount: company.cashDiscount,
+            cardTax: company.cardTax,
+            financeTax: company.financeTax,
+          }
           : {},
       },
+      settingsSnapshot,
+      companySnapshot,
 
       // ── Client snapshot ──
       clientName: project.clientName || '—',
@@ -483,8 +547,8 @@ export class ProposalsService {
         const clientOpt = dto?.options?.[0];
         const isManual = Boolean(
           clientOpt?.isManualPrice &&
-            clientOpt?.finalPrice != null &&
-            Number(clientOpt.finalPrice) >= 0,
+          clientOpt?.finalPrice != null &&
+          Number(clientOpt.finalPrice) >= 0,
         );
         const finalPrice = isManual
           ? Number(clientOpt!.finalPrice)
@@ -585,52 +649,7 @@ export class ProposalsService {
     loads: any[] | undefined,
     catalog: any[],
   ): SelectedFutureLoad[] {
-    if (!loads || loads.length === 0) return [];
-
-    const effectiveCatalog =
-      catalog && catalog.length > 0 ? catalog : DEFAULT_FUTURE_LOADS;
-
-    const enriched: SelectedFutureLoad[] = [];
-    for (const load of loads) {
-      if (!load || !load.id) {
-        throw new BadRequestException('Carga futura deve conter id');
-      }
-      const catalogItem = effectiveCatalog.find((c: any) => c.id === load.id);
-      if (!catalogItem) {
-        throw new BadRequestException(
-          `Carga futura '${load.id}' não encontrada no catálogo da empresa`,
-        );
-      }
-      const qty = Number(load.quantity);
-      if (!Number.isInteger(qty) || qty < 1 || qty > 20) {
-        throw new BadRequestException(
-          'A quantidade de cada carga futura deve ser um número inteiro entre 1 e 20',
-        );
-      }
-      let hours = load.hoursPerDay;
-      if (catalogItem.fixedKwh != null && Number(catalogItem.fixedKwh) > 0) {
-        hours = undefined;
-      } else {
-        hours = hours != null ? Number(hours) : (catalogItem.defaultHoursPerDay ?? 8);
-        if (typeof hours !== 'number' || isNaN(hours) || hours < 0.5 || hours > 24) {
-          throw new BadRequestException(
-            'As horas de uso por dia devem estar entre 0.5 e 24',
-          );
-        }
-      }
-
-      enriched.push({
-        id: catalogItem.id,
-        name: catalogItem.name,
-        category: catalogItem.category,
-        powerKw: catalogItem.powerKw,
-        fixedKwh: catalogItem.fixedKwh,
-        quantity: qty,
-        hoursPerDay: hours,
-        daysPerMonth: catalogItem.defaultDaysPerMonth ?? 30,
-      });
-    }
-    return enriched;
+    return validateAndEnrichFutureLoads(loads, catalog);
   }
 
   private buildScenarioOptionEntities(
@@ -684,8 +703,8 @@ export class ProposalsService {
 
       const isManualPrice = Boolean(
         clientOpt?.isManualPrice &&
-          clientOpt?.finalPrice != null &&
-          Number(clientOpt.finalPrice) >= 0,
+        clientOpt?.finalPrice != null &&
+        Number(clientOpt.finalPrice) >= 0,
       );
       const finalPrice = isManualPrice ? Number(clientOpt!.finalPrice) : sc.finalPrice;
       const imageUrl = this.validateImageUrl(clientOpt?.imageUrl, companyId);
@@ -747,12 +766,12 @@ export class ProposalsService {
     const modulePowerWatt =
       project.equipmentModules?.[0]?.power ||
       (project.sizingPowerKwp &&
-      project.sizingModuleQty &&
-      Number(project.sizingModuleQty) > 0
+        project.sizingModuleQty &&
+        Number(project.sizingModuleQty) > 0
         ? Math.round(
-            (Number(project.sizingPowerKwp) * 1000) /
-              Number(project.sizingModuleQty),
-          )
+          (Number(project.sizingPowerKwp) * 1000) /
+          Number(project.sizingModuleQty),
+        )
         : 550);
 
     const moduleUnitPrice =
@@ -959,8 +978,8 @@ export class ProposalsService {
       const clientOpt = optionsArray[0];
       const isManual = Boolean(
         clientOpt?.isManualPrice &&
-          clientOpt?.finalPrice != null &&
-          Number(clientOpt.finalPrice) >= 0,
+        clientOpt?.finalPrice != null &&
+        Number(clientOpt.finalPrice) >= 0,
       );
       const finalPrice = isManual
         ? Number(clientOpt!.finalPrice)
@@ -999,6 +1018,12 @@ export class ProposalsService {
         const optEntity = manager.getRepository(ProposalOption).create(optData);
         saved.push(await manager.getRepository(ProposalOption).save(optEntity));
       }
+      const recOpt = saved.find((o) => o.recommended) || saved[0];
+      const updateData: Partial<Proposal> = { updatedAt: new Date() };
+      if (recOpt && recOpt.finalPrice != null) {
+        updateData.finalPrice = Number(recOpt.finalPrice);
+      }
+      await manager.getRepository(Proposal).update({ id: proposalId, companyId }, updateData);
       return saved;
     });
   }
@@ -1017,21 +1042,21 @@ export class ProposalsService {
 
     const moduleData = calculation.module
       ? {
-          id: calculation.module.id,
-          brand: calculation.module.brand,
-          model: calculation.module.model,
-          powerWatt: calculation.module.powerWatt,
-          qty: calculation.module_qty,
-        }
+        id: calculation.module.id,
+        brand: calculation.module.brand,
+        model: calculation.module.model,
+        powerWatt: calculation.module.powerWatt,
+        qty: calculation.module_qty,
+      }
       : {};
     const inverterData = calculation.inverter
       ? {
-          id: calculation.inverter.id,
-          brand: calculation.inverter.brand,
-          model: calculation.inverter.model,
-          powerKw: calculation.inverter.nominalPowerKw,
-          qty: 1,
-        }
+        id: calculation.inverter.id,
+        brand: calculation.inverter.brand,
+        model: calculation.inverter.model,
+        powerKw: calculation.inverter.nominalPowerKw,
+        qty: 1,
+      }
       : {};
 
     const solarProject = await this.solarProjectService.create(
@@ -1089,7 +1114,7 @@ export class ProposalsService {
             );
           }
         }
-      } catch {}
+      } catch { }
     }
 
     const proposal = this.proposalsRepository.create({
@@ -1319,38 +1344,38 @@ export class ProposalsService {
       equipment:
         moduleData || project.equipment?.modules?.[0]
           ? [
-              {
-                type: 'module' as const,
-                brand:
-                  moduleData?.brand || project.equipment?.modules?.[0]?.brand,
-                model:
-                  moduleData?.model || project.equipment?.modules?.[0]?.model,
-                quantity:
-                  moduleData?.qty ||
-                  project.sizingModuleQty ||
-                  project.sizing?.moduleQty ||
-                  proposal.moduleQty,
-                power: moduleData?.power ? `${moduleData.power}W` : undefined,
-              },
-            ]
+            {
+              type: 'module' as const,
+              brand:
+                moduleData?.brand || project.equipment?.modules?.[0]?.brand,
+              model:
+                moduleData?.model || project.equipment?.modules?.[0]?.model,
+              quantity:
+                moduleData?.qty ||
+                project.sizingModuleQty ||
+                project.sizing?.moduleQty ||
+                proposal.moduleQty,
+              power: moduleData?.power ? `${moduleData.power}W` : undefined,
+            },
+          ]
           : undefined,
       equipmentInverters:
         inverterData || project.equipment?.inverters?.[0]
           ? [
-              {
-                type: 'inverter' as const,
-                brand:
-                  inverterData?.brand ||
-                  project.equipment?.inverters?.[0]?.brand,
-                model:
-                  inverterData?.model ||
-                  project.equipment?.inverters?.[0]?.model,
-                quantity: inverterData?.qty || 1,
-                power: inverterData?.powerKw
-                  ? `${inverterData.powerKw}kW`
-                  : undefined,
-              },
-            ]
+            {
+              type: 'inverter' as const,
+              brand:
+                inverterData?.brand ||
+                project.equipment?.inverters?.[0]?.brand,
+              model:
+                inverterData?.model ||
+                project.equipment?.inverters?.[0]?.model,
+              quantity: inverterData?.qty || 1,
+              power: inverterData?.powerKw
+                ? `${inverterData.powerKw}kW`
+                : undefined,
+            },
+          ]
           : undefined,
       quotes: project.quotes || undefined,
     };

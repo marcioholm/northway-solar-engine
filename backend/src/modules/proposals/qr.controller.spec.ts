@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 import { QrController } from './qr.controller';
 import { ProposalsService } from './proposals.service';
 import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
@@ -31,7 +31,7 @@ describe('QrController', () => {
         { provide: ProposalTrackingService, useValue: proposalTrackingService },
       ],
     })
-      .overrideGuard(ThrottlerGuard)
+      .overrideGuard(UserThrottlerGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

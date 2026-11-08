@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common';
+
 export interface SizingRules {
   folgaPct: number; // default 10, between 0 and 30
   expansaoPct: number; // default 25, between 0 and 100
@@ -41,6 +43,58 @@ export const DEFAULT_FUTURE_LOADS_CATALOG: FutureLoadCatalogItem[] = [
 ];
 
 export const DEFAULT_FUTURE_LOADS = DEFAULT_FUTURE_LOADS_CATALOG;
+
+export function validateAndEnrichFutureLoads(
+  loads: any[] | undefined,
+  catalog: any[],
+): SelectedFutureLoad[] {
+  if (!loads || loads.length === 0) return [];
+
+  const effectiveCatalog =
+    catalog && catalog.length > 0 ? catalog : DEFAULT_FUTURE_LOADS;
+
+  const enriched: SelectedFutureLoad[] = [];
+  for (const load of loads) {
+    if (!load || !load.id) {
+      throw new BadRequestException('Carga futura deve conter id');
+    }
+    const catalogItem = effectiveCatalog.find((c: any) => c.id === load.id);
+    if (!catalogItem) {
+      throw new BadRequestException(
+        `Carga futura '${load.id}' não encontrada no catálogo da empresa`,
+      );
+    }
+    const qty = Number(load.quantity);
+    if (!Number.isInteger(qty) || qty < 1 || qty > 20) {
+      throw new BadRequestException(
+        'A quantidade de cada carga futura deve ser um número inteiro entre 1 e 20',
+      );
+    }
+    let hours = load.hoursPerDay;
+    if (catalogItem.fixedKwh != null && Number(catalogItem.fixedKwh) > 0) {
+      hours = undefined;
+    } else {
+      hours = hours != null ? Number(hours) : (catalogItem.defaultHoursPerDay ?? 8);
+      if (typeof hours !== 'number' || isNaN(hours) || hours < 0.5 || hours > 24) {
+        throw new BadRequestException(
+          'As horas de uso por dia devem estar entre 0.5 e 24',
+        );
+      }
+    }
+
+    enriched.push({
+      id: catalogItem.id,
+      name: catalogItem.name,
+      category: catalogItem.category,
+      powerKw: catalogItem.powerKw,
+      fixedKwh: catalogItem.fixedKwh,
+      quantity: qty,
+      hoursPerDay: hours,
+      daysPerMonth: catalogItem.defaultDaysPerMonth ?? 30,
+    });
+  }
+  return enriched;
+}
 
 /**
  * Calcula os kWh/mês de uma carga futura selecionada.

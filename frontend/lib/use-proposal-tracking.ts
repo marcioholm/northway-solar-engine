@@ -41,14 +41,9 @@ export function useProposalTracking(publicToken: string | undefined) {
     track(publicToken, 'download');
   };
 
-  const trackWhatsApp = () => {
+  const trackWhatsApp = (metadata?: Record<string, any>) => {
     if (!publicToken) return;
-    track(publicToken, 'whatsapp_click');
-  };
-
-  const trackAccept = () => {
-    // Aceite de proposta é fluxo específico com assinatura/confirmação,
-    // não um simples evento de analytics na rota pública de tracking.
+    track(publicToken, 'whatsapp_click', metadata ? { metadata } : undefined);
   };
 
   const trackChangeRequest = (message?: string) => {
@@ -62,7 +57,6 @@ export function useProposalTracking(publicToken: string | undefined) {
     trackSection,
     trackDownload,
     trackWhatsApp,
-    trackAccept,
     trackChangeRequest,
   };
 }

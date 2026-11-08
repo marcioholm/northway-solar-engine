@@ -16,14 +16,14 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(UserThrottlerGuard)
   @Post('login')
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'Return JWT token' })

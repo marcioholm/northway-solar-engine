@@ -11,7 +11,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
+import { clientIp } from '../../common/utils/client-ip.util';
 import * as crypto from 'crypto';
 import { ProposalTrackingService } from './proposal-tracking.service';
 import { ProposalsService } from '../proposals/proposals.service';
@@ -27,7 +29,7 @@ export class ProposalTrackingController {
   ) {}
 
   @Post('/public/:token/tracking')
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(UserThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Registrar evento de rastreamento (token público)' })
   async trackPublic(
@@ -38,7 +40,7 @@ export class ProposalTrackingController {
     const proposal = await this.proposalsService.findByToken(token);
     if (!proposal) throw new NotFoundException('Proposal not found');
 
-    const rawIp = (req.ip || req.headers?.['x-forwarded-for'] || '').toString().split(',')[0].trim();
+    const rawIp = clientIp(req);
     const salt = process.env.IP_HASH_SALT;
     const hashedIp =
       salt && rawIp

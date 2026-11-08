@@ -7,7 +7,7 @@ import {
   NotFoundException,
   UseGuards,
 } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { ProposalsService } from './proposals.service';
@@ -25,7 +25,7 @@ export class QrController {
   ) {}
 
   @Get(':token')
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(UserThrottlerGuard)
   @ApiOperation({ summary: 'Redirecionamento rastreado do QR Code da proposta' })
   async handleQrRedirect(
     @Param('token') token: string,

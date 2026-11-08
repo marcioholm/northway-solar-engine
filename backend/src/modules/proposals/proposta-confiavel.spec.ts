@@ -22,6 +22,7 @@ import { ProposalTrackingController } from '../proposal-tracking/proposal-tracki
 import { ProposalTrackingService } from '../proposal-tracking/proposal-tracking.service';
 import { TrackEventDto } from '../proposal-tracking/dto/track-event.dto';
 import { ProposalTracking } from '../proposal-tracking/entities/proposal-tracking.entity';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 
 describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)', () => {
   let proposalsService: ProposalsService;
@@ -35,12 +36,37 @@ describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)
   let mockCompaniesService: any;
   let mockProposalSettingsService: any;
   let mockSupabaseService: any;
+  let mockSolarProjectService: any;
+  let mockPricingEngineService: any;
+  let mockManager: any;
 
   beforeEach(async () => {
+    mockManager = {
+      getRepository: jest.fn().mockImplementation((entity) => {
+        if (entity === ProposalOption) {
+          return {
+            delete: jest.fn().mockResolvedValue({ affected: 1 }),
+            create: jest.fn().mockImplementation((data) => ({ id: 'opt-' + Math.random(), ...data })),
+            save: jest.fn().mockImplementation((data) => Promise.resolve(data)),
+          };
+        }
+        if (entity === Proposal) {
+          return {
+            save: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'p1', ...data })),
+            update: jest.fn().mockResolvedValue({ affected: 1 }),
+          };
+        }
+        return {};
+      }),
+    };
+
     mockProposalsRepo = {
       findOne: jest.fn(),
       save: jest.fn().mockImplementation((p) => Promise.resolve({ id: 'p1', ...p })),
       create: jest.fn().mockImplementation((p) => p),
+      manager: {
+        transaction: jest.fn().mockImplementation(async (cb) => cb(mockManager)),
+      },
     };
 
     mockOptionsRepo = {
@@ -73,6 +99,16 @@ describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)
       uploadFile: jest.fn(),
     };
 
+    mockSolarProjectService = {
+      findOne: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    };
+
+    mockPricingEngineService = {
+      calculate: jest.fn().mockReturnValue({ finalPrice: 20000, appliedMarginPct: 20, profit: 4000 }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProposalsController, ProposalTrackingController],
       providers: [
@@ -83,15 +119,17 @@ describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)
         { provide: getRepositoryToken(ProposalOption), useValue: mockOptionsRepo },
         { provide: getRepositoryToken(ProposalTracking), useValue: mockTrackingRepo },
         { provide: SolarEngineService, useValue: {} },
-        { provide: SolarProjectService, useValue: {} },
-        { provide: PricingEngineService, useValue: { calculate: jest.fn() } },
+        { provide: SolarProjectService, useValue: mockSolarProjectService },
+        { provide: PricingEngineService, useValue: mockPricingEngineService },
         { provide: CompaniesService, useValue: mockCompaniesService },
         { provide: LeadsService, useValue: { findOne: jest.fn(), updateStage: jest.fn() } },
         { provide: ProposalSettingsService, useValue: mockProposalSettingsService },
-        { provide: InventoryService, useValue: {} },
+        { provide: InventoryService, useValue: { findAllInverters: jest.fn().mockResolvedValue([]) } },
         { provide: SupabaseService, useValue: mockSupabaseService },
       ],
     })
+      .overrideGuard(UserThrottlerGuard)
+      .useValue({ canActivate: () => true })
       .overrideGuard(ThrottlerGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -147,6 +185,50 @@ describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)
       expect(mockCompaniesService.findOne).toHaveBeenCalledWith('c1');
       expect(mockProposalSettingsService.findByCompanyId).toHaveBeenCalledWith('c1');
     });
+
+    it('empresa com cardTax=5 e financeTax=10 mas sem proposal_settings.payment_defaults: cartao e financiamento ficam undefined', async () => {
+      mockCompaniesService.findOne.mockResolvedValue({
+        id: 'c1',
+        name: 'Empresa Sem Defaults',
+        cardTax: 5,
+        financeTax: 10,
+        cashDiscount: 3,
+      });
+
+      mockProposalSettingsService.findByCompanyId.mockResolvedValue({
+        primaryColor: '#123456',
+        paymentDefaults: undefined, // Sem defaults de parcelas configurados
+      });
+
+      const mockSolarProject = {
+        id: 'proj-1',
+        companyId: 'c1',
+        pricingLaborCost: 2000,
+        pricingEquipmentCost: 15000,
+        consumptionMonthlyBill: 500,
+        paymentCardInstallments: null,
+        paymentFinanceInstallments: null,
+        equipmentModules: [{ brand: 'Trina', model: '550W', power: 550, catalogId: 'm1' }],
+        equipmentInverters: [{ brand: 'Deye', model: '5kW', powerKw: 5, catalogId: 'inv1' }],
+        sizingPowerKwp: 5.5,
+        sizingGenerationKwh: 650,
+      };
+      mockSolarProjectService.findOne.mockResolvedValue(mockSolarProject);
+      mockPricingEngineService.calculate.mockReturnValue({ finalPrice: 22000, appliedMarginPct: 20, profit: 4400 });
+
+      const createdProposal = await proposalsService.generate('proj-1', 'c1', 'user-1', {
+        options: [{ position: 1, name: 'Kit 1' }],
+      } as any);
+
+      const payment = createdProposal.settings?.payment;
+      expect(payment).toBeDefined();
+      expect(payment.cashDiscountPct).toBe(3);
+      // Sem parcelas inventadas (12 ou 60): devem ser undefined
+      expect(payment.card).toBeUndefined();
+      expect(payment.finance).toBeUndefined();
+      expect(createdProposal.settingsSnapshot).toBeDefined();
+      expect(createdProposal.companySnapshot).toBeDefined();
+    });
   });
 
   describe('2. Cache do PDF no Supabase Storage', () => {
@@ -161,7 +243,6 @@ describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)
         options: [],
       });
 
-      // Spy on htmlRenderer / pdfRenderer
       const pdfRendererSpy = jest.spyOn((proposalsService as any).pdfRenderer, 'render');
 
       const result = await proposalsService.render('p1', 'c1', 'pdf');
@@ -205,6 +286,96 @@ describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)
       expect(result.content).toEqual(generatedBuffer);
     });
 
+    it('gerar PDF -> editar preco da opcao -> novo PDF NAO vem do cache e tem o preco novo', async () => {
+      const initialDate = new Date('2026-01-01T10:00:00Z');
+      let currentProposal: any = {
+        id: 'p1',
+        companyId: 'c1',
+        solarProjectId: 'proj-1',
+        updatedAt: initialDate,
+        options: [
+          { position: 1, name: 'Kit 1', finalPrice: 20000, recommended: true, isManualPrice: false },
+        ],
+      };
+
+      mockProposalsRepo.findOne.mockImplementation(async () => ({ ...currentProposal }));
+      mockOptionsRepo.find.mockImplementation(async () => [...currentProposal.options]);
+
+      const storedFiles = new Map<string, Buffer>();
+      mockSupabaseService.downloadFile.mockImplementation(async (_bucket: string, path: string) => {
+        return storedFiles.get(path) || null;
+      });
+      mockSupabaseService.uploadFile.mockImplementation(async (_bucket: string, path: string, content: Buffer) => {
+        storedFiles.set(path, content);
+      });
+
+      const pdfRendererSpy = jest
+        .spyOn((proposalsService as any).pdfRenderer, 'render')
+        .mockImplementation(async (data: any) => {
+          const price = data.proposal?.options?.[0]?.finalPrice ?? 0;
+          return {
+            content: Buffer.from(`%PDF-price-${price}`),
+            filename: 'proposal.pdf',
+            mimeType: 'application/pdf',
+          };
+        });
+
+      // 1. Gerar PDF inicial (preço 20000)
+      const firstResult = await proposalsService.render('p1', 'c1', 'pdf');
+      expect(firstResult.content.toString()).toBe('%PDF-price-20000');
+      expect(pdfRendererSpy).toHaveBeenCalledTimes(1);
+
+      // Segunda chamada com mesmo estado deve vir do cache
+      const cachedResult = await proposalsService.render('p1', 'c1', 'pdf');
+      expect(cachedResult.content.toString()).toBe('%PDF-price-20000');
+      expect(pdfRendererSpy).toHaveBeenCalledTimes(1);
+
+      // 2. Editar preço da opção via updateOptions
+      mockSolarProjectService.findOne.mockResolvedValue({
+        id: 'proj-1',
+        sizingPowerKwp: 5,
+        sizingGenerationKwh: 600,
+        equipmentModules: [{ brand: 'B', model: 'M', power: 550 }],
+        equipmentInverters: [{ brand: 'B', model: 'I', powerKw: 5 }],
+      });
+
+      const newUpdatedAt = new Date('2026-01-01T11:00:00Z');
+      mockManager.getRepository = jest.fn().mockImplementation((entity) => {
+        if (entity === ProposalOption) {
+          return {
+            delete: jest.fn().mockResolvedValue({ affected: 1 }),
+            create: jest.fn().mockImplementation((data) => ({ id: 'opt-new', ...data })),
+            save: jest.fn().mockImplementation((data) => Promise.resolve(data)),
+          };
+        }
+        if (entity === Proposal) {
+          return {
+            update: jest.fn().mockImplementation(async (_where, updateData) => {
+              currentProposal.updatedAt = updateData.updatedAt || newUpdatedAt;
+              if (updateData.finalPrice != null) currentProposal.finalPrice = updateData.finalPrice;
+            }),
+          };
+        }
+        return {};
+      });
+
+      const updatedOptions = await proposalsService.updateOptions('p1', 'c1', {
+        options: [
+          { position: 1, name: 'Kit 1', finalPrice: 25000, isManualPrice: true },
+        ],
+      } as any);
+
+      currentProposal.options = updatedOptions;
+      currentProposal.updatedAt = newUpdatedAt;
+
+      // 3. Gerar novo PDF
+      const secondResult = await proposalsService.render('p1', 'c1', 'pdf');
+
+      // NÃO veio do cache e tem o preço novo (25000)
+      expect(secondResult.content.toString()).toBe('%PDF-price-25000');
+      expect(pdfRendererSpy).toHaveBeenCalledTimes(2);
+    });
+
     it('fallback gracioso: se o bucket proposal-pdfs não existir ou upload falhar, não quebra a geração', async () => {
       mockSupabaseService.downloadFile.mockRejectedValue(new Error('Bucket not found'));
       mockSupabaseService.uploadFile.mockRejectedValue(new Error('Bucket not found'));
@@ -237,6 +408,31 @@ describe('Proposta Confiável (Snapshots, Cache de PDF, Validade, Tracking LGPD)
       expect(proposalsService.isExpired(pastProposal)).toBe(true);
       expect(proposalsService.isExpired(futureProposal)).toBe(false);
       expect(proposalsService.isExpired(noExpiryProposal)).toBe(false);
+    });
+
+    it('assertNotExpired lanca HttpException(410 Gone) reutilizavel com expired, companyName e whatsapp', async () => {
+      const expiredProposal = {
+        id: 'p-exp',
+        companyId: 'c1',
+        expiresAt: new Date(Date.now() - 3600000),
+        companySnapshot: { name: 'Empresa do Snapshot' },
+        settingsSnapshot: { contact: { whatsapp: '11988887777' } },
+      } as Proposal;
+
+      let thrownError: any;
+      try {
+        await proposalsService.assertNotExpired(expiredProposal);
+      } catch (err) {
+        thrownError = err;
+      }
+
+      expect(thrownError).toBeInstanceOf(HttpException);
+      expect(thrownError.getStatus()).toBe(HttpStatus.GONE);
+      expect(thrownError.getResponse()).toMatchObject({
+        expired: true,
+        companyName: 'Empresa do Snapshot',
+        whatsapp: '11988887777',
+      });
     });
 
     it('rota pública GET /proposals/public/:token retorna 410 Gone quando proposta expirou', async () => {

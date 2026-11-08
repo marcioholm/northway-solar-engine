@@ -1,5 +1,5 @@
 -- Migration 107: Snapshots de Configurações da Proposta e Sanitização de IPs (LGPD)
--- Idempotente. NÃO aplicar em produção manualmente (apenas em northway_test nos testes).
+-- Idempotente. DEVE ser aplicada em produção após o merge (com backup prévio).
 
 -- 1. Colunas de snapshots em proposals
 ALTER TABLE proposals ADD COLUMN IF NOT EXISTS settings_snapshot JSONB;
@@ -17,3 +17,4 @@ BEGIN
     UPDATE proposal_events SET ip_address = NULL WHERE ip_address IS NOT NULL;
   END IF;
 END $$;
+
