@@ -51,7 +51,7 @@ export function ProposalView({ data }: { data: ProposalData }) {
     ? `https://wa.me/${whatsappNumber}?text=${closeMessage}`
     : '#';
   const topWhatsAppUrl = whatsappNumber
-    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Olá, vi minha proposta personalizada SolarOS e gostaria de prosseguir.')}`
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Olá! Vi minha proposta e gostaria de conversar.')}`
     : '#';
 
   return (
@@ -176,7 +176,7 @@ export function ProposalView({ data }: { data: ProposalData }) {
           >
             {isExpired ? 'Solicitar Proposta Atualizada' : 'Solicitar Alteração'}
           </button>
-          {!isExpired && (
+          {!isExpired && whatsappNumber && (
             <a
               href={closeWhatsAppUrl}
               target="_blank"
