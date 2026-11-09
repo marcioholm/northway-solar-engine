@@ -176,6 +176,7 @@ export function formatLoadsFootnote(loads?: SelectedFutureLoad[]): string {
   return `* Cargas futuras consideradas (30 dias/mês): ${items.join('; ')}.`;
 }
 
+
 export interface ScenarioCalculationInput {
   consumptionMonthlyKwh: number;
   sizingPowerKwp: number;

@@ -12,6 +12,12 @@ export interface ProposalAssembledData {
   proposalSettings?: ProposalSettings;
   consultantName?: string;
   consultantPhone?: string;
+  isPreview?: boolean;
+  qr?: {
+    img: string;
+    label: string;
+    url?: string;
+  } | null;
 }
 
 export interface RenderOutput {
