@@ -176,62 +176,6 @@ export function formatLoadsFootnote(loads?: SelectedFutureLoad[]): string {
   return `* Cargas futuras consideradas (30 dias/mês): ${items.join('; ')}.`;
 }
 
-/**
- * Valida as cargas futuras enviadas pelo cliente contra o catálogo da empresa
- * e preenche os dados técnicos a partir do catálogo oficial.
- */
-export function validateAndEnrichFutureLoads(
-  loads: any[] | undefined,
-  catalog: any[],
-): SelectedFutureLoad[] {
-  if (!loads || loads.length === 0) return [];
-
-  const effectiveCatalog =
-    catalog && catalog.length > 0 ? catalog : DEFAULT_FUTURE_LOADS_CATALOG;
-
-  const enriched: SelectedFutureLoad[] = [];
-  for (const load of loads) {
-    if (!load || !load.id) {
-      throw new BadRequestException('Carga futura deve conter id');
-    }
-    const catalogItem = effectiveCatalog.find((c: any) => c.id === load.id);
-    if (!catalogItem) {
-      throw new BadRequestException(
-        `Carga futura '${load.id}' não encontrada no catálogo da empresa`,
-      );
-    }
-    const qty = Number(load.quantity);
-    if (!Number.isInteger(qty) || qty < 1 || qty > 20) {
-      throw new BadRequestException(
-        'A quantidade de cada carga futura deve ser um número inteiro entre 1 e 20',
-      );
-    }
-    let hours = load.hoursPerDay;
-    if (catalogItem.fixedKwh != null && Number(catalogItem.fixedKwh) > 0) {
-      hours = undefined;
-    } else {
-      hours = hours != null ? Number(hours) : (catalogItem.defaultHoursPerDay ?? 8);
-      if (typeof hours !== 'number' || isNaN(hours) || hours < 0.5 || hours > 24) {
-        throw new BadRequestException(
-          'As horas de uso por dia devem estar entre 0.5 e 24',
-        );
-      }
-    }
-
-    enriched.push({
-      id: catalogItem.id,
-      name: catalogItem.name,
-      category: catalogItem.category,
-      powerKw: catalogItem.powerKw,
-      fixedKwh: catalogItem.fixedKwh,
-      quantity: qty,
-      hoursPerDay: hours,
-      daysPerMonth: catalogItem.defaultDaysPerMonth ?? 30,
-    });
-  }
-
-  return enriched;
-}
 
 export interface ScenarioCalculationInput {
   consumptionMonthlyKwh: number;
