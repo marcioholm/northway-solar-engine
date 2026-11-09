@@ -58,7 +58,7 @@ export class ProposalTrackingController {
   @ApiOperation({ summary: 'Obter estatísticas de rastreamento da proposta' })
   async stats(@Param('id') id: string, @Request() req): Promise<ProposalTrackingStatsDto> {
     const scope = scopeFor(req.user);
-    await this.proposalsService.findOne(id, scope.companyId, scope.userId);
+    await this.proposalsService.findOne(id, scope.companyId, scope.ownerUserId);
     return this.service.getStats(id, scope.companyId);
   }
 }
