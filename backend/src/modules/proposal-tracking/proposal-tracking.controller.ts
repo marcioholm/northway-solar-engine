@@ -19,6 +19,7 @@ import { ProposalTrackingService } from './proposal-tracking.service';
 import { ProposalsService } from '../proposals/proposals.service';
 import { TrackEventDto } from './dto/track-event.dto';
 import { ProposalTrackingStatsDto } from './dto/tracking-stats.dto';
+import { scopeFor } from '../../common/utils/scope.util';
 
 @ApiTags('Proposal Tracking')
 @Controller('proposals')
@@ -56,6 +57,8 @@ export class ProposalTrackingController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Obter estatísticas de rastreamento da proposta' })
   async stats(@Param('id') id: string, @Request() req): Promise<ProposalTrackingStatsDto> {
-    return this.service.getStats(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    await this.proposalsService.findOne(id, scope.companyId, scope.userId);
+    return this.service.getStats(id, scope.companyId);
   }
 }

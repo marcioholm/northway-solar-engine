@@ -51,13 +51,13 @@ export class TeamService {
 
   private async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
     const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      this.logger.log(`[RESEND] Sem RESEND_API_KEY no ambiente. Link disponível na tela.`);
+    const fromEmail = process.env.EMAIL_FROM;
+    if (!apiKey || !fromEmail) {
+      this.logger.log(`[RESEND] Sem RESEND_API_KEY ou EMAIL_FROM no ambiente. Link disponível na tela.`);
       return false;
     }
 
     try {
-      const fromEmail = process.env.EMAIL_FROM || 'SolarOS <onboarding@resend.dev>';
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -163,10 +163,19 @@ export class TeamService {
       );
     }
 
-    // Verifica se já existe usuário ativo com este e-mail
+    // Verifica se já existe usuário com este e-mail
     const existingUser = await this.usersRepository.findOneBy({ email: dto.email.trim().toLowerCase() });
-    if (existingUser && existingUser.isActive) {
-      throw new BadRequestException('Já existe um usuário ativo com este e-mail');
+    if (existingUser) {
+      if (existingUser.companyId !== companyId) {
+        throw new BadRequestException('Este e-mail já está em uso. Fale com o administrador.');
+      }
+      if (existingUser.isActive) {
+        throw new BadRequestException('Já existe um usuário ativo com este e-mail');
+      } else {
+        throw new BadRequestException(
+          'Este e-mail pertence a um usuário inativo desta empresa. Utilize a opção de reativar membro.',
+        );
+      }
     }
 
     // Invalida convites pendentes anteriores para o mesmo e-mail nesta empresa
@@ -205,7 +214,7 @@ export class TeamService {
       `
         <h2>Você foi convidado para a equipe ${company.name}!</h2>
         <p>Olá${savedInvite.name ? ' ' + savedInvite.name : ''},</p>
-        <p>Você recebeu um convite para acessar o SolarOS como <strong>${savedInvite.role}</strong>.</p>
+        <p>Você recebeu um convite para acessar a plataforma como <strong>${savedInvite.role}</strong>.</p>
         <p>Para ativar sua conta e definir sua senha, acesse o link abaixo (válido por 48 horas):</p>
         <p><a href="${inviteUrl}" style="background:#059669;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Aceitar Convite</a></p>
         <p>Ou copie o link: ${inviteUrl}</p>
@@ -281,7 +290,9 @@ export class TeamService {
     dto: UpdateMemberDto,
   ) {
     const user = await this.usersRepository.findOneBy({ id: memberId, companyId });
-    if (!user) throw new NotFoundException('Usuário não encontrado nesta empresa');
+    if (!user || user.role === UserRole.SUPERADMIN) {
+      throw new NotFoundException('Usuário não encontrado nesta empresa');
+    }
 
     // Proteção: admin não pode rebaixar a si mesmo
     if (adminUserId === memberId && dto.role && dto.role !== UserRole.ADMIN) {
@@ -321,7 +332,9 @@ export class TeamService {
 
   async deactivateMember(companyId: string, memberId: string, adminUserId: string) {
     const user = await this.usersRepository.findOneBy({ id: memberId, companyId });
-    if (!user) throw new NotFoundException('Usuário não encontrado nesta empresa');
+    if (!user || user.role === UserRole.SUPERADMIN) {
+      throw new NotFoundException('Usuário não encontrado nesta empresa');
+    }
 
     if (adminUserId === memberId) {
       throw new BadRequestException('Você não pode desativar sua própria conta');
@@ -359,7 +372,9 @@ export class TeamService {
 
   async reactivateMember(companyId: string, memberId: string) {
     const user = await this.usersRepository.findOneBy({ id: memberId, companyId });
-    if (!user) throw new NotFoundException('Usuário não encontrado nesta empresa');
+    if (!user || user.role === UserRole.SUPERADMIN) {
+      throw new NotFoundException('Usuário não encontrado nesta empresa');
+    }
 
     const company = await this.companiesService.findOne(companyId);
     if (!company) throw new NotFoundException('Empresa não encontrada');
@@ -400,7 +415,9 @@ export class TeamService {
 
   async generatePasswordReset(companyId: string, memberId: string, adminUserId: string) {
     const user = await this.usersRepository.findOneBy({ id: memberId, companyId });
-    if (!user) throw new NotFoundException('Usuário não encontrado nesta empresa');
+    if (!user || user.role === UserRole.SUPERADMIN) {
+      throw new NotFoundException('Usuário não encontrado nesta empresa');
+    }
 
     const company = await this.companiesService.findOne(companyId);
 
@@ -429,7 +446,7 @@ export class TeamService {
         `
           <h2>Redefinição de senha solicitada</h2>
           <p>Olá ${user.name},</p>
-          <p>Um administrador solicitou a redefinição da sua senha de acesso ao SolarOS.</p>
+          <p>Um administrador solicitou a redefinição da sua senha de acesso à plataforma.</p>
           <p>Para cadastrar uma nova senha, acesse o link abaixo (válido por 48 horas):</p>
           <p><a href="${resetUrl}" style="background:#059669;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;">Redefinir Senha</a></p>
           <p>Ou copie o link: ${resetUrl}</p>
@@ -450,12 +467,17 @@ export class TeamService {
     fromUserId: string,
     dto: ReassignMemberDto,
   ) {
+    const fromUser = await this.usersRepository.findOneBy({ id: fromUserId, companyId });
+    if (!fromUser || fromUser.role === UserRole.SUPERADMIN) {
+      throw new NotFoundException('Usuário não encontrado nesta empresa');
+    }
+
     const targetUser = await this.usersRepository.findOneBy({
       id: dto.toUserId,
       companyId,
     });
 
-    if (!targetUser || !targetUser.isActive) {
+    if (!targetUser || !targetUser.isActive || targetUser.role === UserRole.SUPERADMIN) {
       throw new BadRequestException('Usuário de destino não encontrado ou inativo nesta empresa');
     }
 
@@ -510,55 +532,77 @@ export class TeamService {
     }
 
     const tokenHash = this.hashToken(dto.token);
-    const invite = await this.invitesRepository.findOne({
-      where: { tokenHash, usedAt: IsNull(), expiresAt: MoreThan(new Date()), type: 'invite' },
-    });
-
-    if (!invite) {
-      throw new NotFoundException('Convite inválido ou expirado');
-    }
-
-    // Regra: aceitar convite usa a companyId e o perfil DO CONVITE
-    const existingUser = await this.usersRepository.findOneBy({ email: invite.email });
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    let savedUser: User;
-    if (existingUser) {
-      existingUser.companyId = invite.companyId;
-      existingUser.role = invite.role;
-      existingUser.name = dto.name?.trim() || existingUser.name;
-      existingUser.phone = dto.phone || existingUser.phone;
-      existingUser.passwordHash = passwordHash;
-      existingUser.isActive = true;
-      existingUser.deactivatedAt = null;
-      savedUser = await this.usersRepository.save(existingUser);
-      this.usersService.invalidateUserCache(savedUser.id);
-    } else {
-      const newUser = this.usersRepository.create({
-        companyId: invite.companyId,
-        email: invite.email,
-        name: dto.name?.trim() || invite.email.split('@')[0],
-        phone: dto.phone || undefined,
-        role: invite.role,
-        passwordHash,
-        isActive: true,
+    return this.invitesRepository.manager.transaction(async (manager) => {
+      // 1. UPDATE atômico com WHERE used_at IS NULL para garantir uso único e prevenir concorrência
+      const rawResult = await manager.query(
+        `UPDATE user_invites
+         SET used_at = NOW()
+         WHERE token_hash = $1
+           AND used_at IS NULL
+           AND expires_at > NOW()
+           AND type = 'invite'
+         RETURNING id, company_id, email, name, phone, role`,
+        [tokenHash],
+      );
+
+      const rows = Array.isArray(rawResult?.[0]) ? rawResult[0] : rawResult;
+      if (!rows || rows.length === 0) {
+        throw new BadRequestException('Convite inválido, expirado ou já utilizado');
+      }
+
+      const inviteRow = rows[0];
+      const inviteCompanyId = inviteRow.company_id || inviteRow.companyId;
+      const inviteEmail = inviteRow.email;
+      const inviteRole = inviteRow.role;
+
+      // 2. Se existe usuário com o e-mail do convite
+      const existingUser = await manager.findOne(User, {
+        where: { email: inviteEmail },
       });
-      savedUser = await this.usersRepository.save(newUser);
-    }
 
-    invite.usedAt = new Date();
-    await this.invitesRepository.save(invite);
+      let savedUser: User;
+      if (existingUser) {
+        // NUNCA alterar companyId de usuário existente
+        if (existingUser.companyId !== inviteCompanyId) {
+          throw new BadRequestException('Este e-mail já está em uso. Fale com o administrador.');
+        }
 
-    return {
-      success: true,
-      message: 'Conta ativada com sucesso',
-      user: {
-        id: savedUser.id,
-        email: savedUser.email,
-        name: savedUser.name,
-        role: savedUser.role,
-      },
-    };
+        // Só reativa se for da MESMA empresa do convite
+        existingUser.role = inviteRole;
+        existingUser.name = dto.name?.trim() || existingUser.name;
+        existingUser.phone = dto.phone || existingUser.phone;
+        existingUser.passwordHash = passwordHash;
+        existingUser.isActive = true;
+        existingUser.deactivatedAt = null;
+        savedUser = await manager.save(User, existingUser);
+      } else {
+        const newUser = manager.create(User, {
+          companyId: inviteCompanyId,
+          email: inviteEmail,
+          name: dto.name?.trim() || inviteEmail.split('@')[0],
+          phone: dto.phone || undefined,
+          role: inviteRole,
+          passwordHash,
+          isActive: true,
+        });
+        savedUser = await manager.save(User, newUser);
+      }
+
+      this.usersService.invalidateUserCache(savedUser.id);
+
+      return {
+        success: true,
+        message: 'Conta ativada com sucesso',
+        user: {
+          id: savedUser.id,
+          email: savedUser.email,
+          name: savedUser.name,
+          role: savedUser.role,
+        },
+      };
+    });
   }
 
   // ────────── PÚBLICO: REDEFINIR SENHA ──────────
@@ -569,32 +613,47 @@ export class TeamService {
     }
 
     const tokenHash = this.hashToken(dto.token);
-    const invite = await this.invitesRepository.findOne({
-      where: { tokenHash, usedAt: IsNull(), expiresAt: MoreThan(new Date()), type: 'reset' },
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    return this.invitesRepository.manager.transaction(async (manager) => {
+      const rawResult = await manager.query(
+        `UPDATE user_invites
+         SET used_at = NOW()
+         WHERE token_hash = $1
+           AND used_at IS NULL
+           AND expires_at > NOW()
+           AND type = 'reset'
+         RETURNING id, company_id, email`,
+        [tokenHash],
+      );
+
+      const rows = Array.isArray(rawResult?.[0]) ? rawResult[0] : rawResult;
+      if (!rows || rows.length === 0) {
+        throw new BadRequestException('Link de recuperação inválido, expirado ou já utilizado');
+      }
+
+      const inviteRow = rows[0];
+      const inviteCompanyId = inviteRow.company_id || inviteRow.companyId;
+      const inviteEmail = inviteRow.email;
+      const user = await manager.findOne(User, {
+        where: {
+          email: inviteEmail,
+          companyId: inviteCompanyId,
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('Usuário não encontrado');
+      }
+
+      user.passwordHash = passwordHash;
+      await manager.save(User, user);
+      this.usersService.invalidateUserCache(user.id);
+
+      return {
+        success: true,
+        message: 'Senha redefinida com sucesso',
+      };
     });
-
-    if (!invite) {
-      throw new NotFoundException('Link de recuperação inválido ou expirado');
-    }
-
-    const user = await this.usersRepository.findOneBy({
-      email: invite.email,
-      companyId: invite.companyId,
-    });
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    user.passwordHash = await bcrypt.hash(dto.password, 10);
-    await this.usersRepository.save(user);
-    this.usersService.invalidateUserCache(user.id);
-
-    invite.usedAt = new Date();
-    await this.invitesRepository.save(invite);
-
-    return {
-      success: true,
-      message: 'Senha redefinida com sucesso',
-    };
   }
 }

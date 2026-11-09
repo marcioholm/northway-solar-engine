@@ -1675,6 +1675,12 @@ describe('Isolamento e rotas públicas (e2e)', () => {
         .get(`/proposals/${proposalId}/events`)
         .auth(seller2Token, { type: 'bearer' })
         .expect(404);
+
+      // Vendedor 2 tenta acessar estatísticas de tracking da proposta do Vendedor 1 -> 404
+      await http()
+        .get(`/proposals/${proposalId}/tracking/stats`)
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(404);
     });
 
     it('gerente enxerga leads, projetos e propostas de todos, mas recebe 403 em /proposal-settings e /team', async () => {
@@ -1831,7 +1837,150 @@ describe('Isolamento e rotas públicas (e2e)', () => {
           name: 'Tentativa Reuso',
           password: 'OutraSenha123!',
         })
+        .expect(400);
+    });
+
+    it('seller recebe 403 em finance, intelligence, projects e whatsapp', async () => {
+      await http().get('/finance/dashboard').auth(sellerToken, { type: 'bearer' }).expect(403);
+      await http().get('/intelligence/dashboard').auth(sellerToken, { type: 'bearer' }).expect(403);
+      await http().get('/projects').auth(sellerToken, { type: 'bearer' }).expect(403);
+      await http().get('/projects/11111111-1111-1111-1111-111111111111').auth(sellerToken, { type: 'bearer' }).expect(403);
+      await http().patch('/projects/11111111-1111-1111-1111-111111111111/status').auth(sellerToken, { type: 'bearer' }).send({ status: 'done' }).expect(403);
+      await http().post('/whatsapp/instance').auth(sellerToken, { type: 'bearer' }).send({ instanceName: 'inst', apiUrl: 'http://api', apiKey: 'k' }).expect(403);
+      await http().get('/whatsapp/instance/inst-1/qrcode').auth(sellerToken, { type: 'bearer' }).expect(403);
+    });
+
+    it('login confere senha antes de isActive (usuário inativo com senha errada recebe mesmo erro de credenciais inválidas)', async () => {
+      const hash = await bcrypt.hash('SenhaCerta123!', 4);
+      const email = 'inativo-auth@a.test';
+      await db.query(
+        `INSERT INTO users (company_id, name, email, password_hash, role, is_active)
+         VALUES ($1, 'Inativo Test', $2, $3, 'seller', false)
+         ON CONFLICT (email) DO UPDATE SET is_active = false, password_hash = $3`,
+        [COMPANY_A, email, hash],
+      );
+
+      // 1. Senha errada para usuário ativo -> 401
+      const resActiveWrong = await http()
+        .post('/auth/login')
+        .send({ email: 'vendedor@a.test', password: 'senha-totalmente-errada' })
+        .expect(401);
+
+      // 2. Senha errada para usuário inativo -> 401 com resposta idêntica de credencial inválida
+      const resInactiveWrong = await http()
+        .post('/auth/login')
+        .send({ email, password: 'senha-totalmente-errada' })
+        .expect(401);
+
+      expect(resInactiveWrong.body.message).toEqual(resActiveWrong.body.message);
+
+      // 3. Senha correta para usuário inativo -> 401 informando conta inativa
+      const resInactiveCorrect = await http()
+        .post('/auth/login')
+        .send({ email, password: 'SenhaCerta123!' })
+        .expect(401);
+      expect(resInactiveCorrect.body.message).toMatch(/inativo/i);
+    });
+
+    it('admin não pode editar, desativar, resetar senha nem reatribuir dados de um superadmin (404 genérico)', async () => {
+      const [superUser] = await db.query(`SELECT id FROM users WHERE role = 'superadmin' LIMIT 1`);
+      expect(superUser).toBeDefined();
+
+      const [{ id: sellerAId }] = await db.query(`SELECT id FROM users WHERE email = 'vendedor@a.test'`);
+
+      // Admin tenta editar superadmin -> 404
+      await http()
+        .patch(`/team/${superUser.id}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ name: 'Tentativa Hacking' })
         .expect(404);
+
+      // Admin tenta desativar superadmin -> 404
+      await http()
+        .patch(`/team/${superUser.id}/deactivate`)
+        .auth(adminToken, { type: 'bearer' })
+        .expect(404);
+
+      // Admin tenta resetar senha do superadmin -> 404
+      await http()
+        .post(`/team/${superUser.id}/password-reset`)
+        .auth(adminToken, { type: 'bearer' })
+        .expect(404);
+
+      // Admin tenta reatribuir dados de um superadmin -> 404
+      await http()
+        .post(`/team/${superUser.id}/reassign`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ toUserId: sellerAId })
+        .expect(404);
+    });
+
+    it('convite não move conta entre empresas e impede uso simultâneo duplo (concorrência)', async () => {
+      // 1. Usuário ativo da Empresa A (vendedor@a.test)
+      // Admin da Empresa B tenta convidar esse e-mail -> rejeitado com 400 e mensagem genérica
+      const resInvA = await http()
+        .post('/team/invites')
+        .auth(adminBToken, { type: 'bearer' })
+        .send({ email: 'vendedor@a.test', role: 'seller' });
+      expect(resInvA.status).toBe(400);
+      expect(resInvA.body.message).toMatch(/já está em uso/i);
+
+      // 2. Usuário inativo da Empresa A
+      const hash = await bcrypt.hash('Senha123!', 4);
+      const inactEmail = 'inativo-outra@a.test';
+      await db.query(
+        `INSERT INTO users (company_id, name, email, password_hash, role, is_active)
+         VALUES ($1, 'Inativo A', $2, $3, 'seller', false)
+         ON CONFLICT (email) DO UPDATE SET is_active = false`,
+        [COMPANY_A, inactEmail, hash],
+      );
+
+      // Admin B tenta convidar usuário inativo de A -> rejeitado com 400 sem revelar status nem empresa
+      const resInvInactA = await http()
+        .post('/team/invites')
+        .auth(adminBToken, { type: 'bearer' })
+        .send({ email: inactEmail, role: 'seller' });
+      expect(resInvInactA.status).toBe(400);
+      expect(resInvInactA.body.message).toMatch(/já está em uso/i);
+
+      // Usuário inativo continua pertencendo à Empresa A
+      const [checkA] = await db.query(`SELECT company_id FROM users WHERE email = $1`, [inactEmail]);
+      expect(checkA.company_id).toBe(COMPANY_A);
+
+      // Admin da Empresa A tenta convidar usuário inativo de A -> orienta a reativar
+      const resSameInact = await http()
+        .post('/team/invites')
+        .auth(adminToken, { type: 'bearer' })
+        .send({ email: inactEmail, role: 'seller' });
+      expect(resSameInact.status).toBe(400);
+      expect(resSameInact.body.message).toMatch(/reativar/i);
+
+      // 3. Concorrência: token de convite usado simultaneamente duas vezes -> só 1 sucesso
+      const newEmail = 'concorrente@a.test';
+      const invRes = await http()
+        .post('/team/invites')
+        .auth(adminToken, { type: 'bearer' })
+        .send({ email: newEmail, role: 'seller' })
+        .expect(201);
+      const rawToken = invRes.body.rawToken;
+
+      // Executa duas chamadas concorrentes simultâneas com o mesmo token
+      const [res1, res2] = await Promise.all([
+        http()
+          .post('/auth/accept-invite')
+          .send({ token: rawToken, name: 'Concorrente 1', password: 'SenhaForte123!' }),
+        http()
+          .post('/auth/accept-invite')
+          .send({ token: rawToken, name: 'Concorrente 2', password: 'SenhaForte123!' }),
+      ]);
+
+      const statuses = [res1.status, res2.status].sort();
+      // Exatamente um 201 e um 400 (rejeitado por já ter sido utilizado)
+      expect(statuses).toEqual([201, 400]);
+
+      // Usuário criado na empresa A
+      const [userCreated] = await db.query(`SELECT company_id FROM users WHERE email = $1`, [newEmail]);
+      expect(userCreated.company_id).toBe(COMPANY_A);
     });
   });
 });

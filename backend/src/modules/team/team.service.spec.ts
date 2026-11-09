@@ -20,6 +20,13 @@ describe('TeamService', () => {
   let companyRepo: any;
   let usersService: any;
 
+  const mockManager = {
+    query: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn((entityClass, dto) => ({ ...dto, id: 'user-new' })),
+    save: jest.fn((entityClass, entity) => Promise.resolve({ ...entity, id: entity.id || 'user-1' })),
+  };
+
   const mockUserInviteRepo = {
     create: jest.fn((dto) => ({ ...dto, id: 'invite-1' })),
     save: jest.fn((entity) => Promise.resolve({ ...entity, id: entity.id || 'invite-1' })),
@@ -28,6 +35,9 @@ describe('TeamService', () => {
     delete: jest.fn(),
     update: jest.fn(),
     count: jest.fn(),
+    manager: {
+      transaction: jest.fn(async (cb) => cb(mockManager)),
+    },
   };
 
   const mockUserRepo = {
@@ -121,11 +131,67 @@ describe('TeamService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should reject invite if email belongs to another company (active or inactive) (400)', async () => {
+      companyRepo.findOne.mockResolvedValue({ id: 'comp-1', maxUsers: 10 });
+      userRepo.countBy.mockResolvedValue(1);
+      inviteRepo.count.mockResolvedValue(0);
+
+      // Active user in another company
+      userRepo.findOneBy.mockResolvedValueOnce({
+        id: 'u-ext-1',
+        email: 'other@empresa-b.com',
+        companyId: 'comp-2',
+        isActive: true,
+      });
+
+      await expect(
+        service.createInvite('comp-1', 'admin-1', {
+          email: 'other@empresa-b.com',
+          role: UserRole.SELLER,
+        }),
+      ).rejects.toThrow(new BadRequestException('Este e-mail já está em uso. Fale com o administrador.'));
+
+      // Inactive user in another company
+      userRepo.findOneBy.mockResolvedValueOnce({
+        id: 'u-ext-2',
+        email: 'inactive@empresa-b.com',
+        companyId: 'comp-2',
+        isActive: false,
+      });
+
+      await expect(
+        service.createInvite('comp-1', 'admin-1', {
+          email: 'inactive@empresa-b.com',
+          role: UserRole.SELLER,
+        }),
+      ).rejects.toThrow(new BadRequestException('Este e-mail já está em uso. Fale com o administrador.'));
+    });
+
+    it('should reject invite if email belongs to same company and is inactive (orienting to reactivate)', async () => {
+      companyRepo.findOne.mockResolvedValue({ id: 'comp-1', maxUsers: 10 });
+      userRepo.countBy.mockResolvedValue(1);
+      inviteRepo.count.mockResolvedValue(0);
+
+      userRepo.findOneBy.mockResolvedValue({
+        id: 'u-same-inact',
+        email: 'inativo@comp-1.com',
+        companyId: 'comp-1',
+        isActive: false,
+      });
+
+      await expect(
+        service.createInvite('comp-1', 'admin-1', {
+          email: 'inativo@comp-1.com',
+          role: UserRole.SELLER,
+        }),
+      ).rejects.toThrow(/reativar/i);
+    });
+
     it('should succeed creating invite when within limit', async () => {
       companyRepo.findOne.mockResolvedValue({ id: 'comp-1', maxUsers: 5 });
       userRepo.countBy.mockResolvedValue(1);
       inviteRepo.count.mockResolvedValue(1);
-      userRepo.findOne.mockResolvedValue(null); // not already a user
+      userRepo.findOneBy.mockResolvedValue(null); // not already a user
       inviteRepo.findOne.mockResolvedValue(null); // no active pending invite
 
       const result = await service.createInvite('comp-1', 'admin-1', {
@@ -186,6 +252,21 @@ describe('TeamService', () => {
         }),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('should return 404 when admin tries to update a superadmin', async () => {
+      userRepo.findOneBy.mockResolvedValue({
+        id: 'super-1',
+        companyId: 'comp-1',
+        role: UserRole.SUPERADMIN,
+        isActive: true,
+      });
+
+      await expect(
+        service.updateMember('comp-1', 'admin-1', 'super-1', {
+          name: 'Tentativa',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('Deactivation protections', () => {
@@ -215,13 +296,27 @@ describe('TeamService', () => {
         service.deactivateMember('comp-1', 'admin-1', 'admin-2'),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('should return 404 when admin tries to deactivate a superadmin', async () => {
+      userRepo.findOneBy.mockResolvedValue({
+        id: 'super-1',
+        companyId: 'comp-1',
+        role: UserRole.SUPERADMIN,
+        isActive: true,
+      });
+
+      await expect(
+        service.deactivateMember('comp-1', 'admin-1', 'super-1'),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('Invite acceptance & single-use tokens', () => {
-    it('should reject already used token (404)', async () => {
+    it('should reject already used or invalid token (400)', async () => {
       const rawToken = '12345678901234567890123456789012';
 
-      inviteRepo.findOne.mockResolvedValue(null); // DB query has usedAt: IsNull(), so used returns null
+      // Atomic update returned 0 rows
+      mockManager.query.mockResolvedValue([]);
 
       await expect(
         service.acceptInvite({
@@ -229,13 +324,26 @@ describe('TeamService', () => {
           name: 'João',
           password: 'Password123!',
         }),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should reject expired token (404)', async () => {
+    it('should reject accepting invite if user belongs to another company (400)', async () => {
       const rawToken = '12345678901234567890123456789012';
 
-      inviteRepo.findOne.mockResolvedValue(null); // DB query has expiresAt: MoreThan(now), so expired returns null
+      mockManager.query.mockResolvedValue([
+        {
+          id: 'inv-1',
+          company_id: 'company-b',
+          role: UserRole.SELLER,
+          email: 'user@company-a.com',
+        },
+      ]);
+
+      mockManager.findOne.mockResolvedValue({
+        id: 'u-existing',
+        email: 'user@company-a.com',
+        companyId: 'company-a', // Different company!
+      });
 
       await expect(
         service.acceptInvite({
@@ -243,25 +351,21 @@ describe('TeamService', () => {
           name: 'João',
           password: 'Password123!',
         }),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(new BadRequestException('Este e-mail já está em uso. Fale com o administrador.'));
     });
 
     it('should mark token as used when accepted and create user with invite companyId and role', async () => {
       const rawToken = '12345678901234567890123456789012';
-      const hash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
-      const invite = {
-        id: 'inv-1',
-        companyId: 'company-secure',
-        role: UserRole.SELLER,
-        email: 'joao@teste.com',
-        tokenHash: hash,
-        usedAt: null,
-        expiresAt: new Date(Date.now() + 100000),
-      };
-
-      inviteRepo.findOne.mockResolvedValue(invite);
-      userRepo.findOneBy.mockResolvedValue(null); // not existing user
+      mockManager.query.mockResolvedValue([
+        {
+          id: 'inv-1',
+          company_id: 'company-secure',
+          role: UserRole.SELLER,
+          email: 'joao@teste.com',
+        },
+      ]);
+      mockManager.findOne.mockResolvedValue(null); // not existing user
 
       const res = await service.acceptInvite({
         token: rawToken,
@@ -270,8 +374,8 @@ describe('TeamService', () => {
         phone: '11999999999',
       });
 
-      expect(invite.usedAt).toBeInstanceOf(Date);
-      expect(userRepo.create).toHaveBeenCalledWith(
+      expect(mockManager.create).toHaveBeenCalledWith(
+        User,
         expect.objectContaining({
           companyId: 'company-secure',
           role: UserRole.SELLER,
