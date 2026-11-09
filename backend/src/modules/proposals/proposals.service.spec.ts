@@ -459,5 +459,24 @@ describe('ProposalsService (equipamentos e cotações)', () => {
       expect(result).toHaveLength(1);
       expect(result[0].companyId).toBe('company-A');
     });
+
+    it('assemble devolve consultantPhone e consultantName a partir do snapshot do consultor', async () => {
+      mockProposalsRepo.findOne.mockResolvedValue({
+        id: 'prop-consultant',
+        companyId: 'comp-1',
+        companySnapshot: {
+          name: 'Empresa Teste',
+          consultant: {
+            name: 'Consultor Carlos',
+            phone: '11988887777',
+          },
+        },
+      });
+      mockOptionsRepo.find.mockResolvedValue([]);
+
+      const assembled = await service.assemble('prop-consultant', 'comp-1');
+      expect(assembled.consultantName).toBe('Consultor Carlos');
+      expect(assembled.consultantPhone).toBe('11988887777');
+    });
   });
 });

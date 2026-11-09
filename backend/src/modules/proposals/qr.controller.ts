@@ -44,9 +44,15 @@ export class QrController {
     const projectData = (proposal.solarProject || {}) as any;
     const clientName = proposal.clientName || projectData.clientName || '';
     const consultantPhone =
-      projectData.consultantPhone || (proposal as any).consultantPhone || '';
+      (proposal.companySnapshot as any)?.consultant?.phone ||
+      projectData.consultantPhone ||
+      (proposal as any).consultantPhone ||
+      '';
     const consultantName =
-      projectData.consultantName || (proposal as any).consultantName || '';
+      (proposal.companySnapshot as any)?.consultant?.name ||
+      projectData.consultantName ||
+      (proposal as any).consultantName ||
+      '';
 
     const publicBase =
       process.env.FRONTEND_URL?.replace(/\/?$/, '/proposta/') ||

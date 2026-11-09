@@ -23,6 +23,7 @@ import { CreateSolarProjectDto } from './dto/create-solar-project.dto';
 import { UpdateSolarProjectDto } from './dto/update-solar-project.dto';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { UpdateQuoteDto } from './dto/update-quote.dto';
+import { scopeFor } from '../../common/utils/scope.util';
 
 @ApiTags('solar-project')
 @Controller('solar-project')
@@ -39,7 +40,7 @@ export class SolarProjectController {
   @Post()
   @ApiOperation({ summary: 'Create a new solar project' })
   create(@Request() req, @Body() dto: CreateSolarProjectDto) {
-    return this.service.create(req.user.companyId, req.user.userId, dto);
+    return this.service.create(req.user.companyId, req.user.userId, dto, req.user.role);
   }
 
   @Get()
@@ -69,31 +70,36 @@ export class SolarProjectController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.service.findAll(req.user.companyId, {
+    const scope = scopeFor(req.user);
+    return this.service.findAll(scope.companyId, {
       status,
       query: q,
       consultant,
       page,
       limit,
+      ownerUserId: scope.ownerUserId,
     });
   }
 
   @Get('lead/:leadId')
   @ApiOperation({ summary: 'Get projects by lead' })
   findByLead(@Param('leadId') leadId: string, @Request() req) {
-    return this.service.getByLead(leadId, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.service.getByLead(leadId, scope.companyId, scope.ownerUserId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get solar project by id' })
   findOne(@Param('id') id: string, @Request() req) {
-    return this.service.findOne(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.service.findOne(id, scope.companyId, scope.ownerUserId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update solar project fields or module' })
   update(@Param('id') id: string, @Body() dto: UpdateSolarProjectDto, @Request() req) {
-    return this.service.update(id, req.user.companyId, dto);
+    const scope = scopeFor(req.user);
+    return this.service.update(id, scope.companyId, dto, scope.ownerUserId);
   }
 
   @Patch(':id/module/:module')
@@ -107,25 +113,29 @@ export class SolarProjectController {
     @Body() data: Record<string, any>,
     @Request() req,
   ) {
-    return this.service.updateModule(id, req.user.companyId, module, data);
+    const scope = scopeFor(req.user);
+    return this.service.updateModule(id, scope.companyId, module, data, scope.ownerUserId);
   }
 
   @Patch(':id/advance')
   @ApiOperation({ summary: 'Advance to next status' })
   advanceStatus(@Param('id') id: string, @Request() req) {
-    return this.service.advanceStatus(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.service.advanceStatus(id, scope.companyId, scope.ownerUserId);
   }
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Set specific status' })
   updateStatus(@Param('id') id: string, @Body() body: { status: string }, @Request() req) {
-    return this.service.updateStatus(id, req.user.companyId, body.status);
+    const scope = scopeFor(req.user);
+    return this.service.updateStatus(id, scope.companyId, body.status, scope.ownerUserId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete solar project' })
   remove(@Param('id') id: string, @Request() req) {
-    return this.service.remove(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.service.remove(id, scope.companyId, scope.ownerUserId);
   }
 
   // ── Quotes ──
@@ -137,19 +147,22 @@ export class SolarProjectController {
     @Param('id') id: string,
     @Body() dto: CreateQuoteDto,
   ) {
-    return this.quoteService.create(id, req.user.companyId, req.user.userId, dto);
+    const scope = scopeFor(req.user);
+    return this.quoteService.create(id, scope.companyId, req.user.userId, dto, scope.ownerUserId);
   }
 
   @Get(':id/quotes')
   @ApiOperation({ summary: 'List quotes for the project' })
   findQuotes(@Param('id') id: string, @Request() req) {
-    return this.quoteService.findByProject(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.quoteService.findByProject(id, scope.companyId, scope.ownerUserId);
   }
 
   @Patch(':id/quotes/:qid')
   @ApiOperation({ summary: 'Update a quote' })
   updateQuote(@Param('qid') qid: string, @Body() dto: UpdateQuoteDto, @Request() req) {
-    return this.quoteService.update(qid, req.user.companyId, dto);
+    const scope = scopeFor(req.user);
+    return this.quoteService.update(qid, scope.companyId, dto, scope.ownerUserId);
   }
 
   @Patch(':id/quotes/:qid/select')
@@ -157,18 +170,21 @@ export class SolarProjectController {
     summary: 'Select a quote for the project (deselects others)',
   })
   selectQuote(@Param('id') id: string, @Param('qid') qid: string, @Request() req) {
-    return this.quoteService.select(id, req.user.companyId, qid);
+    const scope = scopeFor(req.user);
+    return this.quoteService.select(id, scope.companyId, qid, scope.ownerUserId);
   }
 
   @Get(':id/quotes/selected')
   @ApiOperation({ summary: 'Get the selected quote for the project' })
   getSelectedQuote(@Param('id') id: string, @Request() req) {
-    return this.quoteService.getSelected(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.quoteService.getSelected(id, scope.companyId, scope.ownerUserId);
   }
 
   @Delete(':id/quotes/:qid')
   @ApiOperation({ summary: 'Delete a quote' })
   removeQuote(@Param('qid') qid: string, @Request() req) {
-    return this.quoteService.remove(qid, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.quoteService.remove(qid, scope.companyId, scope.ownerUserId);
   }
 }

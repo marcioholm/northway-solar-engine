@@ -30,6 +30,7 @@ import { CompaniesService } from '../companies/companies.service';
 import { LeadsService } from '../leads/leads.service';
 import { ProposalSettingsService } from '../proposal-settings/proposal-settings.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { UsersService } from '../users/users.service';
 import {
   calculateScenarios,
   DEFAULT_FUTURE_LOADS,
@@ -78,13 +79,20 @@ export class ProposalsService {
     private leadsService: LeadsService,
     private proposalSettingsService: ProposalSettingsService,
     private inventoryService: InventoryService,
+    @Optional() private usersService?: UsersService,
     @Optional() private supabaseService?: SupabaseService,
     @Optional() private configService?: ConfigService,
   ) { }
 
   // ────────── TRACKING ──────────
 
-  async getEvents(proposalId: string) {
+  async getEvents(proposalId: string, companyId?: string, ownerUserId?: string) {
+    if (companyId) {
+      const where: any = { id: proposalId, companyId };
+      if (ownerUserId) where.ownerUserId = ownerUserId;
+      const proposal = await this.proposalsRepository.findOne({ where });
+      if (!proposal) throw new NotFoundException('Proposta não encontrada');
+    }
     return this.proposalEventsRepository.find({
       where: { proposalId },
       order: { createdAt: 'DESC' },
@@ -140,9 +148,17 @@ export class ProposalsService {
 
   // ────────── ASSEMBLER ──────────
 
-  async assemble(proposalId: string, companyId: string): Promise<ProposalAssembledData> {
+  async assemble(
+    proposalId: string,
+    companyId: string,
+    ownerUserId?: string,
+  ): Promise<ProposalAssembledData> {
+    const where: any = { id: proposalId, companyId };
+    if (ownerUserId) {
+      where.ownerUserId = ownerUserId;
+    }
     const proposal = await this.proposalsRepository.findOne({
-      where: { id: proposalId, companyId },
+      where,
       relations: ['solarProject', 'company', 'quote', 'quote.items'],
     });
     if (!proposal) throw new NotFoundException('Proposal not found');
@@ -191,14 +207,22 @@ export class ProposalsService {
     });
     proposal.options = options;
 
+    const consultantName =
+      (proposal.companySnapshot as any)?.consultant?.name ||
+      project?.consultantName ||
+      undefined;
+    const consultantPhone =
+      (proposal.companySnapshot as any)?.consultant?.phone ||
+      undefined;
+
     return {
       proposal,
       project,
       quote,
       company,
       proposalSettings,
-      consultantName: project?.consultantName || undefined,
-      consultantPhone: undefined,
+      consultantName,
+      consultantPhone,
     };
   }
 
@@ -208,8 +232,9 @@ export class ProposalsService {
     proposalId: string,
     companyId: string,
     format: 'html' | 'pdf' | 'web' = 'html',
+    ownerUserId?: string,
   ): Promise<RenderOutput> {
-    const data = await this.assemble(proposalId, companyId);
+    const data = await this.assemble(proposalId, companyId, ownerUserId);
 
     if (format === 'pdf') {
       const updatedAtStr =
@@ -289,13 +314,14 @@ export class ProposalsService {
     companyId: string,
     userId: string,
     dto?: GenerateProposalDto,
+    ownerUserId?: string,
   ): Promise<Proposal> {
     if (dto?.options && dto.options.length > 3) {
       throw new BadRequestException('A proposta pode ter no máximo 3 opções de kit');
     }
 
     // 1. Load project with quotes
-    const project = await this.solarProjectService.findOne(projectId, companyId);
+    const project = await this.solarProjectService.findOne(projectId, companyId, ownerUserId);
 
     // 2. Find selected quote
     const selectedQuote = project.quotes?.find((q) => q.selected);
@@ -371,6 +397,29 @@ export class ProposalsService {
       own: dto?.payment?.own ?? companyPaymentDefaults?.own ?? undefined,
     };
 
+    const proposalOwnerUserId = project.ownerUserId || (ownerUserId ? ownerUserId : userId);
+
+    let consultant: { id?: string; name: string; phone?: string; email?: string } | undefined = undefined;
+    if (proposalOwnerUserId && this.usersService) {
+      try {
+        const ownerUser = await this.usersService.findById(proposalOwnerUserId);
+        if (ownerUser) {
+          consultant = {
+            id: ownerUser.id,
+            name: ownerUser.name,
+            phone: ownerUser.phone || '',
+            email: ownerUser.email || '',
+          };
+        }
+      } catch { }
+    }
+    if (!consultant && project.consultantName) {
+      consultant = {
+        name: project.consultantName,
+        phone: '',
+      };
+    }
+
     const companySnapshot = company
       ? {
           id: company.id,
@@ -384,6 +433,7 @@ export class ProposalsService {
           cardTax: company.cardTax,
           financeTax: company.financeTax,
           cashDiscount: company.cashDiscount,
+          consultant,
         }
       : null;
 
@@ -425,6 +475,7 @@ export class ProposalsService {
     // 6. Create proposal (store snapshot + reference to sources)
     const proposal = this.proposalsRepository.create({
       companyId,
+      ownerUserId: proposalOwnerUserId,
       createdBy: userId,
       publicToken: crypto.randomBytes(16).toString('hex'),
       solarProjectId: projectId,
@@ -740,8 +791,9 @@ export class ProposalsService {
     projectId: string,
     companyId: string,
     futureLoads?: any[],
+    ownerUserId?: string,
   ) {
-    const project = await this.solarProjectService.findOne(projectId, companyId);
+    const project = await this.solarProjectService.findOne(projectId, companyId, ownerUserId);
     if (!project) throw new NotFoundException('Projeto não encontrado');
 
     if (
@@ -887,9 +939,12 @@ export class ProposalsService {
   async getOptions(
     proposalId: string,
     companyId: string,
+    ownerUserId?: string,
   ): Promise<ProposalOption[]> {
+    const where: any = { id: proposalId, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
     const proposal = await this.proposalsRepository.findOne({
-      where: { id: proposalId, companyId },
+      where,
     });
     if (!proposal) throw new NotFoundException('Proposta não encontrada');
 
@@ -903,9 +958,12 @@ export class ProposalsService {
     proposalId: string,
     companyId: string,
     dto: UpdateProposalOptionsDto,
+    ownerUserId?: string,
   ): Promise<ProposalOption[]> {
+    const where: any = { id: proposalId, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
     const proposal = await this.proposalsRepository.findOne({
-      where: { id: proposalId, companyId },
+      where,
     });
     if (!proposal) throw new NotFoundException('Proposta não encontrada');
 
@@ -1156,9 +1214,11 @@ export class ProposalsService {
 
   // ────────── QUERIES ──────────
 
-  findByLead(leadId: string, companyId: string) {
+  findByLead(leadId: string, companyId: string, ownerUserId?: string) {
+    const where: any = { leadId, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
     return this.proposalsRepository.find({
-      where: { leadId, companyId },
+      where,
     });
   }
 
@@ -1166,10 +1226,13 @@ export class ProposalsService {
     companyId: string,
     page = 1,
     limit = 50,
+    ownerUserId?: string,
   ): Promise<PaginatedResult<Proposal>> {
     const skip = (page - 1) * limit;
+    const where: any = { companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
     const [data, total] = await this.proposalsRepository.findAndCount({
-      where: { companyId },
+      where,
       order: { createdAt: 'DESC' },
       skip,
       take: limit,
@@ -1177,12 +1240,14 @@ export class ProposalsService {
     return paginate(data, total, page, limit);
   }
 
-  async findOne(id: string, companyId: string) {
+  async findOne(id: string, companyId: string, ownerUserId?: string) {
+    const where: any = { id, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
     const proposal = await this.proposalsRepository.findOne({
-      where: { id, companyId },
+      where,
       relations: ['company', 'solarProject'],
     });
-    if (!proposal) return null;
+    if (!proposal) throw new NotFoundException('Proposal not found');
     return this.mergeProjectData(proposal);
   }
 
@@ -1195,12 +1260,14 @@ export class ProposalsService {
     return this.mergeProjectData(proposal);
   }
 
-  async findOneWithRelations(id: string, companyId: string) {
+  async findOneWithRelations(id: string, companyId: string, ownerUserId?: string) {
+    const where: any = { id, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
     const proposal = await this.proposalsRepository.findOne({
-      where: { id, companyId },
+      where,
       relations: ['company', 'solarProject'],
     });
-    if (!proposal) return null;
+    if (!proposal) throw new NotFoundException('Proposal not found');
     return this.mergeProjectData(proposal);
   }
 

@@ -92,6 +92,12 @@ export class Company {
   @Column({ name: 'meta_dataset_id', nullable: true })
   metaDatasetId: string;
 
+  @Column({ default: 'basic' })
+  plan: string;
+
+  @Column({ name: 'max_users', type: 'int', nullable: true })
+  maxUsers: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

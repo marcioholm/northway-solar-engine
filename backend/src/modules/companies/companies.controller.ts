@@ -125,6 +125,16 @@ export class CompaniesController {
     return this.companiesService.update(id, updateCompanyDto);
   }
 
+  @Patch(':id/plan')
+  @Roles(UserRole.SUPERADMIN)
+  async updatePlan(
+    @Param('id') id: string,
+    @Body() dto: { plan?: string; maxUsers?: number | null },
+  ) {
+    const updated = await this.companiesService.update(id, dto);
+    return this.toResponse(updated);
+  }
+
   @Delete(':id')
   @Roles(UserRole.SUPERADMIN)
   remove(@Param('id') id: string) {

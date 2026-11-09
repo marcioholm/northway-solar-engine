@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Cog6ToothIcon, CurrencyDollarIcon, BuildingOfficeIcon, PhotoIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { Cog6ToothIcon, CurrencyDollarIcon, BuildingOfficeIcon, PhotoIcon, DocumentTextIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import { decodeToken } from '../../../lib/jwt';
 import { Input } from '../../../components/ui/Input';
 import { ProposalSettingsTab } from './ProposalSettingsTab';
+import { TeamTab } from './TeamTab';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'empresa' | 'proposta'>('empresa');
+  const [activeTab, setActiveTab] = useState<'empresa' | 'proposta' | 'equipe'>('empresa');
+  const [userRole, setUserRole] = useState<string>('');
   const [companyId, setCompanyId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [baseCity, setBaseCity] = useState('');
@@ -34,6 +36,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!token || !api) return;
     const payload = decodeToken(token);
+    if (payload?.role) {
+      setUserRole(payload.role);
+    }
     if (!payload?.companyId) return;
     setCompanyId(payload.companyId);
 
@@ -229,10 +234,35 @@ export default function SettingsPage() {
           <DocumentTextIcon style={{ width: 18, height: 18 }} />
           Proposta
         </button>
+
+        {(!userRole || userRole === 'admin' || userRole === 'superadmin') && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('equipe')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: activeTab === 'equipe' ? 'var(--surface-hover)' : 'transparent',
+              color: activeTab === 'equipe' ? 'var(--text)' : 'var(--text-secondary)',
+              border: activeTab === 'equipe' ? '1px solid var(--border)' : '1px solid transparent',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <UserGroupIcon style={{ width: 18, height: 18 }} />
+            Equipe
+          </button>
+        )}
       </div>
 
       {activeTab === 'proposta' ? (
         <ProposalSettingsTab />
+      ) : activeTab === 'equipe' ? (
+        <TeamTab />
       ) : (
         <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

@@ -1558,4 +1558,280 @@ describe('Isolamento e rotas públicas (e2e)', () => {
       expect(savedIp).toHaveLength(32);
     });
   });
+
+  describe('Gestão de equipe, perfis e visibilidade por dono (e2e)', () => {
+    let seller2Token: string;
+    let seller2Id: string;
+    let managerToken: string;
+    let managerId: string;
+
+    beforeAll(async () => {
+      const hash = await bcrypt.hash(PASSWORD, 4);
+      const s2Res = await db.query(
+        `INSERT INTO users (company_id, name, email, password_hash, role, is_active)
+         VALUES ($1, 'Vendedor 2', 'vendedor2@a.test', $2, 'seller', true)
+         RETURNING id`,
+        [COMPANY_A, hash],
+      );
+      seller2Id = s2Res[0].id;
+
+      const mRes = await db.query(
+        `INSERT INTO users (company_id, name, email, password_hash, role, is_active)
+         VALUES ($1, 'Gerente', 'gerente@a.test', $2, 'manager', true)
+         RETURNING id`,
+        [COMPANY_A, hash],
+      );
+      managerId = mRes[0].id;
+
+      seller2Token = await login('vendedor2@a.test');
+      managerToken = await login('gerente@a.test');
+    });
+
+    it('vendedor A não enxerga nem edita lead, projeto e proposta do vendedor B (404), inclusive PDF e updateOptions', async () => {
+      // 1. Vendedor 1 cria lead
+      const leadRes = await http()
+        .post('/leads')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({
+          name: 'Lead do Vendedor 1',
+          phone: '43999998888',
+          email: 'lead1@a.test',
+          city: 'Arapoti',
+          state: 'PR',
+          stage: 'new',
+        })
+        .expect(201);
+      const leadId = leadRes.body.id;
+
+      // 2. Vendedor 1 cria projeto
+      const projRes = await http()
+        .post('/solar-project')
+        .auth(sellerToken, { type: 'bearer' })
+        .send({
+          leadId,
+          clientName: 'Projeto do Vendedor 1',
+          clientCity: 'Arapoti',
+          consumptionMonthlyKwh: 500,
+          sizingPowerKwp: 4.5,
+          sizingGenerationKwh: 550,
+        })
+        .expect(201);
+      const projectId = projRes.body.id;
+
+      // 3. Vendedor 1 gera proposta
+      const propRes = await http()
+        .post(`/proposals/generate/${projectId}`)
+        .auth(sellerToken, { type: 'bearer' })
+        .expect(201);
+      const proposalId = propRes.body.id;
+
+      // Vendedor 2 tenta acessar o lead do Vendedor 1 -> 404
+      await http()
+        .get(`/leads/${leadId}`)
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(404);
+
+      // Vendedor 2 tenta atualizar o lead do Vendedor 1 -> 404
+      await http()
+        .patch(`/leads/${leadId}`)
+        .auth(seller2Token, { type: 'bearer' })
+        .send({ name: 'Hacked Lead' })
+        .expect(404);
+
+      // Vendedor 2 tenta acessar o projeto do Vendedor 1 -> 404
+      await http()
+        .get(`/solar-project/${projectId}`)
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(404);
+
+      // Vendedor 2 tenta atualizar o projeto do Vendedor 1 -> 404
+      await http()
+        .patch(`/solar-project/${projectId}`)
+        .auth(seller2Token, { type: 'bearer' })
+        .send({ clientName: 'Hacked Project' })
+        .expect(404);
+
+      // Vendedor 2 tenta acessar a proposta do Vendedor 1 -> 404
+      await http()
+        .get(`/proposals/${proposalId}`)
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(404);
+
+      // Vendedor 2 tenta baixar o PDF da proposta do Vendedor 1 -> 404
+      await http()
+        .get(`/proposals/${proposalId}/pdf`)
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(404);
+
+      // Vendedor 2 tenta atualizar opções da proposta do Vendedor 1 -> 404
+      await http()
+        .put(`/proposals/${proposalId}/options`)
+        .auth(seller2Token, { type: 'bearer' })
+        .send({ options: [{ name: 'Kit Hacker', finalPrice: 1000 }] })
+        .expect(404);
+
+      // Vendedor 2 tenta acessar eventos da proposta do Vendedor 1 -> 404
+      await http()
+        .get(`/proposals/${proposalId}/events`)
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(404);
+    });
+
+    it('gerente enxerga leads, projetos e propostas de todos, mas recebe 403 em /proposal-settings e /team', async () => {
+      // 1. Gerente acessa lista de leads da empresa -> 200
+      await http()
+        .get('/leads')
+        .auth(managerToken, { type: 'bearer' })
+        .expect(200);
+
+      // 2. Gerente acessa lista de projetos da empresa -> 200
+      await http()
+        .get('/solar-project')
+        .auth(managerToken, { type: 'bearer' })
+        .expect(200);
+
+      // 3. Gerente tenta acessar configurações de proposta -> 403
+      await http()
+        .get('/proposal-settings')
+        .auth(managerToken, { type: 'bearer' })
+        .expect(403);
+
+      // 4. Gerente tenta acessar /team -> 403
+      await http()
+        .get('/team')
+        .auth(managerToken, { type: 'bearer' })
+        .expect(403);
+    });
+
+    it('token de usuário desativado é rejeitado na requisição seguinte (401)', async () => {
+      // Vendedor 2 está ativo e acessa /solar-project
+      await http()
+        .get('/solar-project')
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(200);
+
+      // Admin desativa Vendedor 2
+      await http()
+        .patch(`/team/${seller2Id}/deactivate`)
+        .auth(adminToken, { type: 'bearer' })
+        .expect(200);
+
+      // Próxima requisição com o token do Vendedor 2 é rejeitada com 401
+      await http()
+        .get('/solar-project')
+        .auth(seller2Token, { type: 'bearer' })
+        .expect(401);
+    });
+
+    it('mudança de papel tem efeito sem precisar relogar', async () => {
+      const hash = await bcrypt.hash(PASSWORD, 4);
+      const uRes = await db.query(
+        `INSERT INTO users (company_id, name, email, password_hash, role, is_active)
+         VALUES ($1, 'Promovido', 'promovido@a.test', $2, 'seller', true)
+         RETURNING id`,
+        [COMPANY_A, hash],
+      );
+      const promotedUserId = uRes[0].id;
+      const promotedToken = await login('promovido@a.test');
+
+      // Vendedor não acessa proposal-settings -> 403
+      await http()
+        .get('/proposal-settings')
+        .auth(promotedToken, { type: 'bearer' })
+        .expect(403);
+
+      // Admin promove usuário para manager (ou admin) via PATCH /team/:id
+      await http()
+        .patch(`/team/${promotedUserId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ role: 'admin' })
+        .expect(200);
+
+      // O MESMO token agora acessa proposal-settings com sucesso (200)
+      await http()
+        .get('/proposal-settings')
+        .auth(promotedToken, { type: 'bearer' })
+        .expect(200);
+    });
+
+    it('limite do plano bloqueia novo convite com 403', async () => {
+      // Define max_users para 1 na empresa A
+      await db.query(
+        `UPDATE companies SET max_users = 1 WHERE id = $1`,
+        [COMPANY_A],
+      );
+
+      // Admin tenta convidar novo usuário -> 403 Forbidden
+      await http()
+        .post('/team/invites')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          email: 'acima-do-limite@a.test',
+          role: 'seller',
+        })
+        .expect(403);
+
+      // Restaura max_users para 20
+      await db.query(
+        `UPDATE companies SET max_users = 20 WHERE id = $1`,
+        [COMPANY_A],
+      );
+    });
+
+    it('aceitar convite cria usuário com company_id e role do convite', async () => {
+      const inviteEmail = 'convidado.novo@a.test';
+      const invRes = await http()
+        .post('/team/invites')
+        .auth(adminToken, { type: 'bearer' })
+        .send({
+          email: inviteEmail,
+          role: 'seller',
+        })
+        .expect(201);
+
+      const rawToken = invRes.body.rawToken;
+      expect(rawToken).toBeDefined();
+
+      // Consulta pública do convite
+      const pubRes = await http()
+        .get(`/auth/invite/${rawToken}`)
+        .expect(200);
+      expect(pubRes.body.email).toBe(inviteEmail);
+      expect(pubRes.body.role).toBe('seller');
+      expect(pubRes.body.companyName).toMatch(/Empresa A/);
+
+      // Aceita convite
+      await http()
+        .post('/auth/accept-invite')
+        .send({
+          token: rawToken,
+          name: 'Vendedor Convidado',
+          password: 'NovaSenhaSegura123!',
+          phone: '11977776666',
+        })
+        .expect(201);
+
+      // Confere no banco de dados se foi criado na Company A com role seller
+      const [createdUser] = await db.query(
+        `SELECT id, company_id, role, name, phone, is_active FROM users WHERE email = $1`,
+        [inviteEmail],
+      );
+      expect(createdUser).toBeDefined();
+      expect(createdUser.company_id).toBe(COMPANY_A);
+      expect(createdUser.role).toBe('seller');
+      expect(createdUser.name).toBe('Vendedor Convidado');
+      expect(createdUser.phone).toBe('11977776666');
+      expect(createdUser.is_active).toBe(true);
+
+      // Rejeita tentar reutilizar o mesmo token
+      await http()
+        .post('/auth/accept-invite')
+        .send({
+          token: rawToken,
+          name: 'Tentativa Reuso',
+          password: 'OutraSenha123!',
+        })
+        .expect(404);
+    });
+  });
 });

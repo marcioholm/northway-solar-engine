@@ -11,6 +11,7 @@ import {
 import { Company } from '../../companies/entities/company.entity';
 import { Proposal } from '../../proposals/entities/proposal.entity';
 import { Quote } from './quote.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('solar_project')
 export class SolarProject {
@@ -26,6 +27,13 @@ export class SolarProject {
 
   @Column({ name: 'lead_id', nullable: true })
   leadId: string;
+
+  @Column({ name: 'owner_user_id', nullable: true })
+  ownerUserId: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'owner_user_id' })
+  ownerUser?: User | null;
 
   @Column({ name: 'created_by' })
   createdBy: string;

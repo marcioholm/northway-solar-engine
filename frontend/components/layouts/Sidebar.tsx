@@ -69,6 +69,7 @@ export default function Sidebar() {
   const getRoleLabel = (r: string | null) => {
     if (!r) return 'Administrador';
     if (r.toLowerCase() === 'superadmin') return 'Superadmin';
+    if (r.toLowerCase() === 'manager') return 'Gerente';
     if (r.toLowerCase() === 'seller') return 'Vendedor';
     if (r.toLowerCase() === 'admin') return 'Administrador';
     return r;
