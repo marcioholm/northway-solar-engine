@@ -13,11 +13,20 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByEmail(email);
-    if (user && (await bcrypt.compare(pass, user.passwordHash))) {
-      const { passwordHash, ...result } = user;
-      return result;
+    if (!user) return null;
+
+    const isMatch = await bcrypt.compare(pass, user.passwordHash);
+    if (!isMatch) {
+      return null;
     }
-    return null;
+
+    if (user.isActive === false) {
+      throw new UnauthorizedException('Usuário inativo ou desativado');
+    }
+
+    await this.usersService.updateLastLogin(user.id);
+    const { passwordHash, ...result } = user;
+    return result;
   }
 
   async login(user: any) {

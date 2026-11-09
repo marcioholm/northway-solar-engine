@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { TeamService } from '../team/team.service';
 import { ThrottlerStorage } from '@nestjs/throttler';
 
 describe('AuthController', () => {
@@ -11,6 +12,7 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: {} },
+        { provide: TeamService, useValue: {} },
         { provide: 'THROTTLER:MODULE_OPTIONS', useValue: {} },
         { provide: ThrottlerStorage, useValue: {} },
         { provide: 'THROTTLER:LIMIT_DEFAULT', useValue: {} },

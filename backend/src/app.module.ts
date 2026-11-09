@@ -27,6 +27,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { IntelligenceModule } from './modules/intelligence/intelligence.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { TeamsModule } from './modules/teams/teams.module';
+import { TeamModule } from './modules/team/team.module';
 import { ProposalSettingsModule } from './modules/proposal-settings/proposal-settings.module';
 import { GeoModule } from './modules/geo/geo.module';
 
@@ -79,6 +80,7 @@ import { GeoModule } from './modules/geo/geo.module';
     IntelligenceModule,
     FinanceModule,
     TeamsModule,
+    TeamModule,
     ProposalSettingsModule,
     GeoModule,
   ],

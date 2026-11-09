@@ -25,6 +25,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
+import { scopeFor } from '../../common/utils/scope.util';
 
 @ApiTags('proposals')
 @Controller('proposals')
@@ -37,8 +38,9 @@ export class ProposalsController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   create(@Request() req, @Body() createProposalDto: CreateProposalDto) {
+    const scope = scopeFor(req.user);
     return this.proposalsService.create(
-      req.user.companyId,
+      scope.companyId,
       req.user.userId,
       createProposalDto,
     );
@@ -52,11 +54,13 @@ export class ProposalsController {
     @Param('projectId') projectId: string,
     @Body() dto?: GenerateProposalDto,
   ) {
+    const scope = scopeFor(req.user);
     return this.proposalsService.generate(
       projectId,
-      req.user.companyId,
+      scope.companyId,
       req.user.userId,
       dto,
+      scope.ownerUserId,
     );
   }
 
@@ -68,10 +72,12 @@ export class ProposalsController {
     @Param('projectId') projectId: string,
     @Body() dto?: CalculateScenariosDto,
   ) {
+    const scope = scopeFor(req.user);
     return this.proposalsService.calculateProjectScenarios(
       projectId,
-      req.user.companyId,
+      scope.companyId,
       dto?.futureLoads,
+      scope.ownerUserId,
     );
   }
 
@@ -79,7 +85,8 @@ export class ProposalsController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   getOptions(@Param('id') id: string, @Request() req) {
-    return this.proposalsService.getOptions(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.proposalsService.getOptions(id, scope.companyId, scope.ownerUserId);
   }
 
   @Put(':id/options')
@@ -90,7 +97,8 @@ export class ProposalsController {
     @Request() req,
     @Body() dto: UpdateProposalOptionsDto,
   ) {
-    return this.proposalsService.updateOptions(id, req.user.companyId, dto);
+    const scope = scopeFor(req.user);
+    return this.proposalsService.updateOptions(id, scope.companyId, dto, scope.ownerUserId);
   }
 
   @Get()
@@ -101,14 +109,16 @@ export class ProposalsController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.proposalsService.findAll(req.user.companyId, page, limit);
+    const scope = scopeFor(req.user);
+    return this.proposalsService.findAll(scope.companyId, page, limit, scope.ownerUserId);
   }
 
   @Get('lead/:leadId')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   findByLead(@Param('leadId') leadId: string, @Request() req) {
-    return this.proposalsService.findByLead(leadId, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.proposalsService.findByLead(leadId, scope.companyId, scope.ownerUserId);
   }
 
   @Get(':id')
@@ -116,15 +126,16 @@ export class ProposalsController {
   @UseGuards(AuthGuard('jwt'))
   @ApiQuery({ name: 'format', required: false, enum: ['json', 'html', 'web'] })
   async findOne(@Param('id') id: string, @Request() req, @Query('format') format?: string) {
+    const scope = scopeFor(req.user);
     if (format === 'html') {
-      const result = await this.proposalsService.render(id, req.user.companyId, 'html');
+      const result = await this.proposalsService.render(id, scope.companyId, 'html', scope.ownerUserId);
       return result.content;
     }
     if (format === 'web') {
-      const result = await this.proposalsService.render(id, req.user.companyId, 'web');
+      const result = await this.proposalsService.render(id, scope.companyId, 'web', scope.ownerUserId);
       return JSON.parse(result.content as string);
     }
-    return this.proposalsService.findOne(id, req.user.companyId);
+    return this.proposalsService.findOne(id, scope.companyId, scope.ownerUserId);
   }
 
   @Get('public/:token')
@@ -147,7 +158,8 @@ export class ProposalsController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   async downloadPdf(@Param('id') id: string, @Request() req, @Res() res: Response) {
-    const { content, filename } = await this.proposalsService.render(id, req.user.companyId, 'pdf');
+    const scope = scopeFor(req.user);
+    const { content, filename } = await this.proposalsService.render(id, scope.companyId, 'pdf', scope.ownerUserId);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(content);
@@ -171,7 +183,8 @@ export class ProposalsController {
   @Get(':id/events')
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
-  getEvents(@Param('id') id: string) {
-    return this.proposalsService.getEvents(id);
+  getEvents(@Param('id') id: string, @Request() req) {
+    const scope = scopeFor(req.user);
+    return this.proposalsService.getEvents(id, scope.companyId, scope.ownerUserId);
   }
 }

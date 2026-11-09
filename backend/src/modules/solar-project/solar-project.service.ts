@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { SolarProject } from './entities/solar-project.entity';
+import { Lead } from '../leads/entities/lead.entity';
+import { UserRole } from '../users/entities/user.entity';
 import { CreateSolarProjectDto } from './dto/create-solar-project.dto';
 import { UpdateSolarProjectDto } from './dto/update-solar-project.dto';
 import { paginate, PaginatedResult } from '../../common/dto/pagination.dto';
@@ -58,38 +60,36 @@ const MODULE_MAP: Record<string, string[]> = {
   ],
   sizing: [
     'sizingPowerKwp',
-    'sizingGenerationKwh',
-    'sizingIrradiation',
-    'sizingLossFactor',
+    'sizingMonthlyKwh',
+    'sizingAreaM2',
     'sizingModuleQty',
-    'sizingInverterQty',
+    'sizingGenerationKwh',
+    'sizingOverloadPct',
+    'sizingLossFactor',
+    'sizingPerformanceRatio',
     'sizingObservations',
   ],
-  equipment: [
-    'equipmentModules',
-    'equipmentInverters',
-    'equipmentStructures',
-    'equipmentCables',
-  ],
+  equipment: ['equipmentModules', 'equipmentInverters', 'equipmentStructures'],
   pricing: [
     'pricingEquipmentCost',
-    'pricingLaborCost',
     'pricingProjectCost',
-    'pricingFreightCost',
-    'pricingTravelCost',
-    'pricingCommission',
-    'pricingTaxes',
-    'pricingAdminCost',
-    'pricingMarginPct',
-    'pricingMarginValue',
-    'pricingMinPrice',
-    'pricingFinalPrice',
-    'pricingDiscountPct',
-    'pricingArtCost',
+    'pricingLaborCost',
     'pricingInstallationCost',
+    'pricingArtCost',
     'pricingHotelCost',
     'pricingFoodCost',
+    'pricingFreightCost',
+    'pricingTravelCost',
+    'pricingTravelDistance',
+    'pricingTravelTrips',
+    'pricingFuelEfficiency',
+    'pricingFuelPrice',
     'pricingTollCost',
+    'pricingTaxes',
+    'pricingCommission',
+    'pricingCommissionPct',
+    'pricingAdminCost',
+    'pricingMarginPct',
     'pricingCraneCost',
     'pricingThirdPartiesCost',
     'pricingOtherCost',
@@ -99,11 +99,6 @@ const MODULE_MAP: Record<string, string[]> = {
     'pricingEffectiveMarginPct',
     'pricingMinMarginPct',
     'pricingRecommendedMarginPct',
-    'pricingTravelDistance',
-    'pricingTravelTrips',
-    'pricingFuelEfficiency',
-    'pricingFuelPrice',
-    'pricingCommissionPct',
   ],
   payment: [
     'paymentCashDiscount',
@@ -117,11 +112,9 @@ const MODULE_MAP: Record<string, string[]> = {
 
 const MODULE_KEYS = Object.keys(MODULE_MAP);
 
-function mapModuleToFields(
-  module: string,
-  data: Record<string, any>,
-): Record<string, any> {
+function mapModuleToFields(module: string, data: Record<string, any>): Record<string, any> {
   const fieldMap: Record<string, string> = {
+    // client
     name: 'clientName',
     document: 'clientDocument',
     phone: 'clientPhone',
@@ -130,10 +123,11 @@ function mapModuleToFields(
     state: 'clientState',
     zipcode: 'clientZipcode',
     utility: 'clientUtility',
-    consumerClass: 'clientClass',
+    class: 'clientClass',
     tariffGroup: 'clientTariffGroup',
     modality: 'clientModality',
-    consultantName: 'consultantName',
+    consultant: 'consultantName',
+    // site
     address: 'siteAddress',
     latitude: 'siteLatitude',
     longitude: 'siteLongitude',
@@ -141,42 +135,41 @@ function mapModuleToFields(
     inclination: 'siteInclination',
     azimuth: 'siteAzimuth',
     photos: 'sitePhotos',
-    monthlyConsumption: 'consumptionMonthlyKwh',
+    // consumption
+    monthlyKwh: 'consumptionMonthlyKwh',
     monthlyBill: 'consumptionMonthlyBill',
     tariff: 'consumptionTariff',
     demand: 'consumptionDemand',
-    consumptionModality: 'consumptionModality',
     group: 'consumptionGroup',
     invoices: 'consumptionInvoices',
-    systemPowerKwp: 'sizingPowerKwp',
-    monthlyGenerationKwh: 'sizingGenerationKwh',
-    irradiation: 'sizingIrradiation',
-    lossFactor: 'sizingLossFactor',
+    // sizing
+    powerKwp: 'sizingPowerKwp',
+    areaM2: 'sizingAreaM2',
     moduleQty: 'sizingModuleQty',
-    inverterQty: 'sizingInverterQty',
-    observations: 'sizingObservations',
+    generationKwh: 'sizingGenerationKwh',
+    overloadPct: 'sizingOverloadPct',
+    lossFactor: 'sizingLossFactor',
+    performanceRatio: 'sizingPerformanceRatio',
+    // equipment
     modules: 'equipmentModules',
     inverters: 'equipmentInverters',
     structures: 'equipmentStructures',
-    cables: 'equipmentCables',
+    // pricing
     equipmentCost: 'pricingEquipmentCost',
-    laborCost: 'pricingLaborCost',
     projectCost: 'pricingProjectCost',
-    freightCost: 'pricingFreightCost',
-    travelCost: 'pricingTravelCost',
-    commission: 'pricingCommission',
-    taxes: 'pricingTaxes',
-    adminCost: 'pricingAdminCost',
-    marginPct: 'pricingMarginPct',
-    marginValue: 'pricingMarginValue',
-    minPrice: 'pricingMinPrice',
-    finalPrice: 'pricingFinalPrice',
-    discountPct: 'pricingDiscountPct',
-    artCost: 'pricingArtCost',
+    laborCost: 'pricingLaborCost',
     installationCost: 'pricingInstallationCost',
+    artCost: 'pricingArtCost',
     hotelCost: 'pricingHotelCost',
     foodCost: 'pricingFoodCost',
+    freightCost: 'pricingFreightCost',
+    travelCost: 'pricingTravelCost',
     tollCost: 'pricingTollCost',
+    taxes: 'pricingTaxes',
+    commission: 'pricingCommission',
+    commissionPct: 'pricingCommissionPct',
+    adminCost: 'pricingAdminCost',
+    marginPct: 'pricingMarginPct',
     craneCost: 'pricingCraneCost',
     thirdPartiesCost: 'pricingThirdPartiesCost',
     otherCost: 'pricingOtherCost',
@@ -206,12 +199,15 @@ export class SolarProjectService {
   constructor(
     @InjectRepository(SolarProject)
     private repository: Repository<SolarProject>,
+    @InjectRepository(Lead)
+    private leadsRepository: Repository<Lead>,
   ) {}
 
   async create(
     companyId: string,
     userId: string,
     dto: CreateSolarProjectDto,
+    role?: UserRole | string,
   ): Promise<SolarProject> {
     const flatData: Partial<SolarProject> = {
       companyId,
@@ -242,6 +238,21 @@ export class SolarProjectService {
 
     if (dto.leadId) flatData.leadId = dto.leadId;
 
+    // Regra: projeto herda o dono do lead; se criado por seller fica com ele como dono
+    let ownerUserId = (dto as any).ownerUserId;
+    if (!ownerUserId && dto.leadId) {
+      const lead = await this.leadsRepository.findOne({
+        where: { id: dto.leadId, companyId },
+      });
+      if (lead?.assignedTo) {
+        ownerUserId = lead.assignedTo;
+      }
+    }
+    if (!ownerUserId && role === UserRole.SELLER) {
+      ownerUserId = userId;
+    }
+    flatData.ownerUserId = ownerUserId || null;
+
     const project = this.repository.create(flatData);
     return this.repository.save(project);
   }
@@ -254,9 +265,11 @@ export class SolarProjectService {
       consultant?: string;
       page?: number;
       limit?: number;
+      ownerUserId?: string;
     },
   ): Promise<PaginatedResult<SolarProject>> {
     const where: any = { companyId };
+    if (filters?.ownerUserId) where.ownerUserId = filters.ownerUserId;
     if (filters?.status) where.status = filters.status;
     if (filters?.consultant) where.consultantName = filters.consultant;
     if (filters?.query) {
@@ -274,17 +287,34 @@ export class SolarProjectService {
     return paginate(data, total, page, limit);
   }
 
-  async findOne(id: string, companyId: string): Promise<SolarProject> {
+  async findOne(
+    id: string,
+    companyId: string,
+    ownerUserId?: string,
+  ): Promise<SolarProject> {
+    const where: any = { id, companyId };
+    if (ownerUserId) {
+      where.ownerUserId = ownerUserId;
+    }
     const project = await this.repository.findOne({
-      where: { id, companyId },
+      where,
       relations: ['quotes', 'quotes.items', 'proposals'],
     });
     if (!project) throw new NotFoundException('SolarProject not found');
     return project;
   }
 
-  async update(id: string, companyId: string, dto: UpdateSolarProjectDto): Promise<SolarProject> {
-    const project = await this.findOne(id, companyId);
+  async update(
+    id: string,
+    companyId: string,
+    dto: UpdateSolarProjectDto,
+    ownerUserId?: string,
+  ): Promise<SolarProject> {
+    const project = await this.findOne(id, companyId, ownerUserId);
+
+    if (ownerUserId && (dto as any).ownerUserId && (dto as any).ownerUserId !== ownerUserId) {
+      delete (dto as any).ownerUserId;
+    }
 
     // Apply flat typed fields
     const allFields = Object.values(MODULE_MAP).flat();
@@ -316,17 +346,22 @@ export class SolarProjectService {
     companyId: string,
     module: string,
     data: Record<string, any>,
+    ownerUserId?: string,
   ): Promise<SolarProject> {
     if (!MODULE_KEYS.includes(module)) {
       throw new NotFoundException(`Module '${module}' not found`);
     }
     const dto = new UpdateSolarProjectDto();
     (dto as any)[module] = data;
-    return this.update(id, companyId, dto);
+    return this.update(id, companyId, dto, ownerUserId);
   }
 
-  async advanceStatus(id: string, companyId: string): Promise<SolarProject> {
-    const project = await this.findOne(id, companyId);
+  async advanceStatus(
+    id: string,
+    companyId: string,
+    ownerUserId?: string,
+  ): Promise<SolarProject> {
+    const project = await this.findOne(id, companyId, ownerUserId);
     const idx = STATUS_FLOW.indexOf(project.status);
     if (idx < STATUS_FLOW.length - 1) {
       project.status = STATUS_FLOW[idx + 1];
@@ -334,21 +369,36 @@ export class SolarProjectService {
     return this.repository.save(project);
   }
 
-  async updateStatus(id: string, companyId: string, status: string): Promise<SolarProject> {
-    const project = await this.findOne(id, companyId);
+  async updateStatus(
+    id: string,
+    companyId: string,
+    status: string,
+    ownerUserId?: string,
+  ): Promise<SolarProject> {
+    const project = await this.findOne(id, companyId, ownerUserId);
     project.status = status;
     return this.repository.save(project);
   }
 
-  getByLead(leadId: string, companyId: string): Promise<SolarProject[]> {
+  getByLead(
+    leadId: string,
+    companyId: string,
+    ownerUserId?: string,
+  ): Promise<SolarProject[]> {
+    const where: any = { leadId, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
     return this.repository.find({
-      where: { leadId, companyId },
+      where,
       order: { createdAt: 'DESC' },
     });
   }
 
-  async remove(id: string, companyId: string): Promise<void> {
-    const project = await this.findOne(id, companyId);
+  async remove(
+    id: string,
+    companyId: string,
+    ownerUserId?: string,
+  ): Promise<void> {
+    const project = await this.findOne(id, companyId, ownerUserId);
     await this.repository.remove(project);
   }
 }

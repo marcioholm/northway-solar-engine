@@ -1,9 +1,13 @@
 import { Controller, Get, Param, Patch, Body, Request, UseGuards } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
 
 @Controller('projects')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.SUPERADMIN)
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 

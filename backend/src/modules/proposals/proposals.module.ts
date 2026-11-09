@@ -12,6 +12,7 @@ import { CompaniesModule } from '../companies/companies.module';
 import { LeadsModule } from '../leads/leads.module';
 import { ProposalSettingsModule } from '../proposal-settings/proposal-settings.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { InventoryModule } from '../inventory/inventory.module';
     LeadsModule,
     ProposalSettingsModule,
     InventoryModule,
+    UsersModule,
   ],
   controllers: [ProposalsController],
   providers: [ProposalsService],

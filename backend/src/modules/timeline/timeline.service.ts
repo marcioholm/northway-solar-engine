@@ -14,8 +14,10 @@ export class TimelineService {
     private leadRepository: Repository<Lead>,
   ) {}
 
-  async create(companyId: string, userId: string, dto: CreateTimelineDto) {
-    const lead = await this.leadRepository.findOneBy({ id: dto.leadId, companyId });
+  async create(companyId: string, userId: string, dto: CreateTimelineDto, ownerUserId?: string) {
+    const where: any = { id: dto.leadId, companyId };
+    if (ownerUserId) where.assignedTo = ownerUserId;
+    const lead = await this.leadRepository.findOneBy(where);
     if (!lead) throw new NotFoundException('Lead not found');
 
     const event = this.timelineRepository.create({
@@ -25,8 +27,10 @@ export class TimelineService {
     return this.timelineRepository.save(event);
   }
 
-  async findByLead(leadId: string, companyId: string) {
-    const lead = await this.leadRepository.findOneBy({ id: leadId, companyId });
+  async findByLead(leadId: string, companyId: string, ownerUserId?: string) {
+    const where: any = { id: leadId, companyId };
+    if (ownerUserId) where.assignedTo = ownerUserId;
+    const lead = await this.leadRepository.findOneBy(where);
     if (!lead) throw new NotFoundException('Lead not found');
 
     return this.timelineRepository.find({

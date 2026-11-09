@@ -17,35 +17,66 @@ export class TasksService {
       ...dto,
       companyId,
       createdBy: userId,
+      assignedTo: dto.assignedTo || userId,
       dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
     });
     return this.tasksRepository.save(task);
   }
 
-  findAll(companyId: string) {
+  findAll(companyId: string, ownerUserId?: string) {
+    if (ownerUserId) {
+      return this.tasksRepository.find({
+        where: [
+          { companyId, assignedTo: ownerUserId },
+          { companyId, createdBy: ownerUserId },
+        ],
+        order: { createdAt: 'DESC' },
+      });
+    }
     return this.tasksRepository.find({
       where: { companyId },
       order: { createdAt: 'DESC' },
     });
   }
 
-  findByLead(leadId: string, companyId: string) {
+  findByLead(leadId: string, companyId: string, ownerUserId?: string) {
+    if (ownerUserId) {
+      return this.tasksRepository.find({
+        where: [
+          { leadId, companyId, assignedTo: ownerUserId },
+          { leadId, companyId, createdBy: ownerUserId },
+        ],
+        order: { dueDate: 'ASC' },
+      });
+    }
     return this.tasksRepository.find({
       where: { leadId, companyId },
       order: { dueDate: 'ASC' },
     });
   }
 
-  findPending(companyId: string) {
+  findPending(companyId: string, ownerUserId?: string) {
+    if (ownerUserId) {
+      return this.tasksRepository.find({
+        where: [
+          { companyId, status: TaskStatus.PENDING, assignedTo: ownerUserId },
+          { companyId, status: TaskStatus.PENDING, createdBy: ownerUserId },
+        ],
+        order: { dueDate: 'ASC' },
+      });
+    }
     return this.tasksRepository.find({
       where: { companyId, status: TaskStatus.PENDING },
       order: { dueDate: 'ASC' },
     });
   }
 
-  async update(id: string, companyId: string, dto: UpdateTaskDto) {
+  async update(id: string, companyId: string, dto: UpdateTaskDto, ownerUserId?: string) {
     const task = await this.tasksRepository.findOneBy({ id, companyId });
     if (!task) throw new NotFoundException('Task not found');
+    if (ownerUserId && task.assignedTo !== ownerUserId && task.createdBy !== ownerUserId) {
+      throw new NotFoundException('Task not found');
+    }
     Object.assign(task, dto);
     if (dto.status === TaskStatus.DONE) {
       task.completedAt = new Date();
@@ -53,8 +84,12 @@ export class TasksService {
     return this.tasksRepository.save(task);
   }
 
-  async remove(id: string, companyId: string) {
-    const result = await this.tasksRepository.delete({ id, companyId });
-    if (!result.affected) throw new NotFoundException('Task not found');
+  async remove(id: string, companyId: string, ownerUserId?: string) {
+    const task = await this.tasksRepository.findOneBy({ id, companyId });
+    if (!task) throw new NotFoundException('Task not found');
+    if (ownerUserId && task.assignedTo !== ownerUserId && task.createdBy !== ownerUserId) {
+      throw new NotFoundException('Task not found');
+    }
+    await this.tasksRepository.remove(task);
   }
 }

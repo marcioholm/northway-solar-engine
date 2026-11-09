@@ -27,8 +27,11 @@ export class QuoteService {
     companyId: string,
     userId: string,
     dto: CreateQuoteDto,
+    ownerUserId?: string,
   ): Promise<Quote> {
-    const project = await this.projectRepository.findOne({ where: { id: projectId, companyId } });
+    const where: any = { id: projectId, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
+    const project = await this.projectRepository.findOne({ where });
     if (!project) throw new NotFoundException('Project not found');
 
     const itemsTotal = dto.items.reduce(
@@ -68,8 +71,10 @@ export class QuoteService {
     return this.quoteRepository.save(quote);
   }
 
-  async findByProject(projectId: string, companyId: string): Promise<Quote[]> {
-    const project = await this.projectRepository.findOne({ where: { id: projectId, companyId } });
+  async findByProject(projectId: string, companyId: string, ownerUserId?: string): Promise<Quote[]> {
+    const where: any = { id: projectId, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
+    const project = await this.projectRepository.findOne({ where });
     if (!project) throw new NotFoundException('Project not found');
     
     return this.quoteRepository.find({
@@ -79,7 +84,7 @@ export class QuoteService {
     });
   }
 
-  async findOne(id: string, companyId: string): Promise<Quote> {
+  async findOne(id: string, companyId: string, ownerUserId?: string): Promise<Quote> {
     const quote = await this.quoteRepository.findOne({
       where: { id },
       relations: ['items', 'solarProject'],
@@ -87,18 +92,21 @@ export class QuoteService {
     if (!quote || quote.solarProject.companyId !== companyId) {
       throw new NotFoundException('Quote not found');
     }
+    if (ownerUserId && quote.solarProject.ownerUserId !== ownerUserId) {
+      throw new NotFoundException('Quote not found');
+    }
     return quote;
   }
 
-  async update(id: string, companyId: string, dto: UpdateQuoteDto): Promise<Quote> {
-    const quote = await this.findOne(id, companyId);
+  async update(id: string, companyId: string, dto: UpdateQuoteDto, ownerUserId?: string): Promise<Quote> {
+    const quote = await this.findOne(id, companyId, ownerUserId);
     if (dto.validUntil) quote.validUntil = dto.validUntil;
     Object.assign(quote, dto);
     return this.quoteRepository.save(quote);
   }
 
-  async select(projectId: string, companyId: string, quoteId: string): Promise<Quote> {
-    const quote = await this.findOne(quoteId, companyId);
+  async select(projectId: string, companyId: string, quoteId: string, ownerUserId?: string): Promise<Quote> {
+    const quote = await this.findOne(quoteId, companyId, ownerUserId);
     if (quote.solarProjectId !== projectId) {
       throw new BadRequestException('Quote does not belong to this project');
     }
@@ -114,8 +122,10 @@ export class QuoteService {
     return this.quoteRepository.save(quote);
   }
 
-  async getSelected(projectId: string, companyId: string): Promise<Quote | null> {
-    const project = await this.projectRepository.findOne({ where: { id: projectId, companyId } });
+  async getSelected(projectId: string, companyId: string, ownerUserId?: string): Promise<Quote | null> {
+    const where: any = { id: projectId, companyId };
+    if (ownerUserId) where.ownerUserId = ownerUserId;
+    const project = await this.projectRepository.findOne({ where });
     if (!project) throw new NotFoundException('Project not found');
 
     const quote = await this.quoteRepository.findOne({
@@ -125,8 +135,8 @@ export class QuoteService {
     return quote || null;
   }
 
-  async remove(id: string, companyId: string): Promise<void> {
-    const quote = await this.findOne(id, companyId);
+  async remove(id: string, companyId: string, ownerUserId?: string): Promise<void> {
+    const quote = await this.findOne(id, companyId, ownerUserId);
     await this.quoteRepository.remove(quote);
   }
 }

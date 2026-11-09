@@ -22,4 +22,11 @@ export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {
   @IsString()
   @MaxLength(255)
   metaDatasetId?: string;
+
+  @IsOptional()
+  @IsString()
+  plan?: string;
+
+  @IsOptional()
+  maxUsers?: number | null;
 }

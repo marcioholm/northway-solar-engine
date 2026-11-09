@@ -11,6 +11,7 @@ import { TimelineService } from './timeline.service';
 import { CreateTimelineDto } from './dto/create-timeline.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { scopeFor } from '../../common/utils/scope.util';
 
 @ApiTags('timeline')
 @ApiBearerAuth()
@@ -21,11 +22,13 @@ export class TimelineController {
 
   @Post()
   create(@Request() req, @Body() dto: CreateTimelineDto) {
-    return this.timelineService.create(req.user.companyId, req.user.userId, dto);
+    const scope = scopeFor(req.user);
+    return this.timelineService.create(scope.companyId, req.user.userId, dto, scope.ownerUserId);
   }
 
   @Get('lead/:leadId')
   findByLead(@Param('leadId') leadId: string, @Request() req) {
-    return this.timelineService.findByLead(leadId, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.timelineService.findByLead(leadId, scope.companyId, scope.ownerUserId);
   }
 }

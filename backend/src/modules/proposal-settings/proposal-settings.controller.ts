@@ -34,6 +34,7 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
 @ApiTags('proposal-settings')
 @ApiBearerAuth()
 @UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
 @Controller('proposal-settings')
 export class ProposalSettingsController {
   private readonly logger = new Logger(ProposalSettingsController.name);

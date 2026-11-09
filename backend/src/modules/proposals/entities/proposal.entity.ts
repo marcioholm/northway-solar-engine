@@ -12,6 +12,7 @@ import { Company } from '../../companies/entities/company.entity';
 import { SolarProject } from '../../solar-project/entities/solar-project.entity';
 import { Quote } from '../../solar-project/entities/quote.entity';
 import { ProposalOption } from './proposal-option.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('proposals')
 export class Proposal {
@@ -143,6 +144,13 @@ export class Proposal {
 
   @Column({ name: 'lead_id', nullable: true })
   leadId: string;
+
+  @Column({ name: 'owner_user_id', type: 'uuid', nullable: true })
+  ownerUserId: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'owner_user_id' })
+  ownerUser?: User | null;
 
   @Column({ name: 'stage', nullable: true })
   stage: string;

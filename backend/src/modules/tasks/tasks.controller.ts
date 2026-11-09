@@ -15,6 +15,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { scopeFor } from '../../common/utils/scope.util';
 
 @ApiTags('tasks')
 @ApiBearerAuth()
@@ -25,29 +26,34 @@ export class TasksController {
 
   @Post()
   create(@Request() req, @Body() dto: CreateTaskDto) {
-    return this.tasksService.create(req.user.companyId, req.user.userId, dto);
+    const scope = scopeFor(req.user);
+    return this.tasksService.create(scope.companyId, req.user.userId, dto);
   }
 
   @Get()
   findAll(@Request() req, @Query('leadId') leadId?: string) {
+    const scope = scopeFor(req.user);
     if (leadId) {
-      return this.tasksService.findByLead(leadId, req.user.companyId);
+      return this.tasksService.findByLead(leadId, scope.companyId, scope.ownerUserId);
     }
-    return this.tasksService.findAll(req.user.companyId);
+    return this.tasksService.findAll(scope.companyId, scope.ownerUserId);
   }
 
   @Get('pending')
   findPending(@Request() req) {
-    return this.tasksService.findPending(req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.tasksService.findPending(scope.companyId, scope.ownerUserId);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateTaskDto, @Request() req) {
-    return this.tasksService.update(id, req.user.companyId, dto);
+    const scope = scopeFor(req.user);
+    return this.tasksService.update(id, scope.companyId, dto, scope.ownerUserId);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string, @Request() req) {
-    return this.tasksService.remove(id, req.user.companyId);
+    const scope = scopeFor(req.user);
+    return this.tasksService.remove(id, scope.companyId, scope.ownerUserId);
   }
 }
