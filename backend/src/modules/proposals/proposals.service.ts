@@ -402,7 +402,7 @@ export class ProposalsService {
     let consultant: { id?: string; name: string; phone?: string; email?: string } | undefined = undefined;
     if (proposalOwnerUserId && this.usersService) {
       try {
-        const ownerUser = await this.usersService.findById(proposalOwnerUserId);
+        const ownerUser = await this.usersService.findOne(proposalOwnerUserId);
         if (ownerUser) {
           consultant = {
             id: ownerUser.id,

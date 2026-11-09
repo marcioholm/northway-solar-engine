@@ -131,8 +131,9 @@ export class CompaniesController {
     @Param('id') id: string,
     @Body() dto: { plan?: string; maxUsers?: number | null },
   ) {
-    const updated = await this.companiesService.update(id, dto);
-    return this.toResponse(updated);
+    await this.companiesService.update(id, dto);
+    const updated = await this.companiesService.findOne(id);
+    return this.toResponse(updated!);
   }
 
   @Delete(':id')
