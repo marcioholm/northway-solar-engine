@@ -39,6 +39,20 @@ export class SupabaseService {
     return data;
   }
 
+  async downloadFile(bucket: string, path: string): Promise<Buffer | null> {
+    if (!this.client) return null;
+    try {
+      const { data, error } = await this.client.storage
+        .from(bucket)
+        .download(path);
+      if (error || !data) return null;
+      const arrayBuffer = await data.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch {
+      return null;
+    }
+  }
+
   async getPublicUrl(bucket: string, path: string): Promise<string | null> {
     if (!this.client) return null;
     const { data } = this.client.storage.from(bucket).getPublicUrl(path);

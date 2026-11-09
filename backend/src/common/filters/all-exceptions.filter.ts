@@ -30,8 +30,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof Error ? exception.stack : '',
     );
 
+    const extra: Record<string, any> = {};
+    if (typeof message === 'object' && message !== null) {
+      if ((message as any).expired !== undefined) extra.expired = (message as any).expired;
+      if ((message as any).companyName !== undefined) extra.companyName = (message as any).companyName;
+      if ((message as any).whatsapp !== undefined) extra.whatsapp = (message as any).whatsapp;
+    }
+
     response.status(status).json({
       statusCode: status,
+      ...extra,
       message:
         typeof message === 'string' ? message : message.message || message,
       // Detalhe interno de erro 500 não sai em produção.

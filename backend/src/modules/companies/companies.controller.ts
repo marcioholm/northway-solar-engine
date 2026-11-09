@@ -23,6 +23,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import * as crypto from 'crypto';
 import { ApiBearerAuth, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { Company } from './entities/company.entity';
@@ -81,7 +82,7 @@ export class CompaniesController {
       'logo',
     );
 
-    const path = `logos/${id}/logo.${optimized.extension}`;
+    const path = `logos/${id}/logo-${crypto.randomUUID()}.${optimized.extension}`;
     await this.supabase.uploadFile('logos', path, optimized.buffer, optimized.mimetype);
     const publicUrl = await this.supabase.getPublicUrl('logos', path);
     if (publicUrl) {

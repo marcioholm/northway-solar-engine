@@ -61,16 +61,16 @@ ${data.publicToken ? `
 <script>
   (function() {
     const token = '${data.publicToken}';
-    const track = (eventType, durationSeconds = 0) => {
-      fetch('/proposals/public/' + token + '/track', {
+    const track = (payload) => {
+      fetch('/proposals/public/' + token + '/tracking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventType, durationSeconds })
+        body: JSON.stringify(payload)
       }).catch(() => {});
     };
 
-    // 1. Send OPEN event immediately
-    track('OPEN');
+    // 1. Send view event immediately
+    track({ eventType: 'view' });
 
     // 2. Track when pricing section is viewed
     document.addEventListener('DOMContentLoaded', () => {
@@ -86,7 +86,7 @@ ${data.publicToken ? `
               if (startTime && !isViewed) {
                 const duration = Math.round((Date.now() - startTime) / 1000);
                 if (duration > 2) { // Only track if they stayed for more than 2 seconds
-                  track('VIEW_PRICING', duration);
+                  track({ eventType: 'section_view', section: 'pricing', duration });
                   isViewed = true; // send once per session
                   observer.disconnect();
                 }

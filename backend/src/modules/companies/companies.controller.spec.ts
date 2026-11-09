@@ -73,7 +73,7 @@ describe('CompaniesController', () => {
       );
       expect(supabase.uploadFile).toHaveBeenCalledWith(
         'logos',
-        'logos/comp-1/logo.png',
+        expect.stringMatching(/^logos\/comp-1\/logo-[a-f0-9-]+\.png$/),
         Buffer.from('optimized-bytes'),
         'image/png',
       );
@@ -112,7 +112,7 @@ describe('CompaniesController', () => {
       );
       expect(supabase.uploadFile).toHaveBeenCalledWith(
         'logos',
-        'logos/comp-1/logo.webp',
+        expect.stringMatching(/^logos\/comp-1\/logo-[a-f0-9-]+\.webp$/),
         Buffer.from('optimized-webp'),
         'image/webp',
       );

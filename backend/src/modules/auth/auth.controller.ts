@@ -16,15 +16,14 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @UseGuards(ThrottlerGuard)
+  @UseGuards(UserThrottlerGuard)
   @Post('login')
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'Return JWT token' })
@@ -34,13 +33,6 @@ export class AuthController {
       throw new UnauthorizedException('Invalid credentials');
     }
     return this.authService.login(user);
-  }
-
-  @UseGuards(ThrottlerGuard)
-  @Post('register')
-  @ApiOperation({ summary: 'Register new user' })
-  async register(@Body() createUserDto: RegisterDto) {
-    return this.authService.register(createUserDto);
   }
 
   @UseGuards(AuthGuard('jwt'))

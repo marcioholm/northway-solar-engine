@@ -23,11 +23,15 @@ import {
 } from './dto/proposal-option.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags, ApiQuery } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 
 @ApiTags('proposals')
 @Controller('proposals')
 export class ProposalsController {
-  constructor(private readonly proposalsService: ProposalsService) {}
+  constructor(
+    private readonly proposalsService: ProposalsService,
+  ) {}
 
   @Post()
   @ApiBearerAuth()
@@ -128,7 +132,9 @@ export class ProposalsController {
   async findOnePublic(@Param('token') token: string, @Query('format') format?: string) {
     const proposal = await this.proposalsService.findByToken(token);
     if (!proposal) throw new NotFoundException('Proposal not found');
-    
+
+    await this.proposalsService.assertNotExpired(proposal);
+
     if (format === 'html') {
       const result = await this.proposalsService.render(proposal.id, proposal.companyId, 'html');
       return result.content;
@@ -148,31 +154,18 @@ export class ProposalsController {
   }
 
   @Get('public/:token/pdf')
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async downloadPdfPublic(@Param('token') token: string, @Res() res: Response) {
     const proposal = await this.proposalsService.findByToken(token);
     if (!proposal) throw new NotFoundException('Proposal not found');
+
+    await this.proposalsService.assertNotExpired(proposal);
+
     const { content, filename } = await this.proposalsService.render(proposal.id, proposal.companyId, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(content);
-  }
-
-  @Post('public/:token/track')
-  async trackEvent(
-    @Param('token') token: string,
-    @Body() body: { eventType: string; durationSeconds?: number },
-    @Request() req,
-  ) {
-    const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-    await this.proposalsService.trackEvent(
-      token,
-      body.eventType,
-      body.durationSeconds || 0,
-      ip,
-      userAgent,
-    );
-    return { success: true };
   }
 
   @Get(':id/events')
