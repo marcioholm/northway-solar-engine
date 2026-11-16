@@ -4,10 +4,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ProposalSettingsService } from './proposal-settings.service';
 import { ProposalSettings } from './entities/proposal-settings.entity';
+import { Company } from '../companies/entities/company.entity';
 
 describe('ProposalSettingsService', () => {
   let service: ProposalSettingsService;
   let repo: any;
+  let companyRepo: any;
 
   const mockSettings = {
     id: 'setting-1',
@@ -30,12 +32,25 @@ describe('ProposalSettingsService', () => {
       save: jest.fn().mockImplementation((item) => Promise.resolve(item)),
     };
 
+    companyRepo = {
+      findOne: jest.fn().mockResolvedValue({
+        id: 'company-1',
+        name: 'Sol Teste',
+        baseCity: 'Campinas - SP',
+      }),
+      save: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProposalSettingsService,
         {
           provide: getRepositoryToken(ProposalSettings),
           useValue: repo,
+        },
+        {
+          provide: getRepositoryToken(Company),
+          useValue: companyRepo,
         },
         {
           provide: ConfigService,
@@ -115,5 +130,70 @@ describe('ProposalSettingsService', () => {
     });
 
     expect(updated.coverImageUrl).toBe(validUrl);
+  });
+
+  describe('generatePreviewPdf', () => {
+    it('deve montar dados de exemplo corretamente, com 3 cenários e sem chamadas de save/insert', async () => {
+      repo.findOne.mockResolvedValue({
+        ...mockSettings,
+        paymentDefaults: {
+          cashDiscountPct: 5,
+          card: { installments: 12, totalMarkupPct: 15 },
+        },
+      });
+
+      let capturedData: any = null;
+      jest.spyOn((service as any).pdfRenderer, 'render').mockImplementation(async (data: any) => {
+        capturedData = data;
+        return {
+          content: Buffer.from('%PDF-1.4 mock preview pdf'),
+          filename: 'preview.pdf',
+          mimeType: 'application/pdf',
+        };
+      });
+
+      const buffer = await service.generatePreviewPdf('company-1', {
+        consumptionKwh: 1000,
+      });
+
+      expect(buffer).toBeDefined();
+      expect(buffer.toString()).toContain('%PDF-1.4 mock preview pdf');
+
+      // Nenhuma chamada de save ou create no banco
+      expect(repo.save).not.toHaveBeenCalled();
+      expect(repo.create).not.toHaveBeenCalled();
+      expect(companyRepo.save).not.toHaveBeenCalled();
+
+      // Cliente fictício fixo
+      expect(capturedData.proposal.clientName).toBe('Cliente Exemplo');
+      expect(capturedData.proposal.clientCity).toBe('Campinas');
+      expect(capturedData.project.clientState).toBe('SP');
+
+      // Código da prévia e marca d'água
+      expect(capturedData.proposal.code).toBe('PREVIA');
+      expect(capturedData.isPreview).toBe(true);
+
+      // 3 cenários calculados pelo scenario-calculator
+      const options = capturedData.proposal.options;
+      expect(options).toHaveLength(3);
+      expect(options[0].name).toContain('Essencial');
+      expect(options[0].recommended).toBe(false);
+      expect(options[1].name).toContain('Recomendado');
+      expect(options[1].recommended).toBe(true);
+      expect(options[2].name).toContain('Expansão');
+      expect(options[2].recommended).toBe(false);
+
+      // Preço de exemplo = R$ 3.400 por kWp
+      for (const opt of options) {
+        expect(opt.finalPrice).toBe(Math.round(opt.systemPowerKwp * 3400));
+        expect(opt.moduleDesc).toContain('550 W (Exemplo)');
+        expect(opt.inverterDesc).toContain('Inversor Solar');
+        expect(opt.structureDesc).toBeUndefined();
+      }
+
+      // QR aponta para /settings
+      expect(capturedData.qr).toBeDefined();
+      expect(capturedData.qr.url).toContain('/settings');
+    });
   });
 });

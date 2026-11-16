@@ -9,9 +9,14 @@ import {
   UseInterceptors,
   UploadedFile,
   Request,
+  Res,
+  HttpCode,
+  HttpStatus,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
@@ -19,10 +24,12 @@ import * as crypto from 'crypto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { UserThrottlerGuard } from '../../common/guards/user-throttler.guard';
 import { SupabaseService } from '../../supabase/supabase.service';
 import { ProposalSettingsService } from './proposal-settings.service';
 import { ImageOptimizerService } from './image-optimizer.service';
 import { UpdateProposalSettingsDto } from './dto/update-proposal-settings.dto';
+import { PreviewPdfDto } from './dto/preview-pdf.dto';
 
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
 const ALLOWED_MIME_TYPES: Record<string, string> = {
@@ -56,6 +63,29 @@ export class ProposalSettingsController {
     @Body() dto: UpdateProposalSettingsDto,
   ) {
     return this.service.update(req.user.companyId, dto);
+  }
+
+  @Post('preview-pdf')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async previewPdf(
+    @Request() req,
+    @Body() dto: PreviewPdfDto,
+    @Res() res: Response,
+  ) {
+    const pdfBuffer = await this.service.generatePreviewPdf(
+      req.user.companyId,
+      dto,
+    );
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="proposta-previa.pdf"',
+      'Content-Length': pdfBuffer.length,
+    });
+    return res.end(pdfBuffer);
   }
 
   @Post('upload')

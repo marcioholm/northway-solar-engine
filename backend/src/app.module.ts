@@ -55,6 +55,14 @@ import { GeoModule } from './modules/geo/geo.module';
       {
         ttl: 60000,
         limit: 10,
+        getTracker: (req) => {
+          const userId = req.user?.userId || req.user?.id || req.user?.sub;
+          return userId
+            ? `user-${userId}`
+            : req.ips?.length
+            ? req.ips[0]
+            : req.ip;
+        },
       },
     ]),
     AuthModule,

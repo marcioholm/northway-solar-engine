@@ -10,6 +10,7 @@ import { KIT_3D_PNG_BASE64 } from './kit-art.data';
 export interface CommercialTemplateData {
   code?: string;
   publicToken?: string;
+  isPreview?: boolean;
   createdAt?: string;
   expirationDate?: string;
   clientName?: string;
@@ -54,9 +55,16 @@ export interface CommercialTemplateData {
   } | null;
 }
 
-export const getCss = (s: any, usesKit3d = false) => {
+export const getCss = (s: any, usesKit3d = false, isPreview = false) => {
   const principal = s.primaryColor || '#1F2937';
   const destaque = s.secondaryColor || '#F59E0B';
+
+  const previewCss = isPreview
+    ? `
+.page::before{content:'PRÉVIA — DADOS DE EXEMPLO';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);width:140%;padding:10px 0;background:rgba(220,38,38,.04);border-top:1px dashed rgba(220,38,38,.18);border-bottom:1px dashed rgba(220,38,38,.18);color:rgba(220,38,38,.22);text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:26pt;letter-spacing:4px;text-transform:uppercase;pointer-events:none;z-index:9999;white-space:nowrap}
+.page::after{content:'PRÉVIA — DADOS DE EXEMPLO';position:absolute;top:26mm;right:-24mm;width:95mm;transform:rotate(45deg);background:rgba(220,38,38,.9);color:#ffffff;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:9.5pt;letter-spacing:1.2px;line-height:22px;box-shadow:0 1mm 2mm rgba(0,0,0,.15);z-index:99999;pointer-events:none;text-transform:uppercase}
+`
+    : '';
 
   return `
 :root{--sec:${principal};--on-sec:${onColor(principal)};--pri:${destaque};--on-pri:${onColor(destaque)};--ink:#151a18;--mut:#5d6662;--line:#dfe3e1;--soft:#f2f4f3}
@@ -198,7 +206,7 @@ ${usesKit3d ? `.kit3d{width:100%;aspect-ratio:3/2;background:url(data:image/png;
 .sig{display:flex;gap:10mm;margin-top:7mm}
 .sig div{flex:1;border-top:.35mm solid var(--ink);padding-top:1.6mm;font-size:8pt}
 .sig b{display:block;font-weight:600;font-size:9pt}
-`;
+${previewCss}`;
 };
 
 function hdr(d: any) {
@@ -825,6 +833,11 @@ export async function commercialTemplate(
 ): Promise<string> {
   const d = normalizeProposalData(rawData);
 
+  if (rawData.isPreview || d.isPreview) {
+    d.isPreview = true;
+    d.code = 'PREVIA';
+  }
+
   let qr = rawData.qr;
   if (qr === undefined && d.settings?.qr?.enabled !== false && d.publicToken) {
     const target = qrTarget(d);
@@ -848,7 +861,7 @@ export async function commercialTemplate(
   const usesKit3d = (d.options || []).some(
     (o: any) => !o.imageUrl && !d.settings?.kitImageUrl,
   );
-  const cssStr = getCss(d.settings || {}, usesKit3d);
+  const cssStr = getCss(d.settings || {}, usesKit3d, Boolean(d.isPreview));
   const pagesHtml = buildPagesHtml(d, qr);
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Proposta Comercial</title>

@@ -293,6 +293,9 @@ export class ProposalHtmlRenderer implements ProposalRenderer {
 
     const html = await commercialTemplate({
       footnote,
+      code: (proposal as any)?.code || (data.isPreview ? 'PREVIA' : proposal?.id?.substring(0, 8).toUpperCase()),
+      isPreview: Boolean(data.isPreview || (proposal as any)?.isPreview),
+      qr: data.qr !== undefined ? data.qr : undefined,
       clientName: proposal.clientName,
       clientCity: proposal.clientCity,
       clientState: projectData.clientState,

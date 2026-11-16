@@ -269,5 +269,15 @@ describe('commercialTemplate', () => {
       const html = await commercialTemplate({ ...baseProposal, settings } as any);
       expect((html.match(/class="blk it"/g) || []).length).toBe(3);
     });
+
+    it('quando isPreview=true, exibe marca dágua PRÉVIA — DADOS DE EXEMPLO e código PREVIA', async () => {
+      const html = await commercialTemplate({
+        ...baseProposal,
+        isPreview: true,
+        settings,
+      } as any);
+      expect(html).toContain('PRÉVIA — DADOS DE EXEMPLO');
+      expect(html).toContain('PREVIA');
+    });
   });
 });
